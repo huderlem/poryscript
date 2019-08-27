@@ -16,8 +16,10 @@ const (
 	EOF     = "EOF"
 
 	// Identifiers and literals
-	IDENT = "IDENT"
-	INT   = "INT"
+	IDENT     = "IDENT"
+	INT       = "INT"
+	STRING    = "STRING"
+	RAWSTRING = "RAWSTRING"
 
 	// Operators
 	EQ  = "=="
@@ -36,27 +38,39 @@ const (
 	RBRACE = "}"
 
 	// Keywords
-	SCRIPT = "SCRIPT"
-	VAR    = "VAR"
-	FLAG   = "FLAG"
-	TRUE   = "TRUE"
-	FALSE  = "FALSE"
-	IF     = "IF"
-	ELSE   = "ELSE"
-	ELSEIF = "ELSEIF"
-	RETURN = "RETURN"
+	SCRIPT    = "SCRIPT"
+	RAW       = "RAW"
+	RAWGLOBAL = "RAWGLOBAL"
+	VAR       = "VAR"
+	FLAG      = "FLAG"
+	TRUE      = "TRUE"
+	FALSE     = "FALSE"
+	IF        = "IF"
+	ELSE      = "ELSE"
+	ELSEIF    = "ELSEIF"
+	RETURN    = "RETURN"
+)
+
+// If statement comparison types
+const (
+	CMPVAR  = "CMPVAR"
+	CMPFLAG = "CMPFLAG"
 )
 
 var keywords = map[string]Type{
-	"script": SCRIPT,
-	"var":    VAR,
-	"flag":   FLAG,
-	"TRUE":   TRUE,
-	"FALSE":  FALSE,
-	"if":     IF,
-	"else":   ELSE,
-	"elif":   ELSEIF,
-	"return": RETURN,
+	"script":     SCRIPT,
+	"raw":        RAW,
+	"raw_global": RAWGLOBAL,
+	"var":        VAR,
+	"flag":       FLAG,
+	"TRUE":       TRUE,
+	"FALSE":      FALSE,
+	"true":       TRUE,
+	"false":      FALSE,
+	"if":         IF,
+	"else":       ELSE,
+	"elif":       ELSEIF,
+	"return":     RETURN,
 }
 
 // GetIdentType looks up the token type for the given identifier

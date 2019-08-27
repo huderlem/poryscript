@@ -1,6 +1,9 @@
 package lexer
 
 import (
+	"strings"
+	"unicode"
+
 	"github.com/huderlem/poryscript/token"
 )
 
@@ -15,7 +18,7 @@ type Lexer struct {
 
 // New initializes a new lexer for the given Poryscript file
 func New(input string) *Lexer {
-	l := &Lexer{input: input}
+	l := &Lexer{input: input, lineNumber: 1}
 	l.readChar()
 	return l
 }
@@ -80,12 +83,23 @@ func (l *Lexer) NextToken() token.Token {
 		} else {
 			tok = newToken(token.GT, l.ch, l.lineNumber)
 		}
+
 	case '(':
 		tok = newToken(token.LPAREN, l.ch, l.lineNumber)
 	case ')':
 		tok = newToken(token.RPAREN, l.ch, l.lineNumber)
 	case ',':
 		tok = newToken(token.COMMA, l.ch, l.lineNumber)
+	case '"':
+		tok.LineNumber = l.lineNumber
+		tok.Literal = l.readString()
+		tok.Type = token.STRING
+		return tok
+	case '`':
+		tok.LineNumber = l.lineNumber
+		tok.Literal = l.readRaw()
+		tok.Type = token.RAWSTRING
+		return tok
 	case '{':
 		tok = newToken(token.LBRACE, l.ch, l.lineNumber)
 	case '}':
@@ -119,6 +133,12 @@ func (l *Lexer) skipWhitespace() {
 	}
 }
 
+func (l *Lexer) skipNonTabWhitespace() {
+	for l.ch == ' ' || l.ch == '\n' || l.ch == '\r' {
+		l.readChar()
+	}
+}
+
 func newToken(tokenType token.Type, ch byte, lineNumber int) token.Token {
 	return token.Token{Type: tokenType, Literal: string(ch), LineNumber: lineNumber}
 }
@@ -129,6 +149,35 @@ func (l *Lexer) readIdentifier() string {
 		l.readChar()
 	}
 	return l.input[start:l.position]
+}
+
+func (l *Lexer) readString() string {
+	var sb strings.Builder
+	for l.ch == '"' {
+		if sb.Len() > 0 {
+			sb.WriteString("\n")
+		}
+		l.readChar()
+		for l.ch != '"' && l.ch != 0 {
+			sb.WriteByte(l.ch)
+			l.readChar()
+		}
+		l.readChar()
+		l.skipWhitespace()
+	}
+	return sb.String()
+}
+
+func (l *Lexer) readRaw() string {
+	var sb strings.Builder
+	l.readChar()
+	l.skipNonTabWhitespace()
+	for l.ch != '`' && l.ch != 0 {
+		sb.WriteByte(l.ch)
+		l.readChar()
+	}
+	l.readChar()
+	return strings.TrimRightFunc(sb.String(), unicode.IsSpace)
 }
 
 func isLetter(ch byte) bool {

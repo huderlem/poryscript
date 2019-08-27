@@ -13,9 +13,16 @@ type Statement interface {
 	statementNode()
 }
 
+// Text holds a label and value for some script text.
+type Text struct {
+	Name  string
+	Value string
+}
+
 // Program represents the root-level Node in any Poryscript AST.
 type Program struct {
 	TopLevelStatements []Statement
+	Texts              []Text
 }
 
 // TokenLiteral returns a string representation of the Program node.
@@ -74,3 +81,39 @@ func (i *Identifier) expressionNode() {}
 
 // TokenLiteral returns a string representation of the identifier.
 func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
+
+// RawStatement is a Poryscript raw statement. Raw statements are directly
+// included into the target bytecode script.
+type RawStatement struct {
+	Token    token.Token
+	Name     *Identifier
+	Value    string
+	IsGlobal bool
+}
+
+func (rs *RawStatement) statementNode() {}
+
+// TokenLiteral returns a string representation of the raw statement.
+func (rs *RawStatement) TokenLiteral() string { return rs.Token.Literal }
+
+// ConditionExpression is the condition for an if statement.
+type ConditionExpression struct {
+	Type            token.Type
+	Operand         string
+	Operator        token.Type
+	ComparisonValue string
+	Body            *BlockStatement
+}
+
+// IfStatement is an if statement in Poryscript.
+type IfStatement struct {
+	Token            token.Token
+	Consequence      *ConditionExpression
+	ElifConsequences []*ConditionExpression
+	ElseConsequence  *BlockStatement
+}
+
+func (rs *IfStatement) statementNode() {}
+
+// TokenLiteral returns a string representation of the if statement.
+func (ie *IfStatement) TokenLiteral() string { return ie.Token.Literal }

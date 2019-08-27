@@ -11,17 +11,19 @@ import (
 
 // Parser is a Poryscript AST parser.
 type Parser struct {
-	l         *lexer.Lexer
-	curToken  token.Token
-	peekToken token.Token
-	errors    []string
+	l             *lexer.Lexer
+	curToken      token.Token
+	peekToken     token.Token
+	errors        []string
+	implicitTexts []string
 }
 
 // New creates a new Poryscript AST Parser.
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{
-		l:      l,
-		errors: []string{},
+		l:             l,
+		errors:        []string{},
+		implicitTexts: []string{},
 	}
 	// Read two tokens, so curToken and peekToken are both set.
 	p.nextToken()
@@ -58,10 +60,18 @@ func (p *Parser) peekError(expectedType token.Type) {
 	p.errors = append(p.errors, msg)
 }
 
+func getImplicitTextLabel(i int) string {
+	return fmt.Sprintf("Text_%d", i)
+}
+
 // ParseProgram parses a Poryscript file into an AST.
 func (p *Parser) ParseProgram() *ast.Program {
-	program := &ast.Program{}
-	program.TopLevelStatements = []ast.Statement{}
+	p.implicitTexts = nil
+	program := &ast.Program{
+		TopLevelStatements: []ast.Statement{},
+		Texts:              []ast.Text{},
+	}
+
 	for p.curToken.Type != token.EOF {
 		statement := p.parseTopLevelStatement()
 		if len(p.errors) > 0 {
@@ -76,6 +86,13 @@ func (p *Parser) ParseProgram() *ast.Program {
 		p.nextToken()
 	}
 
+	for i, text := range p.implicitTexts {
+		program.Texts = append(program.Texts, ast.Text{
+			Name:  getImplicitTextLabel(i),
+			Value: text,
+		})
+	}
+
 	return program
 }
 
@@ -83,6 +100,12 @@ func (p *Parser) parseTopLevelStatement() ast.Statement {
 	switch p.curToken.Type {
 	case token.SCRIPT:
 		statement := p.parseScriptStatement()
+		if statement == nil {
+			return nil
+		}
+		return statement
+	case token.RAW, token.RAWGLOBAL:
+		statement := p.parseRawStatement()
 		if statement == nil {
 			return nil
 		}
@@ -148,6 +171,12 @@ func (p *Parser) parseStatement() ast.Statement {
 			return nil
 		}
 		return statement
+	case token.IF:
+		statement := p.parseIfStatement()
+		if statement == nil {
+			return nil
+		}
+		return statement
 	}
 
 	msg := fmt.Sprintf("line %d: could not parse statement for '%s'\n", p.curToken.LineNumber, p.curToken.Literal)
@@ -181,14 +210,20 @@ func (p *Parser) parseCommandStatement() ast.Statement {
 				arg := strings.Join(argParts, " ")
 				command.Args = append(command.Args, arg)
 				argParts = []string{}
+			} else if p.curToken.Type == token.LPAREN {
+				numOpenParens++
+				argParts = append(argParts, p.curToken.Literal)
+			} else if p.curToken.Type == token.RPAREN {
+				numOpenParens--
+				argParts = append(argParts, p.curToken.Literal)
+			} else if p.curToken.Type == token.STRING {
+				textLabel := getImplicitTextLabel(len(p.implicitTexts))
+				p.implicitTexts = append(p.implicitTexts, p.curToken.Literal)
+				argParts = append(argParts, textLabel)
 			} else {
-				if p.curToken.Type == token.LPAREN {
-					numOpenParens++
-				} else if p.curToken.Type == token.RPAREN {
-					numOpenParens--
-				}
 				argParts = append(argParts, p.curToken.Literal)
 			}
+
 			p.nextToken()
 		}
 
@@ -199,4 +234,180 @@ func (p *Parser) parseCommandStatement() ast.Statement {
 	}
 
 	return command
+}
+
+func (p *Parser) parseRawStatement() *ast.RawStatement {
+	statement := &ast.RawStatement{
+		Token:    p.curToken,
+		IsGlobal: p.curToken.Type == token.RAWGLOBAL,
+	}
+	if !p.expectPeek(token.IDENT) {
+		return nil
+	}
+
+	statement.Name = &ast.Identifier{
+		Token: p.curToken,
+		Value: p.curToken.Literal,
+	}
+
+	if !p.expectPeek(token.RAWSTRING) {
+		return nil
+	}
+
+	statement.Value = p.curToken.Literal
+	return statement
+}
+
+func (p *Parser) parseIfStatement() *ast.IfStatement {
+	statement := &ast.IfStatement{
+		Token: p.curToken,
+	}
+	if !p.expectPeek(token.LPAREN) {
+		msg := fmt.Sprintf("line %d: missing opening parenthesis of if statement '%s'", statement.Token.LineNumber, p.peekToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	// First if statement condition
+	consequence := p.parseIfConditionExpression(statement.Token.LineNumber)
+	if consequence == nil {
+		return nil
+	}
+	statement.Consequence = consequence
+
+	// Possibly-many elif conditions
+	for p.peekToken.Type == token.ELSEIF {
+		p.nextToken()
+		if !p.expectPeek(token.LPAREN) {
+			msg := fmt.Sprintf("line %d: missing opening parenthesis of elif statement '%s'", p.curToken.LineNumber, p.peekToken.Literal)
+			p.errors = append(p.errors, msg)
+			return nil
+		}
+		consequence = p.parseIfConditionExpression(p.peekToken.LineNumber)
+		if consequence == nil {
+			return nil
+		}
+		statement.ElifConsequences = append(statement.ElifConsequences, consequence)
+	}
+
+	// Trailing else block
+	if p.peekToken.Type == token.ELSE {
+		p.nextToken()
+		if !p.expectPeek(token.LBRACE) {
+			msg := fmt.Sprintf("line %d: missing opening curly brace of else statement '%s'", p.peekToken.LineNumber, p.peekToken.Literal)
+			p.errors = append(p.errors, msg)
+			return nil
+		}
+		p.nextToken()
+		statement.ElseConsequence = p.parseBlockStatement()
+	}
+
+	return statement
+}
+
+func (p *Parser) parseIfConditionExpression(lineNumber int) *ast.ConditionExpression {
+	if !p.peekTokenIs(token.VAR) && !p.peekTokenIs(token.FLAG) {
+		msg := fmt.Sprintf("line %d: invalid if statement command '%s'", lineNumber, p.peekToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	p.nextToken()
+	expression := &ast.ConditionExpression{Type: p.curToken.Type}
+	if !p.expectPeek(token.LPAREN) {
+		msg := fmt.Sprintf("line %d: missing opening parenthesis for if statement operator '%s'", lineNumber, expression.Type)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	if p.peekToken.Type == token.RPAREN {
+		msg := fmt.Sprintf("line %d: missing value for if statement operator '%s'", lineNumber, expression.Type)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	p.nextToken()
+
+	parts := []string{}
+	for p.curToken.Type != token.RPAREN {
+		parts = append(parts, p.curToken.Literal)
+		p.nextToken()
+	}
+	expression.Operand = strings.Join(parts, " ")
+	p.nextToken()
+
+	if expression.Type == token.VAR {
+		ok := p.parseIfVarOperator(expression)
+		if !ok {
+			return nil
+		}
+	} else if expression.Type == token.FLAG {
+		ok := p.parseIfFlagOperator(expression)
+		if !ok {
+			return nil
+		}
+	}
+
+	expression.Body = p.parseBlockStatement()
+	return expression
+}
+
+func (p *Parser) parseIfVarOperator(expression *ast.ConditionExpression) bool {
+	if p.curToken.Type != token.GT && p.curToken.Type != token.GTE && p.curToken.Type != token.LT &&
+		p.curToken.Type != token.LTE && p.curToken.Type != token.EQ && p.curToken.Type != token.NEQ {
+		msg := fmt.Sprintf("line %d: invalid condition operator '%s'", p.curToken.LineNumber, p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return false
+	}
+	expression.Operator = p.curToken.Type
+	p.nextToken()
+
+	if p.curToken.Type == token.RPAREN {
+		msg := fmt.Sprintf("line %d: missing comparison value for if statement", p.curToken.LineNumber)
+		p.errors = append(p.errors, msg)
+		return false
+	}
+	parts := []string{}
+	for p.curToken.Type != token.RPAREN {
+		parts = append(parts, p.curToken.Literal)
+		p.nextToken()
+	}
+	if !p.expectPeek(token.LBRACE) {
+		return false
+	}
+
+	expression.ComparisonValue = strings.Join(parts, " ")
+	p.nextToken()
+	return true
+}
+
+func (p *Parser) parseIfFlagOperator(expression *ast.ConditionExpression) bool {
+	if p.curToken.Type != token.EQ {
+		msg := fmt.Sprintf("line %d: invalid condition operator '%s'. Only '==' is allowed.", p.curToken.LineNumber, p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return false
+	}
+	expression.Operator = p.curToken.Type
+	p.nextToken()
+
+	if p.curToken.Type == token.RPAREN {
+		msg := fmt.Sprintf("line %d: missing comparison value for if statement", p.curToken.LineNumber)
+		p.errors = append(p.errors, msg)
+		return false
+	}
+
+	if p.curToken.Type != token.TRUE && p.curToken.Type != token.FALSE {
+		msg := fmt.Sprintf("line %d: invalid flag comparison value '%s'. Only 'TRUE' and 'FALSE' are allowed.", p.curToken.LineNumber, p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return false
+	}
+
+	expression.ComparisonValue = string(p.curToken.Type)
+	if !p.expectPeek(token.RPAREN) {
+		return false
+	}
+	if !p.expectPeek(token.LBRACE) {
+		return false
+	}
+
+	p.nextToken()
+	return true
 }

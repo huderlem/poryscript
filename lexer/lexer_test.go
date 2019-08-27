@@ -23,6 +23,10 @@ func TestNextToken(t *testing.T) {
 		=
 		!
 		/
+		("Hello\n"
+		"I'm glad to see$")
+		raw raw_global RawTest ` + "`" + `
+	step
 `
 
 	tests := []struct {
@@ -84,6 +88,13 @@ func TestNextToken(t *testing.T) {
 		{token.ILLEGAL, "="},
 		{token.ILLEGAL, "!"},
 		{token.ILLEGAL, "/"},
+		{token.LPAREN, "("},
+		{token.STRING, "Hello\\n\nI'm glad to see$"},
+		{token.RPAREN, ")"},
+		{token.RAW, "raw"},
+		{token.RAWGLOBAL, "raw_global"},
+		{token.IDENT, "RawTest"},
+		{token.RAWSTRING, "\tstep"},
 		{token.EOF, ""},
 	}
 

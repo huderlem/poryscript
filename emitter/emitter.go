@@ -2,10 +2,35 @@ package emitter
 
 import (
 	"fmt"
+	"sort"
 	"strings"
+
+	"github.com/huderlem/poryscript/token"
 
 	"github.com/huderlem/poryscript/ast"
 )
+
+// Helper types for keeping track of script chunk branching logic.
+type destination struct {
+	id              int
+	compareType     token.Type
+	operand         string
+	operator        token.Type
+	comparisonValue string
+}
+
+type ifBranch struct {
+	consequence      *destination
+	elifConsequences []*destination
+	elseConsequence  *destination
+}
+
+type chunk struct {
+	id         int
+	returnID   int
+	statements []ast.Statement
+	branch     *ifBranch
+}
 
 // Emitter is responsible for transforming a parsed Poryscript program into
 // the target assembler bytecode script.
@@ -23,42 +48,280 @@ func New(program *ast.Program) *Emitter {
 // Emit the target assembler bytecode script.
 func (e *Emitter) Emit() string {
 	var sb strings.Builder
-	for i, stmt := range e.program.TopLevelStatements {
+	i := 0
+	for _, stmt := range e.program.TopLevelStatements {
 		if i > 0 {
 			sb.WriteString("\n")
 		}
 
 		scriptStmt, ok := stmt.(*ast.ScriptStatement)
-		if !ok {
-			fmt.Printf("Could not emit top-level statement because it is not a Script statement")
-			return ""
+		if ok {
+			sb.WriteString(emitScriptStatement(scriptStmt))
+			i++
+			continue
 		}
 
-		emitted := emitScriptStatement(scriptStmt)
-		if emitted == "" {
-			return ""
+		rawStmt, ok := stmt.(*ast.RawStatement)
+		if ok {
+			sb.WriteString(emitRawStatement(rawStmt))
+			i++
+			continue
 		}
 
+		fmt.Printf("Could not emit top-level statement because it is not recognized: %q", stmt.TokenLiteral())
+		return ""
+	}
+
+	for j, text := range e.program.Texts {
+		if i+j > 0 {
+			sb.WriteString("\n")
+		}
+
+		emitted := emitText(text)
 		sb.WriteString(emitted)
 	}
 	return sb.String()
 }
 
 func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s::\n", scriptStmt.Name.Value))
-	for _, stmt := range scriptStmt.Body.Statements {
-		commandStmt, ok := stmt.(*ast.CommandStatement)
-		if !ok {
-			fmt.Printf("Could not emit statement because it is not a Command statement")
-			return ""
+	chunkCounter := 0
+	finalChunks := make(map[int]chunk)
+	remainingChunks := []chunk{
+		{id: chunkCounter, returnID: -1, statements: scriptStmt.Body.Statements[:]},
+	}
+	for len(remainingChunks) > 0 {
+		// Grab an unprocessed script chunk.
+		curChunk := remainingChunks[0]
+		remainingChunks = remainingChunks[1:]
+
+		// Skip over basic command statements.
+		i := 0
+		for _, stmt := range curChunk.statements {
+			if _, ok := stmt.(*ast.CommandStatement); !ok {
+				break
+			}
+			i++
 		}
 
-		sb.WriteString(fmt.Sprintf("\t%s", commandStmt.Name.Value))
-		if len(commandStmt.Args) > 0 {
-			sb.WriteString(fmt.Sprintf(" %s", strings.Join(commandStmt.Args, ", ")))
+		if i == len(curChunk.statements) {
+			// Finalize a new chunk, if we reached the end of the statements.
+			finalChunks[curChunk.id] = curChunk
+			continue
 		}
+
+		// Create new chunks from if statement blocks.
+		if stmt, ok := curChunk.statements[i].(*ast.IfStatement); ok {
+			newRemainingChunks, branch := createIfStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
+			remainingChunks = newRemainingChunks
+			completeChunk := chunk{id: curChunk.id, returnID: curChunk.returnID, statements: curChunk.statements[:i], branch: branch}
+			finalChunks[completeChunk.id] = completeChunk
+		} else {
+			completeChunk := chunk{id: curChunk.id, returnID: curChunk.returnID, statements: curChunk.statements[:i]}
+			finalChunks[completeChunk.id] = completeChunk
+		}
+	}
+
+	// Get sorted list of final chunk ids.
+	chunkIDs := make([]int, 0)
+	for k := range finalChunks {
+		chunkIDs = append(chunkIDs, k)
+	}
+	sort.Ints(chunkIDs)
+
+	var sb strings.Builder
+	for _, chunkID := range chunkIDs {
+		requireTailJump := true
+		chunk := finalChunks[chunkID]
+		if chunk.id == 0 {
+			// Main script entrypoint, so it gets a global label.
+			sb.WriteString(fmt.Sprintf("%s::\n", scriptStmt.Name.Value))
+		} else {
+			sb.WriteString(fmt.Sprintf("%s_%d:\n", scriptStmt.Name.Value, chunk.id))
+		}
+
+		// Render basic non-branching commands.
+		for _, stmt := range chunk.statements {
+			commandStmt, ok := stmt.(*ast.CommandStatement)
+			if !ok {
+				fmt.Printf("Could not render chunk statement because it is not a command statement %q", stmt.TokenLiteral())
+				return ""
+			}
+
+			sb.WriteString(renderCommandStatement(commandStmt))
+		}
+
+		// Render branching conditions.
+		if chunk.branch != nil {
+			renderBranchComparison(&sb, chunk.branch.consequence, scriptStmt.Name.Value)
+			for _, dest := range chunk.branch.elifConsequences {
+				renderBranchComparison(&sb, dest, scriptStmt.Name.Value)
+			}
+			if chunk.branch.elseConsequence != nil {
+				sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptStmt.Name.Value, chunk.branch.elseConsequence.id))
+				requireTailJump = false
+			}
+		}
+
+		// Sometimes, a tail jump/return isn't needed.  For example, a chunk that ends in an "else"
+		// branch will always naturally end with a "goto" bytecode command.
+		if requireTailJump {
+			if chunk.returnID == -1 {
+				sb.WriteString("\treturn\n")
+			} else {
+				sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptStmt.Name.Value, chunk.returnID))
+			}
+		}
+
 		sb.WriteString("\n")
 	}
+
+	return sb.String()
+}
+
+func createDestination(compareType token.Type, operand string, operator token.Type, comparisonValue string, destinationChunk int) *destination {
+	return &destination{
+		id:              destinationChunk,
+		compareType:     compareType,
+		operand:         operand,
+		operator:        operator,
+		comparisonValue: comparisonValue,
+	}
+}
+
+func createIfBranch(ifStmt *ast.IfStatement) ifBranch {
+	branch := ifBranch{}
+	branch.consequence = createDestination(ifStmt.Consequence.Type, ifStmt.Consequence.Operand, ifStmt.Consequence.Operator, ifStmt.Consequence.ComparisonValue, -1)
+	branch.elifConsequences = []*destination{}
+	for _, elifStmt := range ifStmt.ElifConsequences {
+		branch.elifConsequences = append(branch.elifConsequences,
+			createDestination(elifStmt.Type, elifStmt.Operand, elifStmt.Operator, elifStmt.ComparisonValue, -1))
+	}
+	if ifStmt.ElseConsequence != nil {
+		branch.elseConsequence = &destination{id: -1}
+	}
+	return branch
+}
+
+func renderBranchComparison(sb *strings.Builder, dest *destination, scriptName string) {
+	if dest.compareType == token.FLAG {
+		renderFlagComparison(sb, dest, scriptName)
+	} else if dest.compareType == token.VAR {
+		renderVarComparison(sb, dest, scriptName)
+	}
+}
+
+func renderFlagComparison(sb *strings.Builder, dest *destination, scriptName string) {
+	if dest.comparisonValue == token.TRUE {
+		sb.WriteString(fmt.Sprintf("\tgoto_if_set %s, %s_%d\n", dest.operand, scriptName, dest.id))
+	} else {
+		sb.WriteString(fmt.Sprintf("\tgoto_if_unset %s, %s_%d\n", dest.operand, scriptName, dest.id))
+	}
+}
+
+func renderVarComparison(sb *strings.Builder, dest *destination, scriptName string) {
+	sb.WriteString(fmt.Sprintf("\tcompare %s, %s\n", dest.operand, dest.comparisonValue))
+	switch dest.operator {
+	case token.EQ:
+		sb.WriteString(fmt.Sprintf("\tgoto_if_eq %s_%d\n", scriptName, dest.id))
+	case token.NEQ:
+		sb.WriteString(fmt.Sprintf("\tgoto_if_ne %s_%d\n", scriptName, dest.id))
+	case token.LT:
+		sb.WriteString(fmt.Sprintf("\tgoto_if_lt %s_%d\n", scriptName, dest.id))
+	case token.LTE:
+		sb.WriteString(fmt.Sprintf("\tgoto_if_le %s_%d\n", scriptName, dest.id))
+	case token.GT:
+		sb.WriteString(fmt.Sprintf("\tgoto_if_gt %s_%d\n", scriptName, dest.id))
+	case token.GTE:
+		sb.WriteString(fmt.Sprintf("\tgoto_if_ge %s_%d\n", scriptName, dest.id))
+	}
+}
+
+func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *ifBranch) {
+	var returnID int
+	if i == len(curChunk.statements)-1 {
+		// This if statement is the last of the current chunk, so it
+		// has the same return point as the current chunk.
+		returnID = curChunk.returnID
+	} else {
+		// This if statement needs to return to a chunk of logic
+		// that occurs directly after it. So, create a new Chunk for
+		// that logic.
+		*chunkCounter++
+		newChunk := chunk{
+			id:         *chunkCounter,
+			returnID:   curChunk.returnID,
+			statements: curChunk.statements[i+1:],
+		}
+		remainingChunks = append(remainingChunks, newChunk)
+		returnID = newChunk.id
+		curChunk.returnID = newChunk.id
+	}
+
+	*chunkCounter++
+	consequenceChunk := chunk{
+		id:         *chunkCounter,
+		returnID:   returnID,
+		statements: stmt.Consequence.Body.Statements,
+	}
+	remainingChunks = append(remainingChunks, consequenceChunk)
+	branch := &ifBranch{}
+	branch.consequence = createDestination(stmt.Consequence.Type, stmt.Consequence.Operand, stmt.Consequence.Operator, stmt.Consequence.ComparisonValue, consequenceChunk.id)
+
+	branch.elifConsequences = []*destination{}
+	for _, elifStmt := range stmt.ElifConsequences {
+		*chunkCounter++
+		elifChunk := chunk{
+			id:         *chunkCounter,
+			returnID:   returnID,
+			statements: elifStmt.Body.Statements,
+		}
+		remainingChunks = append(remainingChunks, elifChunk)
+		branch.elifConsequences = append(branch.elifConsequences,
+			createDestination(elifStmt.Type, elifStmt.Operand, elifStmt.Operator, elifStmt.ComparisonValue, elifChunk.id))
+	}
+
+	if stmt.ElseConsequence != nil {
+		*chunkCounter++
+		elseChunk := chunk{
+			id:         *chunkCounter,
+			returnID:   returnID,
+			statements: stmt.ElseConsequence.Statements,
+		}
+		remainingChunks = append(remainingChunks, elseChunk)
+		branch.elseConsequence = &destination{id: elseChunk.id}
+	}
+
+	return remainingChunks, branch
+}
+
+func renderCommandStatement(commandStmt *ast.CommandStatement) string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("\t%s", commandStmt.Name.Value))
+	if len(commandStmt.Args) > 0 {
+		sb.WriteString(fmt.Sprintf(" %s", strings.Join(commandStmt.Args, ", ")))
+	}
+	sb.WriteString("\n")
+	return sb.String()
+}
+
+func emitText(text ast.Text) string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s:\n", text.Name))
+	lines := strings.Split(text.Value, "\n")
+	for _, line := range lines {
+		sb.WriteString(fmt.Sprintf("\t.string \"%s\"\n", line))
+	}
+	return sb.String()
+}
+
+func emitRawStatement(rawStmt *ast.RawStatement) string {
+	var sb strings.Builder
+
+	colon := ":"
+	if rawStmt.IsGlobal {
+		colon = "::"
+	}
+	sb.WriteString(fmt.Sprintf("%s%s\n", rawStmt.Name.Value, colon))
+	sb.WriteString(fmt.Sprintf("%s\n", rawStmt.Value))
 	return sb.String()
 }

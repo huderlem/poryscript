@@ -3,6 +3,8 @@ package parser
 import (
 	"testing"
 
+	"github.com/huderlem/poryscript/token"
+
 	"github.com/huderlem/poryscript/ast"
 	"github.com/huderlem/poryscript/lexer"
 )
@@ -118,4 +120,143 @@ func testScriptStatement(t *testing.T, s ast.Statement, expectedName string, exp
 	}
 
 	return true
+}
+
+func TestRawStatements(t *testing.T) {
+	input := `
+raw RawTest ` + "`" + `
+	step_up
+	step_end
+` + "`" + `
+
+raw_global RawTestGlobal ` + "`" + `
+	step_down
+` + "`"
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	if program == nil {
+		t.Fatalf("ParseProgram() returned nil")
+	}
+	if len(program.TopLevelStatements) != 2 {
+		t.Fatalf("program.TopLevelStatements does not contain 2 statements. got=%d", len(program.TopLevelStatements))
+	}
+
+	tests := []struct {
+		expectedName   string
+		expectedGlobal bool
+		expectedValue  string
+	}{
+		{"RawTest", false, `	step_up
+	step_end`},
+		{"RawTestGlobal", true, `	step_down`},
+	}
+
+	for i, tt := range tests {
+		stmt := program.TopLevelStatements[i]
+		if !testRawStatement(t, stmt, tt.expectedName, tt.expectedGlobal, tt.expectedValue) {
+			return
+		}
+	}
+}
+
+func testRawStatement(t *testing.T, s ast.Statement, expectedName string, expectedGlobal bool, expectedValue string) bool {
+	if s.TokenLiteral() != "raw" && s.TokenLiteral() != "raw_global" {
+		t.Errorf("s.TokenLiteral not 'raw' or 'raw_global'. got=%q", s.TokenLiteral())
+		return false
+	}
+
+	rawStmt, ok := s.(*ast.RawStatement)
+	if !ok {
+		t.Errorf("s not %T. got=%T", &ast.RawStatement{}, s)
+		return false
+	}
+
+	if rawStmt.Name.Value != expectedName {
+		t.Errorf("rawStmt.Name.Value not '%s'. got=%s", expectedName, rawStmt.Name.Value)
+		return false
+	}
+
+	if rawStmt.IsGlobal != expectedGlobal {
+		t.Errorf("rawStmt.IsGlobal not '%t'. got=%t", expectedGlobal, rawStmt.IsGlobal)
+		return false
+	}
+
+	if rawStmt.Value != expectedValue {
+		t.Errorf("rawStmt.Value not '%s'. got=%s", expectedValue, rawStmt.Value)
+		return false
+	}
+
+	return true
+}
+
+func TestIfStatements(t *testing.T) {
+	input := `
+script Test {
+	if (var(VAR_1) == 1) {
+		if (var(VAR_7) != 1) {
+			message()
+		}
+		message()
+	} elif (var(VAR_2) != 2) {
+		blah()
+	} elif (var(VAR_3) < 3) {
+		blah()
+	} elif (var(VAR_4) <= 4) {
+		blah()
+	} elif (var(VAR_5) > 5) {
+		blah()
+	} elif (var(VAR_6) >= 6) {
+		blah()
+	} elif (flag(FLAG_1) == TRUE) {
+		blah()
+	} elif (flag(FLAG_2 +  BASE) == false) {
+		blah()
+	} else {
+		message()
+		lock
+		faceplayer
+		facepalm
+		blah(1, 3, 4)
+	}
+}
+`
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	if program == nil {
+		t.Fatalf("ParseProgram() returned nil")
+	}
+
+	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
+	ifStmt := scriptStmt.Body.Statements[0].(*ast.IfStatement)
+	testConditionExpression(t, ifStmt.Consequence, token.VAR, "VAR_1", token.EQ, "1")
+	testConditionExpression(t, ifStmt.ElifConsequences[0], token.VAR, "VAR_2", token.NEQ, "2")
+	testConditionExpression(t, ifStmt.ElifConsequences[1], token.VAR, "VAR_3", token.LT, "3")
+	testConditionExpression(t, ifStmt.ElifConsequences[2], token.VAR, "VAR_4", token.LTE, "4")
+	testConditionExpression(t, ifStmt.ElifConsequences[3], token.VAR, "VAR_5", token.GT, "5")
+	testConditionExpression(t, ifStmt.ElifConsequences[4], token.VAR, "VAR_6", token.GTE, "6")
+	testConditionExpression(t, ifStmt.ElifConsequences[5], token.FLAG, "FLAG_1", token.EQ, "TRUE")
+	testConditionExpression(t, ifStmt.ElifConsequences[6], token.FLAG, "FLAG_2 + BASE", token.EQ, "false")
+	nested := ifStmt.Consequence.Body.Statements[0].(*ast.IfStatement)
+	testConditionExpression(t, nested.Consequence, token.VAR, "VAR_7", token.NEQ, "1")
+
+	if len(ifStmt.ElseConsequence.Statements) != 5 {
+		t.Fatalf("len(ifStmt.ElseConsequences) should be '%d'. got=%d", 5, len(ifStmt.ElseConsequence.Statements))
+	}
+}
+
+func testConditionExpression(t *testing.T, expression *ast.ConditionExpression, expectedType token.Type, expectedOperand string, expectedOperator token.Type, expectedComparisonValue string) {
+	if expression.Type != expectedType {
+		t.Fatalf("expression.Type not '%s'. got=%s", expectedType, expression.Type)
+	}
+	if expression.Operand != expectedOperand {
+		t.Fatalf("expression.Operand not '%s'. got=%s", expectedOperand, expression.Operand)
+	}
+	if expression.Operator != expectedOperator {
+		t.Fatalf("expression.Operator not '%s'. got=%s", expectedOperator, expression.Operator)
+	}
+	if expression.ComparisonValue != expectedComparisonValue {
+		t.Fatalf("expression.ComparisonValue not '%s'. got=%s", expectedComparisonValue, expression.ComparisonValue)
+	}
 }
