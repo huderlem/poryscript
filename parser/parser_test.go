@@ -237,7 +237,7 @@ script Test {
 	testConditionExpression(t, ifStmt.ElifConsequences[3], token.VAR, "VAR_5", token.GT, "5")
 	testConditionExpression(t, ifStmt.ElifConsequences[4], token.VAR, "VAR_6", token.GTE, "6")
 	testConditionExpression(t, ifStmt.ElifConsequences[5], token.FLAG, "FLAG_1", token.EQ, "TRUE")
-	testConditionExpression(t, ifStmt.ElifConsequences[6], token.FLAG, "FLAG_2 + BASE", token.EQ, "false")
+	testConditionExpression(t, ifStmt.ElifConsequences[6], token.FLAG, "FLAG_2 + BASE", token.EQ, "FALSE")
 	nested := ifStmt.Consequence.Body.Statements[0].(*ast.IfStatement)
 	testConditionExpression(t, nested.Consequence, token.VAR, "VAR_7", token.NEQ, "1")
 

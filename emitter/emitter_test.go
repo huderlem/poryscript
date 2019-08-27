@@ -9,48 +9,142 @@ import (
 
 func TestEmit(t *testing.T) {
 	input := `
-script MyScript {
-	lock waitstate
-	special(DoThingZhuLi)
-	message("Hi\n"
-			"I'm Marcus$")
+script Route29_EventScript_WaitingMan {
+	lock
+	faceplayer
+	gettime
+	if (var(VAR_0x8002) == TIME_NIGHT) {
+		msgbox("I'm waiting for POKéMON that appear\n"
+				"only in the morning.$")
+	} else {
+		msgbox("I'm waiting for POKéMON that appear\n"
+				"only at night.$")
+	}
+	release
 }
 
-script MyScript2 {
-	lock waitstate
-	bufferitemname(0, VAR_BUG_CONTEST_PRIZE)
+script Route29_EventScript_Dude {
+	lock
+	faceplayer
+	if (flag(FLAG_LEARNED_TO_CATCH_POKEMON) == true) {
+		msgbox(Route29_Text_PokemonInTheGrass)
+	} elif (flag(FLAG_GAVE_MYSTERY_EGG_TO_ELM) == false) {
+		msgbox(Route29_Text_PokemonInTheGrass)
+	} else {
+		msgbox("Huh? You want me to show you how\nto catch POKéMON?$", MSGBOX_YESNO)
+		if (var(VAR_RESULT) == 0) {
+			msgbox(Route29_Text_Dude_CatchingTutRejected)
+		} else {
+			closemessage
+			special(StartDudeTutorialBattle)
+			waitstate
+			lock
+			msgbox("That's how you do it.\p"
+					"If you weaken them first, POKéMON\n"
+					"are easier to catch.$")
+			setflag(FLAG_LEARNED_TO_CATCH_POKEMON)
+		}
+	}
+	release
 }
 
-raw RawTest1 ` + "`" + `
-	step_end
+raw Route29_Text_PokemonInTheGrass ` + "`" + `
+	.string "POKéMON hide in the grass.\n"
+	.string "Who knows when they'll pop out…$"
 ` + "`" + `
 
-raw_global RawTest2 ` + "`" + `
-	stuff
-	morestuff
-` + "`" + `
-`
-	expected := `MyScript::
+raw Route29_Text_Dude_CatchingTutRejected ` + "`" + `
+	.string "Oh.\n"
+	.string "Fine, then.\p"
+	.string "Anyway, if you want to catch\n"
+	.string "POKéMON, you have to walk a lot.$"
+` + "`"
+
+	expected := `Route29_EventScript_WaitingMan::
 	lock
-	waitstate
-	special DoThingZhuLi
-	message Text_0
+	faceplayer
+	gettime
+	compare VAR_0x8002, TIME_NIGHT
+	goto_if_eq Route29_EventScript_WaitingMan_2
+	goto Route29_EventScript_WaitingMan_3
 
-MyScript2::
+Route29_EventScript_WaitingMan_1:
+	release
+	return
+
+Route29_EventScript_WaitingMan_2:
+	msgbox Text_0
+	goto Route29_EventScript_WaitingMan_1
+
+Route29_EventScript_WaitingMan_3:
+	msgbox Text_1
+	goto Route29_EventScript_WaitingMan_1
+
+
+Route29_EventScript_Dude::
 	lock
+	faceplayer
+	goto_if_set FLAG_LEARNED_TO_CATCH_POKEMON, Route29_EventScript_Dude_2
+	goto_if_unset FLAG_GAVE_MYSTERY_EGG_TO_ELM, Route29_EventScript_Dude_3
+	goto Route29_EventScript_Dude_4
+
+Route29_EventScript_Dude_1:
+	release
+	return
+
+Route29_EventScript_Dude_2:
+	msgbox Route29_Text_PokemonInTheGrass
+	goto Route29_EventScript_Dude_1
+
+Route29_EventScript_Dude_3:
+	msgbox Route29_Text_PokemonInTheGrass
+	goto Route29_EventScript_Dude_1
+
+Route29_EventScript_Dude_4:
+	msgbox Text_2, MSGBOX_YESNO
+	compare VAR_RESULT, 0
+	goto_if_eq Route29_EventScript_Dude_5
+	goto Route29_EventScript_Dude_6
+
+Route29_EventScript_Dude_5:
+	msgbox Route29_Text_Dude_CatchingTutRejected
+	goto Route29_EventScript_Dude_1
+
+Route29_EventScript_Dude_6:
+	closemessage
+	special StartDudeTutorialBattle
 	waitstate
-	bufferitemname 0, VAR_BUG_CONTEST_PRIZE
+	lock
+	msgbox Text_3
+	setflag FLAG_LEARNED_TO_CATCH_POKEMON
+	goto Route29_EventScript_Dude_1
 
-RawTest1:
-	step_end
 
-RawTest2::
-	stuff
-	morestuff
+Route29_Text_PokemonInTheGrass:
+	.string "POKéMON hide in the grass.\n"
+	.string "Who knows when they'll pop out…$"
+
+Route29_Text_Dude_CatchingTutRejected:
+	.string "Oh.\n"
+	.string "Fine, then.\p"
+	.string "Anyway, if you want to catch\n"
+	.string "POKéMON, you have to walk a lot.$"
 
 Text_0:
-	.string "Hi\n"
-	.string "I'm Marcus$"
+	.string "I'm waiting for POKéMON that appear\n"
+	.string "only in the morning.$"
+
+Text_1:
+	.string "I'm waiting for POKéMON that appear\n"
+	.string "only at night.$"
+
+Text_2:
+	.string "Huh? You want me to show you how\nto catch POKéMON?$"
+
+Text_3:
+	.string "That's how you do it.\p"
+	.string "If you weaken them first, POKéMON\n"
+	.string "are easier to catch.$"
 `
 	l := lexer.New(input)
 	p := parser.New(l)

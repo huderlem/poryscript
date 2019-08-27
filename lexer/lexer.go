@@ -133,8 +133,8 @@ func (l *Lexer) skipWhitespace() {
 	}
 }
 
-func (l *Lexer) skipNonTabWhitespace() {
-	for l.ch == ' ' || l.ch == '\n' || l.ch == '\r' {
+func (l *Lexer) skipNewlineWhitespace() {
+	for l.ch == '\n' || l.ch == '\r' {
 		l.readChar()
 	}
 }
@@ -171,7 +171,7 @@ func (l *Lexer) readString() string {
 func (l *Lexer) readRaw() string {
 	var sb strings.Builder
 	l.readChar()
-	l.skipNonTabWhitespace()
+	l.skipNewlineWhitespace()
 	for l.ch != '`' && l.ch != 0 {
 		sb.WriteByte(l.ch)
 		l.readChar()
