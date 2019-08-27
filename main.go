@@ -12,6 +12,8 @@ import (
 	"github.com/huderlem/poryscript/parser"
 )
 
+const version = "1.0.0"
+
 type options struct {
 	inputFilepath  string
 	outputFilepath string
@@ -19,12 +21,18 @@ type options struct {
 
 func parseOptions() options {
 	helpPtr := flag.Bool("h", false, "show poryscript help information")
+	versionPtr := flag.Bool("v", false, "show version of poryscript")
 	inputPtr := flag.String("i", "", "input poryscript file (leave empty to read from standard input)")
 	outputPtr := flag.String("o", "", "output script file (leave empty to write to standard output)")
 	flag.Parse()
 
 	if *helpPtr == true {
 		flag.Usage()
+		os.Exit(0)
+	}
+
+	if *versionPtr == true {
+		fmt.Printf("%s\n", version)
 		os.Exit(0)
 	}
 
