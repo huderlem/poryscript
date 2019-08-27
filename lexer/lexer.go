@@ -50,6 +50,12 @@ func (l *Lexer) NextToken() token.Token {
 
 	l.skipWhitespace()
 
+	//  Check for single-line comment.
+	for l.ch == '#' {
+		l.skipToNextLine()
+		l.skipWhitespace()
+	}
+
 	switch l.ch {
 	case '=':
 		if l.peekChar() == '=' {
@@ -131,6 +137,13 @@ func (l *Lexer) skipWhitespace() {
 	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
 		l.readChar()
 	}
+}
+
+func (l *Lexer) skipToNextLine() {
+	for l.ch != '\n' && l.ch != 0 {
+		l.readChar()
+	}
+	l.readChar()
 }
 
 func (l *Lexer) skipNewlineWhitespace() {

@@ -12,6 +12,7 @@ func TestEmit(t *testing.T) {
 script Route29_EventScript_WaitingMan {
 	lock
 	faceplayer
+	# Display message based on time of day.
 	gettime
 	if (var(VAR_0x8002) == TIME_NIGHT) {
 		msgbox("I'm waiting for POKéMON that appear\n"
@@ -35,6 +36,7 @@ script Route29_EventScript_Dude {
 		if (var(VAR_RESULT) == 0) {
 			msgbox(Route29_Text_Dude_CatchingTutRejected)
 		} else {
+			# Teach the player how to catch.
 			closemessage
 			special(StartDudeTutorialBattle)
 			waitstate

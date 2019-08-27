@@ -19,6 +19,8 @@ func TestScriptStatements(t *testing.T) {
 script MyScript {
 	lock
 	bufferitemname(0, VAR_BUG_CONTEST_PRIZE)
+	# this is a comment
+	# another comment
 	message() waitstate
 	somecommand(foo,
 		4+   6,,(CONST_FOO) +  1)
