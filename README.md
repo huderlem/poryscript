@@ -1,6 +1,6 @@
 # Poryscript
 
-Poryscript is a higher-level scripting language that compiles into the scripting language used in pokeemerald, pokefirered, and pokeruby. It's aimed to make scripting faster and easier. The main advantages to using Poryscript are:
+Poryscript is a higher-level scripting language that compiles into the scripting language used in [pokeemerald](https://github.com/pret/pokeemerald), [pokefirered](https://github.com/pret/pokefirered), and [pokeruby](https://github.com/pret/pokeruby). It's aimed to make scripting faster and easier. The main advantages to using Poryscript are:
 1. Automatic branching control flow with `if`, `elif`, and `else` statements.
 2. Inline text
 
