@@ -13,5 +13,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/porymap/compare/1.0.0...HEAD
-[1.0.0]: https://github.com/huderlem/porymap/tree/1.0.0
+[Unreleased]: https://github.com/huderlem/poryscript/compare/1.0.0...HEAD
+[1.0.0]: https://github.com/huderlem/poryscript/tree/1.0.0
