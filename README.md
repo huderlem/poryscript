@@ -72,6 +72,7 @@ raw_global MyGlobalText `
 The `script` statement creates a global script containing script commands and control flow logic.  Here is an example:
 ```
 script MyScript {
+    # Show a different message, depending on the badges the player owns.
     lock
     faceplayer
     if (flag(FLAG_BEAT_MISTY) == true) {
@@ -162,6 +163,15 @@ raw MyScript_LongText `
     .string "instead, so it's out of\l"
     .string "the way.$"
 `
+```
+
+Use single-line comments with `#`. Everything after the `#` will be ignored. Comments cannot be placed in a `raw` statement.
+```
+# This script does some cool things.
+script MyScript {
+    # I'm a comment
+    ...
+}
 ```
 
 # Versioning
