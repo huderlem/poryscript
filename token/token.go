@@ -48,7 +48,6 @@ const (
 	IF        = "IF"
 	ELSE      = "ELSE"
 	ELSEIF    = "ELSEIF"
-	RETURN    = "RETURN"
 )
 
 // If statement comparison types
@@ -70,7 +69,6 @@ var keywords = map[string]Type{
 	"if":         IF,
 	"else":       ELSE,
 	"elif":       ELSEIF,
-	"return":     RETURN,
 }
 
 // GetIdentType looks up the token type for the given identifier

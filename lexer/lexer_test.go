@@ -15,7 +15,6 @@ func TestNextToken(t *testing.T) {
 			setvar(VAR_BUG_CONTEST_PRIZE, ITEM_NONE)
 		} elif (var(VAR_TEST) <= 5) {
 		} else {
-			return
 		}
 		<
 		>
@@ -80,7 +79,6 @@ func TestNextToken(t *testing.T) {
 		{token.RBRACE, "}"},
 		{token.ELSE, "else"},
 		{token.LBRACE, "{"},
-		{token.RETURN, "return"},
 		{token.RBRACE, "}"},
 		{token.LT, "<"},
 		{token.GT, ">"},

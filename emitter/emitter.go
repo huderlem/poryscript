@@ -84,23 +84,47 @@ func (e *Emitter) Emit() string {
 }
 
 func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
+	// The algorithm for emitting script statements is to split the scripts into
+	// self-contained chunks that logically branch to one another. When branching logic
+	// occurs, create a new chunk for any shared logic that follows the branching, as well
+	// as new chunks for the destination of the branching logic. When creating and processing
+	// new chunks, it's important to remember where the chunks should return to.
 	chunkCounter := 0
 	finalChunks := make(map[int]chunk)
 	remainingChunks := []chunk{
 		{id: chunkCounter, returnID: -1, statements: scriptStmt.Body.Statements[:]},
 	}
 	for len(remainingChunks) > 0 {
+		ids := []int{}
+		for _, c := range remainingChunks {
+			ids = append(ids, c.id)
+		}
+
 		// Grab an unprocessed script chunk.
 		curChunk := remainingChunks[0]
 		remainingChunks = remainingChunks[1:]
 
 		// Skip over basic command statements.
 		i := 0
+		shouldContinue := false
 		for _, stmt := range curChunk.statements {
-			if _, ok := stmt.(*ast.CommandStatement); !ok {
+			commandStmt, ok := stmt.(*ast.CommandStatement)
+			if !ok {
+				break
+			}
+			// "end" and "return" are special control-flow commands that end execution of
+			// the current logic scope. Therefore, we should not process any further into the
+			// current chunk, and mark it as finalized.
+			if commandStmt.Name.Value == "end" || commandStmt.Name.Value == "return" {
+				completeChunk := chunk{id: curChunk.id, returnID: -1, statements: curChunk.statements[:i]}
+				finalChunks[completeChunk.id] = completeChunk
+				shouldContinue = true
 				break
 			}
 			i++
+		}
+		if shouldContinue {
+			continue
 		}
 
 		if i == len(curChunk.statements) {
@@ -121,61 +145,7 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 		}
 	}
 
-	// Get sorted list of final chunk ids.
-	chunkIDs := make([]int, 0)
-	for k := range finalChunks {
-		chunkIDs = append(chunkIDs, k)
-	}
-	sort.Ints(chunkIDs)
-
-	var sb strings.Builder
-	for _, chunkID := range chunkIDs {
-		requireTailJump := true
-		chunk := finalChunks[chunkID]
-		if chunk.id == 0 {
-			// Main script entrypoint, so it gets a global label.
-			sb.WriteString(fmt.Sprintf("%s::\n", scriptStmt.Name.Value))
-		} else {
-			sb.WriteString(fmt.Sprintf("%s_%d:\n", scriptStmt.Name.Value, chunk.id))
-		}
-
-		// Render basic non-branching commands.
-		for _, stmt := range chunk.statements {
-			commandStmt, ok := stmt.(*ast.CommandStatement)
-			if !ok {
-				fmt.Printf("Could not render chunk statement because it is not a command statement %q", stmt.TokenLiteral())
-				return ""
-			}
-
-			sb.WriteString(renderCommandStatement(commandStmt))
-		}
-
-		// Render branching conditions.
-		if chunk.branch != nil {
-			renderBranchComparison(&sb, chunk.branch.consequence, scriptStmt.Name.Value)
-			for _, dest := range chunk.branch.elifConsequences {
-				renderBranchComparison(&sb, dest, scriptStmt.Name.Value)
-			}
-			if chunk.branch.elseConsequence != nil {
-				sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptStmt.Name.Value, chunk.branch.elseConsequence.id))
-				requireTailJump = false
-			}
-		}
-
-		// Sometimes, a tail jump/return isn't needed.  For example, a chunk that ends in an "else"
-		// branch will always naturally end with a "goto" bytecode command.
-		if requireTailJump {
-			if chunk.returnID == -1 {
-				sb.WriteString("\treturn\n")
-			} else {
-				sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptStmt.Name.Value, chunk.returnID))
-			}
-		}
-
-		sb.WriteString("\n")
-	}
-
-	return sb.String()
+	return renderChunks(finalChunks, scriptStmt.Name.Value)
 }
 
 func createDestination(compareType token.Type, operand string, operator token.Type, comparisonValue string, destinationChunk int) *destination {
@@ -200,6 +170,64 @@ func createIfBranch(ifStmt *ast.IfStatement) ifBranch {
 		branch.elseConsequence = &destination{id: -1}
 	}
 	return branch
+}
+
+func renderChunks(finalChunks map[int]chunk, scriptName string) string {
+	// Get sorted list of final chunk ids.
+	chunkIDs := make([]int, 0)
+	for k := range finalChunks {
+		chunkIDs = append(chunkIDs, k)
+	}
+	sort.Ints(chunkIDs)
+
+	var sb strings.Builder
+	for _, chunkID := range chunkIDs {
+		requireTailJump := true
+		chunk := finalChunks[chunkID]
+		if chunk.id == 0 {
+			// Main script entrypoint, so it gets a global label.
+			sb.WriteString(fmt.Sprintf("%s::\n", scriptName))
+		} else {
+			sb.WriteString(fmt.Sprintf("%s_%d:\n", scriptName, chunk.id))
+		}
+
+		// Render basic non-branching commands.
+		for _, stmt := range chunk.statements {
+			commandStmt, ok := stmt.(*ast.CommandStatement)
+			if !ok {
+				fmt.Printf("Could not render chunk statement because it is not a command statement %q", stmt.TokenLiteral())
+				return ""
+			}
+
+			sb.WriteString(renderCommandStatement(commandStmt))
+		}
+
+		// Render branching conditions.
+		if chunk.branch != nil {
+			renderBranchComparison(&sb, chunk.branch.consequence, scriptName)
+			for _, dest := range chunk.branch.elifConsequences {
+				renderBranchComparison(&sb, dest, scriptName)
+			}
+			if chunk.branch.elseConsequence != nil {
+				sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, chunk.branch.elseConsequence.id))
+				requireTailJump = false
+			}
+		}
+
+		// Sometimes, a tail jump/return isn't needed.  For example, a chunk that ends in an "else"
+		// branch will always naturally end with a "goto" bytecode command.
+		if requireTailJump {
+			if chunk.returnID == -1 {
+				sb.WriteString("\treturn\n")
+			} else {
+				sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, chunk.returnID))
+			}
+		}
+
+		sb.WriteString("\n")
+	}
+
+	return sb.String()
 }
 
 func renderBranchComparison(sb *strings.Builder, dest *destination, scriptName string) {
