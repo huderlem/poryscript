@@ -4,7 +4,7 @@ Poryscript is a higher-level scripting language that compiles into the scripting
 1. Automatic branching control flow with `if`, `elif`, and `else` statements.
 2. Inline text
 
-View the [Changelog](https://github.com/huderlem/porymap/blob/master/CHANGELOG.md) to see what's new, and find the latest stable version from the [Releases](https://github.com/huderlem/porymap/releases).
+View the [Changelog](https://github.com/huderlem/poryscript/blob/master/CHANGELOG.md) to see what's new, and find the latest stable version from the [Releases](https://github.com/huderlem/poryscript/releases).
 
 # Getting Started
 
