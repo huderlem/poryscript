@@ -144,6 +144,10 @@ Use `raw` and `raw_global` to include raw bytecode script. Anything in a `raw` o
 script MyScript {
     lock
     faceplayer
+    # Text can span multiple lines. Use a new set of quotes for each line.
+    msgbox("This is shorter text,\n"
+           "but we can still put it\l"
+           "on multiple lines.\p$")
     applymovement(EVENT_OBJ_ID_PLAYER, MyScript_Movement)
     waitmovement(0)
     msgbox(MyScript_LongText)
