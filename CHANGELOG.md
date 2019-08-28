@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `raw` no longer takes a label name.
 - Removed `raw_global`, since there is no longer a concept of being global or local or `raw`.
 
+### Fixed
+- Inline texts are now generated with labels that are prefixed to their parent script's name. Otherwise, they would easily clash with external scripts because they were all simply named `Text_<num>`.
+
 ## [1.0.0] - 2019-08-27
 Initial Release
 

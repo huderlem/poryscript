@@ -11,19 +11,21 @@ import (
 
 // Parser is a Poryscript AST parser.
 type Parser struct {
-	l             *lexer.Lexer
-	curToken      token.Token
-	peekToken     token.Token
-	errors        []string
-	implicitTexts []string
+	l                *lexer.Lexer
+	curToken         token.Token
+	peekToken        token.Token
+	errors           []string
+	inlineTexts      []ast.Text
+	inlineTextCounts map[string]int
 }
 
 // New creates a new Poryscript AST Parser.
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{
-		l:             l,
-		errors:        []string{},
-		implicitTexts: []string{},
+		l:                l,
+		errors:           []string{},
+		inlineTexts:      []ast.Text{},
+		inlineTextCounts: make(map[string]int),
 	}
 	// Read two tokens, so curToken and peekToken are both set.
 	p.nextToken()
@@ -60,13 +62,13 @@ func (p *Parser) peekError(expectedType token.Type) {
 	p.errors = append(p.errors, msg)
 }
 
-func getImplicitTextLabel(i int) string {
-	return fmt.Sprintf("Text_%d", i)
+func getImplicitTextLabel(scriptName string, i int) string {
+	return fmt.Sprintf("%s_Text_%d", scriptName, i)
 }
 
 // ParseProgram parses a Poryscript file into an AST.
 func (p *Parser) ParseProgram() *ast.Program {
-	p.implicitTexts = nil
+	p.inlineTexts = nil
 	program := &ast.Program{
 		TopLevelStatements: []ast.Statement{},
 		Texts:              []ast.Text{},
@@ -86,11 +88,8 @@ func (p *Parser) ParseProgram() *ast.Program {
 		p.nextToken()
 	}
 
-	for i, text := range p.implicitTexts {
-		program.Texts = append(program.Texts, ast.Text{
-			Name:  getImplicitTextLabel(i),
-			Value: text,
-		})
+	for _, text := range p.inlineTexts {
+		program.Texts = append(program.Texts, text)
 	}
 
 	return program
@@ -134,11 +133,11 @@ func (p *Parser) parseScriptStatement() *ast.ScriptStatement {
 
 	p.nextToken()
 
-	statement.Body = p.parseBlockStatement()
+	statement.Body = p.parseBlockStatement(statement.Name.Value)
 	return statement
 }
 
-func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+func (p *Parser) parseBlockStatement(scriptName string) *ast.BlockStatement {
 	block := &ast.BlockStatement{
 		Token:      p.curToken,
 		Statements: []ast.Statement{},
@@ -151,7 +150,7 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 			return nil
 		}
 
-		statement := p.parseStatement()
+		statement := p.parseStatement(scriptName)
 		if statement == nil {
 			return nil
 		}
@@ -163,16 +162,16 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	return block
 }
 
-func (p *Parser) parseStatement() ast.Statement {
+func (p *Parser) parseStatement(scriptName string) ast.Statement {
 	switch p.curToken.Type {
 	case token.IDENT:
-		statement := p.parseCommandStatement()
+		statement := p.parseCommandStatement(scriptName)
 		if statement == nil {
 			return nil
 		}
 		return statement
 	case token.IF:
-		statement := p.parseIfStatement()
+		statement := p.parseIfStatement(scriptName)
 		if statement == nil {
 			return nil
 		}
@@ -184,7 +183,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	return nil
 }
 
-func (p *Parser) parseCommandStatement() ast.Statement {
+func (p *Parser) parseCommandStatement(scriptName string) ast.Statement {
 	command := &ast.CommandStatement{
 		Token: p.curToken,
 		Name: &ast.Identifier{
@@ -217,8 +216,9 @@ func (p *Parser) parseCommandStatement() ast.Statement {
 				numOpenParens--
 				argParts = append(argParts, p.curToken.Literal)
 			} else if p.curToken.Type == token.STRING {
-				textLabel := getImplicitTextLabel(len(p.implicitTexts))
-				p.implicitTexts = append(p.implicitTexts, p.curToken.Literal)
+				textLabel := getImplicitTextLabel(scriptName, p.inlineTextCounts[scriptName])
+				p.inlineTextCounts[scriptName]++
+				p.inlineTexts = append(p.inlineTexts, ast.Text{Name: textLabel, Value: p.curToken.Literal})
 				argParts = append(argParts, textLabel)
 			} else {
 				argParts = append(argParts, p.curToken.Literal)
@@ -249,7 +249,7 @@ func (p *Parser) parseRawStatement() *ast.RawStatement {
 	return statement
 }
 
-func (p *Parser) parseIfStatement() *ast.IfStatement {
+func (p *Parser) parseIfStatement(scriptName string) *ast.IfStatement {
 	statement := &ast.IfStatement{
 		Token: p.curToken,
 	}
@@ -260,7 +260,7 @@ func (p *Parser) parseIfStatement() *ast.IfStatement {
 	}
 
 	// First if statement condition
-	consequence := p.parseIfConditionExpression(statement.Token.LineNumber)
+	consequence := p.parseIfConditionExpression(scriptName, statement.Token.LineNumber)
 	if consequence == nil {
 		return nil
 	}
@@ -274,7 +274,7 @@ func (p *Parser) parseIfStatement() *ast.IfStatement {
 			p.errors = append(p.errors, msg)
 			return nil
 		}
-		consequence = p.parseIfConditionExpression(p.peekToken.LineNumber)
+		consequence = p.parseIfConditionExpression(scriptName, p.peekToken.LineNumber)
 		if consequence == nil {
 			return nil
 		}
@@ -290,13 +290,13 @@ func (p *Parser) parseIfStatement() *ast.IfStatement {
 			return nil
 		}
 		p.nextToken()
-		statement.ElseConsequence = p.parseBlockStatement()
+		statement.ElseConsequence = p.parseBlockStatement(scriptName)
 	}
 
 	return statement
 }
 
-func (p *Parser) parseIfConditionExpression(lineNumber int) *ast.ConditionExpression {
+func (p *Parser) parseIfConditionExpression(scriptName string, lineNumber int) *ast.ConditionExpression {
 	if !p.peekTokenIs(token.VAR) && !p.peekTokenIs(token.FLAG) {
 		msg := fmt.Sprintf("line %d: invalid if statement command '%s'", lineNumber, p.peekToken.Literal)
 		p.errors = append(p.errors, msg)
@@ -337,7 +337,7 @@ func (p *Parser) parseIfConditionExpression(lineNumber int) *ast.ConditionExpres
 		}
 	}
 
-	expression.Body = p.parseBlockStatement()
+	expression.Body = p.parseBlockStatement(scriptName)
 	return expression
 }
 

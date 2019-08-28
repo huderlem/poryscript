@@ -77,11 +77,11 @@ Route29_EventScript_WaitingMan_1:
 	return
 
 Route29_EventScript_WaitingMan_2:
-	msgbox Text_0
+	msgbox Route29_EventScript_WaitingMan_Text_0
 	goto Route29_EventScript_WaitingMan_1
 
 Route29_EventScript_WaitingMan_3:
-	msgbox Text_1
+	msgbox Route29_EventScript_WaitingMan_Text_1
 	goto Route29_EventScript_WaitingMan_1
 
 
@@ -105,7 +105,7 @@ Route29_EventScript_Dude_3:
 	goto Route29_EventScript_Dude_1
 
 Route29_EventScript_Dude_4:
-	msgbox Text_2, MSGBOX_YESNO
+	msgbox Route29_EventScript_Dude_Text_0, MSGBOX_YESNO
 	compare VAR_RESULT, 0
 	goto_if_eq Route29_EventScript_Dude_5
 	goto Route29_EventScript_Dude_6
@@ -119,7 +119,7 @@ Route29_EventScript_Dude_6:
 	special StartDudeTutorialBattle
 	waitstate
 	lock
-	msgbox Text_3
+	msgbox Route29_EventScript_Dude_Text_1
 	setflag FLAG_LEARNED_TO_CATCH_POKEMON
 	goto Route29_EventScript_Dude_1
 
@@ -134,18 +134,18 @@ Route29_Text_Dude_CatchingTutRejected:
 	.string "Anyway, if you want to catch\n"
 	.string "POKéMON, you have to walk a lot.$"
 
-Text_0:
+Route29_EventScript_WaitingMan_Text_0:
 	.string "I'm waiting for POKéMON that appear\n"
 	.string "only in the morning.$"
 
-Text_1:
+Route29_EventScript_WaitingMan_Text_1:
 	.string "I'm waiting for POKéMON that appear\n"
 	.string "only at night.$"
 
-Text_2:
+Route29_EventScript_Dude_Text_0:
 	.string "Huh? You want me to show you how\nto catch POKéMON?$"
 
-Text_3:
+Route29_EventScript_Dude_Text_1:
 	.string "That's how you do it.\p"
 	.string "If you weaken them first, POKéMON\n"
 	.string "are easier to catch.$"
