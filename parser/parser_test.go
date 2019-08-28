@@ -126,12 +126,12 @@ func testScriptStatement(t *testing.T, s ast.Statement, expectedName string, exp
 
 func TestRawStatements(t *testing.T) {
 	input := `
-raw RawTest ` + "`" + `
+raw ` + "`" + `
 	step_up
 	step_end
 ` + "`" + `
 
-raw_global RawTestGlobal ` + "`" + `
+raw ` + "`" + `
 	step_down
 ` + "`"
 	l := lexer.New(input)
@@ -145,42 +145,30 @@ raw_global RawTestGlobal ` + "`" + `
 	}
 
 	tests := []struct {
-		expectedName   string
-		expectedGlobal bool
-		expectedValue  string
+		expectedValue string
 	}{
-		{"RawTest", false, `	step_up
+		{`	step_up
 	step_end`},
-		{"RawTestGlobal", true, `	step_down`},
+		{`	step_down`},
 	}
 
 	for i, tt := range tests {
 		stmt := program.TopLevelStatements[i]
-		if !testRawStatement(t, stmt, tt.expectedName, tt.expectedGlobal, tt.expectedValue) {
+		if !testRawStatement(t, stmt, tt.expectedValue) {
 			return
 		}
 	}
 }
 
-func testRawStatement(t *testing.T, s ast.Statement, expectedName string, expectedGlobal bool, expectedValue string) bool {
-	if s.TokenLiteral() != "raw" && s.TokenLiteral() != "raw_global" {
-		t.Errorf("s.TokenLiteral not 'raw' or 'raw_global'. got=%q", s.TokenLiteral())
+func testRawStatement(t *testing.T, s ast.Statement, expectedValue string) bool {
+	if s.TokenLiteral() != "raw" {
+		t.Errorf("s.TokenLiteral not 'raw'. got=%q", s.TokenLiteral())
 		return false
 	}
 
 	rawStmt, ok := s.(*ast.RawStatement)
 	if !ok {
 		t.Errorf("s not %T. got=%T", &ast.RawStatement{}, s)
-		return false
-	}
-
-	if rawStmt.Name.Value != expectedName {
-		t.Errorf("rawStmt.Name.Value not '%s'. got=%s", expectedName, rawStmt.Name.Value)
-		return false
-	}
-
-	if rawStmt.IsGlobal != expectedGlobal {
-		t.Errorf("rawStmt.IsGlobal not '%t'. got=%t", expectedGlobal, rawStmt.IsGlobal)
 		return false
 	}
 

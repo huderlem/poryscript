@@ -56,18 +56,15 @@ Convert a `.pory` script to a compiled `.inc` script, which can be directly incl
 
 # Poryscript Syntax
 
-A single `.pory` file is composed of many top-level statements. The valid top-level statements are `script`, `raw`, and `raw_global`.
+A single `.pory` file is composed of many top-level statements. The valid top-level statements are `script` and `raw`.
 ```
 script MyScript {
     ...
 }
 
-raw MyLocalText `
-    .string "I'm only accessible in this file.$"
-`
-
-raw_global MyGlobalText `
-    .string "I'm accessible globally.$"
+raw `
+MyLocalText:
+    .string "I'm directly included.$"
 `
 ```
 
@@ -139,7 +136,7 @@ script MyScript {
 }
 ```
 
-Use `raw` and `raw_global` to include raw bytecode script. Anything in a `raw` or `raw_global` statement will be directly included into the compiled script. This is useful for defining data or long text.
+Use `raw` to include raw bytecode script. Anything in a `raw` statement will be directly included into the compiled script. This is useful for defining data or long text.
 ```
 script MyScript {
     lock
@@ -155,13 +152,15 @@ script MyScript {
     end
 }
 
-raw MyScript_Movement `
+raw `
+MyScript_Movement:
     walk_left
     walk_down
     step_end
 `
 
-raw MyScript_LongText `
+raw `
+MyScript_LongText:
     .string "Hi, there.\p"
     .string "This text is too long\n"
     .string "to inline above.\p"

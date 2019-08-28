@@ -24,7 +24,7 @@ func TestNextToken(t *testing.T) {
 		/
 		("Hello\n"
 		"I'm glad to see$")
-		raw raw_global RawTest ` + "`" + `
+		raw RawTest ` + "`" + `
 	step
 `
 
@@ -89,7 +89,6 @@ func TestNextToken(t *testing.T) {
 		{token.STRING, "Hello\\n\nI'm glad to see$"},
 		{token.RPAREN, ")"},
 		{token.RAW, "raw"},
-		{token.RAWGLOBAL, "raw_global"},
 		{token.IDENT, "RawTest"},
 		{token.RAWSTRING, "\tstep"},
 		{token.EOF, ""},

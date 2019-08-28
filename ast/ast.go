@@ -85,10 +85,8 @@ func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
 // RawStatement is a Poryscript raw statement. Raw statements are directly
 // included into the target bytecode script.
 type RawStatement struct {
-	Token    token.Token
-	Name     *Identifier
-	Value    string
-	IsGlobal bool
+	Token token.Token
+	Value string
 }
 
 func (rs *RawStatement) statementNode() {}

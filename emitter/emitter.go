@@ -344,12 +344,6 @@ func emitText(text ast.Text) string {
 
 func emitRawStatement(rawStmt *ast.RawStatement) string {
 	var sb strings.Builder
-
-	colon := ":"
-	if rawStmt.IsGlobal {
-		colon = "::"
-	}
-	sb.WriteString(fmt.Sprintf("%s%s\n", rawStmt.Name.Value, colon))
 	sb.WriteString(fmt.Sprintf("%s\n", rawStmt.Value))
 	return sb.String()
 }

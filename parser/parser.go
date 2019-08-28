@@ -104,7 +104,7 @@ func (p *Parser) parseTopLevelStatement() ast.Statement {
 			return nil
 		}
 		return statement
-	case token.RAW, token.RAWGLOBAL:
+	case token.RAW:
 		statement := p.parseRawStatement()
 		if statement == nil {
 			return nil
@@ -238,16 +238,7 @@ func (p *Parser) parseCommandStatement() ast.Statement {
 
 func (p *Parser) parseRawStatement() *ast.RawStatement {
 	statement := &ast.RawStatement{
-		Token:    p.curToken,
-		IsGlobal: p.curToken.Type == token.RAWGLOBAL,
-	}
-	if !p.expectPeek(token.IDENT) {
-		return nil
-	}
-
-	statement.Name = &ast.Identifier{
 		Token: p.curToken,
-		Value: p.curToken.Literal,
 	}
 
 	if !p.expectPeek(token.RAWSTRING) {

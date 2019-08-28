@@ -38,16 +38,15 @@ const (
 	RBRACE = "}"
 
 	// Keywords
-	SCRIPT    = "SCRIPT"
-	RAW       = "RAW"
-	RAWGLOBAL = "RAWGLOBAL"
-	VAR       = "VAR"
-	FLAG      = "FLAG"
-	TRUE      = "TRUE"
-	FALSE     = "FALSE"
-	IF        = "IF"
-	ELSE      = "ELSE"
-	ELSEIF    = "ELSEIF"
+	SCRIPT = "SCRIPT"
+	RAW    = "RAW"
+	VAR    = "VAR"
+	FLAG   = "FLAG"
+	TRUE   = "TRUE"
+	FALSE  = "FALSE"
+	IF     = "IF"
+	ELSE   = "ELSE"
+	ELSEIF = "ELSEIF"
 )
 
 // If statement comparison types
@@ -59,7 +58,6 @@ const (
 var keywords = map[string]Type{
 	"script":     SCRIPT,
 	"raw":        RAW,
-	"raw_global": RAWGLOBAL,
 	"var":        VAR,
 	"flag":       FLAG,
 	"TRUE":       TRUE,

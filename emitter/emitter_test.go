@@ -50,12 +50,14 @@ script Route29_EventScript_Dude {
 	release
 }
 
-raw Route29_Text_PokemonInTheGrass ` + "`" + `
+raw ` + "`" + `
+Route29_Text_PokemonInTheGrass:
 	.string "POKéMON hide in the grass.\n"
 	.string "Who knows when they'll pop out…$"
 ` + "`" + `
 
-raw Route29_Text_Dude_CatchingTutRejected ` + "`" + `
+raw ` + "`" + `
+Route29_Text_Dude_CatchingTutRejected:
 	.string "Oh.\n"
 	.string "Fine, then.\p"
 	.string "Anyway, if you want to catch\n"

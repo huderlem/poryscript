@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add single-line comments with the `#` character.
 - Add `go.mod` file so the project can be built outside of the Go workspace.
 
+### Changed
+- `raw` no longer takes a label name.
+- Removed `raw_global`, since there is no longer a concept of being global or local or `raw`.
+
 ## [1.0.0] - 2019-08-27
 Initial Release
 
