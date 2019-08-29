@@ -1,7 +1,7 @@
 # Poryscript
 
 Poryscript is a higher-level scripting language that compiles into the scripting language used in [pokeemerald](https://github.com/pret/pokeemerald), [pokefirered](https://github.com/pret/pokefirered), and [pokeruby](https://github.com/pret/pokeruby). It's aimed to make scripting faster and easier. The main advantages to using Poryscript are:
-1. Automatic branching control flow with `if`, `elif`, and `else` statements.
+1. Automatic branching control flow with `if`, `elif`, `else`, and `while` statements.
 2. Inline text
 
 View the [Changelog](https://github.com/huderlem/poryscript/blob/master/CHANGELOG.md) to see what's new, and find the latest stable version from the [Releases](https://github.com/huderlem/poryscript/releases).
@@ -101,7 +101,17 @@ As you can see, using `if` statements greatly simplifies writing scripts because
 
 Note the special keyword `elif`.  This is just the way Poryscript specifies an "else if". Many `elif` statements can be chained together.
 
-The `if` and `elif` conditions have strict rules about what conditions they accept. The operand on the left side of the condition must either be a `flag()` or `var()` check. They each have a different set of valid comparison operators, shown below.
+`while` statements are used to do loops.  They can be nested inside each or inside `if` statements, as one would expect.
+```
+    # Force player to answer "Yes" to NPC question.
+    msgbox("Do you agree to the quest?$", MSGBOX_YESNO)
+    while (var(VAR_RESULT) != 1) {
+        msgbox("...How about now?$", MSGBOX_YESNO)
+    }
+    setvar(VAR_QUEST_ACCEPTED, 1)
+```
+
+The conditions have strict rules about what conditions they accept. The operand on the left side of the condition must either be a `flag()` or `var()` check. They each have a different set of valid comparison operators, shown below.
 
 | Type | Valid Operators |
 | ---- | --------------- |
