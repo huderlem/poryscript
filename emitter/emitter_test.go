@@ -21,6 +21,11 @@ script Route29_EventScript_WaitingMan {
 		msgbox("I'm waiting for POKéMON that appear\n"
 				"only at night.$")
 	}
+	# Wait for morning.
+	while (var(VAR_0x8002) == TIME_NIGHT) {
+		advancetime(5)
+		gettime
+	}
 	release
 }
 
@@ -73,8 +78,7 @@ Route29_Text_Dude_CatchingTutRejected:
 	goto Route29_EventScript_WaitingMan_3
 
 Route29_EventScript_WaitingMan_1:
-	release
-	return
+	goto Route29_EventScript_WaitingMan_5
 
 Route29_EventScript_WaitingMan_2:
 	msgbox Route29_EventScript_WaitingMan_Text_0
@@ -83,6 +87,20 @@ Route29_EventScript_WaitingMan_2:
 Route29_EventScript_WaitingMan_3:
 	msgbox Route29_EventScript_WaitingMan_Text_1
 	goto Route29_EventScript_WaitingMan_1
+
+Route29_EventScript_WaitingMan_4:
+	release
+	return
+
+Route29_EventScript_WaitingMan_5:
+	compare VAR_0x8002, TIME_NIGHT
+	goto_if_eq Route29_EventScript_WaitingMan_6
+	goto Route29_EventScript_WaitingMan_4
+
+Route29_EventScript_WaitingMan_6:
+	advancetime 5
+	gettime
+	goto Route29_EventScript_WaitingMan_5
 
 
 Route29_EventScript_Dude::

@@ -111,7 +111,18 @@ type IfStatement struct {
 	ElseConsequence  *BlockStatement
 }
 
-func (rs *IfStatement) statementNode() {}
+func (is *IfStatement) statementNode() {}
 
 // TokenLiteral returns a string representation of the if statement.
-func (ie *IfStatement) TokenLiteral() string { return ie.Token.Literal }
+func (is *IfStatement) TokenLiteral() string { return is.Token.Literal }
+
+// WhileStatement is a while statement in Poryscript.
+type WhileStatement struct {
+	Token       token.Token
+	Consequence *ConditionExpression
+}
+
+func (ws *WhileStatement) statementNode() {}
+
+// TokenLiteral returns a string representation of the if statement.
+func (ws *WhileStatement) TokenLiteral() string { return ws.Token.Literal }

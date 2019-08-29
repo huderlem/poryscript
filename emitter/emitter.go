@@ -26,10 +26,12 @@ type ifBranch struct {
 }
 
 type chunk struct {
-	id         int
-	returnID   int
-	statements []ast.Statement
-	branch     *ifBranch
+	id           int
+	returnID     int
+	statements   []ast.Statement
+	ifBranch     *ifBranch
+	whileStartID int
+	whileBranch  *destination
 }
 
 // Emitter is responsible for transforming a parsed Poryscript program into
@@ -135,9 +137,14 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 
 		// Create new chunks from if statement blocks.
 		if stmt, ok := curChunk.statements[i].(*ast.IfStatement); ok {
-			newRemainingChunks, branch := createIfStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
+			newRemainingChunks, ifBranch := createIfStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
 			remainingChunks = newRemainingChunks
-			completeChunk := chunk{id: curChunk.id, returnID: curChunk.returnID, statements: curChunk.statements[:i], branch: branch}
+			completeChunk := chunk{id: curChunk.id, returnID: curChunk.returnID, statements: curChunk.statements[:i], ifBranch: ifBranch}
+			finalChunks[completeChunk.id] = completeChunk
+		} else if stmt, ok := curChunk.statements[i].(*ast.WhileStatement); ok {
+			newRemainingChunks, whileStartID := createWhileStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
+			remainingChunks = newRemainingChunks
+			completeChunk := chunk{id: curChunk.id, returnID: curChunk.returnID, statements: curChunk.statements[:i], whileStartID: whileStartID}
 			finalChunks[completeChunk.id] = completeChunk
 		} else {
 			completeChunk := chunk{id: curChunk.id, returnID: curChunk.returnID, statements: curChunk.statements[:i]}
@@ -203,15 +210,20 @@ func renderChunks(finalChunks map[int]chunk, scriptName string) string {
 		}
 
 		// Render branching conditions.
-		if chunk.branch != nil {
-			renderBranchComparison(&sb, chunk.branch.consequence, scriptName)
-			for _, dest := range chunk.branch.elifConsequences {
+		if chunk.ifBranch != nil {
+			renderBranchComparison(&sb, chunk.ifBranch.consequence, scriptName)
+			for _, dest := range chunk.ifBranch.elifConsequences {
 				renderBranchComparison(&sb, dest, scriptName)
 			}
-			if chunk.branch.elseConsequence != nil {
-				sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, chunk.branch.elseConsequence.id))
+			if chunk.ifBranch.elseConsequence != nil {
+				sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, chunk.ifBranch.elseConsequence.id))
 				requireTailJump = false
 			}
+		} else if chunk.whileStartID != 0 {
+			sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, chunk.whileStartID))
+			requireTailJump = false
+		} else if chunk.whileBranch != nil {
+			renderBranchComparison(&sb, chunk.whileBranch, scriptName)
 		}
 
 		// Sometimes, a tail jump/return isn't needed.  For example, a chunk that ends in an "else"
@@ -320,6 +332,47 @@ func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, rema
 	}
 
 	return remainingChunks, branch
+}
+
+func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, int) {
+	var returnID int
+	if i == len(curChunk.statements)-1 {
+		// The condition statement is the last of the current chunk, so it
+		// has the same return point as the current chunk.
+		returnID = curChunk.returnID
+	} else {
+		// The condition statement needs to return to a chunk of logic
+		// that occurs directly after it. So, create a new Chunk for
+		// that logic.
+		*chunkCounter++
+		newChunk := chunk{
+			id:         *chunkCounter,
+			returnID:   curChunk.returnID,
+			statements: curChunk.statements[i+1:],
+		}
+		remainingChunks = append(remainingChunks, newChunk)
+		returnID = newChunk.id
+		curChunk.returnID = newChunk.id
+	}
+
+	*chunkCounter++
+	headerChunk := chunk{
+		id:         *chunkCounter,
+		returnID:   returnID,
+		statements: []ast.Statement{},
+	}
+
+	*chunkCounter++
+	consequenceChunk := chunk{
+		id:         *chunkCounter,
+		returnID:   headerChunk.id,
+		statements: stmt.Consequence.Body.Statements,
+	}
+	headerChunk.whileBranch = createDestination(stmt.Consequence.Type, stmt.Consequence.Operand, stmt.Consequence.Operator, stmt.Consequence.ComparisonValue, consequenceChunk.id)
+	remainingChunks = append(remainingChunks, consequenceChunk)
+	remainingChunks = append(remainingChunks, headerChunk)
+
+	return remainingChunks, headerChunk.id
 }
 
 func renderCommandStatement(commandStmt *ast.CommandStatement) string {

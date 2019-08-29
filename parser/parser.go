@@ -176,6 +176,12 @@ func (p *Parser) parseStatement(scriptName string) ast.Statement {
 			return nil
 		}
 		return statement
+	case token.WHILE:
+		statement := p.parseWhileStatement(scriptName)
+		if statement == nil {
+			return nil
+		}
+		return statement
 	}
 
 	msg := fmt.Sprintf("line %d: could not parse statement for '%s'\n", p.curToken.LineNumber, p.curToken.Literal)
@@ -260,7 +266,7 @@ func (p *Parser) parseIfStatement(scriptName string) *ast.IfStatement {
 	}
 
 	// First if statement condition
-	consequence := p.parseIfConditionExpression(scriptName, statement.Token.LineNumber)
+	consequence := p.parseConditionExpression(scriptName, statement.Token.LineNumber)
 	if consequence == nil {
 		return nil
 	}
@@ -274,7 +280,7 @@ func (p *Parser) parseIfStatement(scriptName string) *ast.IfStatement {
 			p.errors = append(p.errors, msg)
 			return nil
 		}
-		consequence = p.parseIfConditionExpression(scriptName, p.peekToken.LineNumber)
+		consequence = p.parseConditionExpression(scriptName, p.peekToken.LineNumber)
 		if consequence == nil {
 			return nil
 		}
@@ -296,9 +302,29 @@ func (p *Parser) parseIfStatement(scriptName string) *ast.IfStatement {
 	return statement
 }
 
-func (p *Parser) parseIfConditionExpression(scriptName string, lineNumber int) *ast.ConditionExpression {
+func (p *Parser) parseWhileStatement(scriptName string) *ast.WhileStatement {
+	statement := &ast.WhileStatement{
+		Token: p.curToken,
+	}
+	if !p.expectPeek(token.LPAREN) {
+		msg := fmt.Sprintf("line %d: missing opening parenthesis of while statement '%s'", statement.Token.LineNumber, p.peekToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	// while statement condition
+	consequence := p.parseConditionExpression(scriptName, statement.Token.LineNumber)
+	if consequence == nil {
+		return nil
+	}
+	statement.Consequence = consequence
+
+	return statement
+}
+
+func (p *Parser) parseConditionExpression(scriptName string, lineNumber int) *ast.ConditionExpression {
 	if !p.peekTokenIs(token.VAR) && !p.peekTokenIs(token.FLAG) {
-		msg := fmt.Sprintf("line %d: invalid if statement command '%s'", lineNumber, p.peekToken.Literal)
+		msg := fmt.Sprintf("line %d: invalid condition statement command '%s'", lineNumber, p.peekToken.Literal)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
@@ -306,12 +332,12 @@ func (p *Parser) parseIfConditionExpression(scriptName string, lineNumber int) *
 	p.nextToken()
 	expression := &ast.ConditionExpression{Type: p.curToken.Type}
 	if !p.expectPeek(token.LPAREN) {
-		msg := fmt.Sprintf("line %d: missing opening parenthesis for if statement operator '%s'", lineNumber, expression.Type)
+		msg := fmt.Sprintf("line %d: missing opening parenthesis for condition operator '%s'", lineNumber, expression.Type)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
 	if p.peekToken.Type == token.RPAREN {
-		msg := fmt.Sprintf("line %d: missing value for if statement operator '%s'", lineNumber, expression.Type)
+		msg := fmt.Sprintf("line %d: missing value for condition operator '%s'", lineNumber, expression.Type)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
@@ -326,12 +352,12 @@ func (p *Parser) parseIfConditionExpression(scriptName string, lineNumber int) *
 	p.nextToken()
 
 	if expression.Type == token.VAR {
-		ok := p.parseIfVarOperator(expression)
+		ok := p.parseConditionVarOperator(expression)
 		if !ok {
 			return nil
 		}
 	} else if expression.Type == token.FLAG {
-		ok := p.parseIfFlagOperator(expression)
+		ok := p.parseConditionFlagOperator(expression)
 		if !ok {
 			return nil
 		}
@@ -341,7 +367,7 @@ func (p *Parser) parseIfConditionExpression(scriptName string, lineNumber int) *
 	return expression
 }
 
-func (p *Parser) parseIfVarOperator(expression *ast.ConditionExpression) bool {
+func (p *Parser) parseConditionVarOperator(expression *ast.ConditionExpression) bool {
 	if p.curToken.Type != token.GT && p.curToken.Type != token.GTE && p.curToken.Type != token.LT &&
 		p.curToken.Type != token.LTE && p.curToken.Type != token.EQ && p.curToken.Type != token.NEQ {
 		msg := fmt.Sprintf("line %d: invalid condition operator '%s'", p.curToken.LineNumber, p.curToken.Literal)
@@ -370,7 +396,7 @@ func (p *Parser) parseIfVarOperator(expression *ast.ConditionExpression) bool {
 	return true
 }
 
-func (p *Parser) parseIfFlagOperator(expression *ast.ConditionExpression) bool {
+func (p *Parser) parseConditionFlagOperator(expression *ast.ConditionExpression) bool {
 	if p.curToken.Type != token.EQ {
 		msg := fmt.Sprintf("line %d: invalid condition operator '%s'. Only '==' is allowed.", p.curToken.LineNumber, p.curToken.Literal)
 		p.errors = append(p.errors, msg)

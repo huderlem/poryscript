@@ -250,3 +250,31 @@ func testConditionExpression(t *testing.T, expression *ast.ConditionExpression, 
 		t.Fatalf("expression.ComparisonValue not '%s'. got=%s", expectedComparisonValue, expression.ComparisonValue)
 	}
 }
+
+func TestWhileStatements(t *testing.T) {
+	input := `
+script Test {
+	while (var(VAR_1) < 1) {
+		if (var(VAR_7) != 1) {
+			message()
+		}
+		message()
+	}
+	while (flag(FLAG_1) == true) {
+		message()
+	}
+}
+`
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	if program == nil {
+		t.Fatalf("ParseProgram() returned nil")
+	}
+
+	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
+	whileStmt := scriptStmt.Body.Statements[0].(*ast.WhileStatement)
+	testConditionExpression(t, whileStmt.Consequence, token.VAR, "VAR_1", token.LT, "1")
+	whileStmt = scriptStmt.Body.Statements[1].(*ast.WhileStatement)
+	testConditionExpression(t, whileStmt.Consequence, token.FLAG, "FLAG_1", token.EQ, "TRUE")
+}

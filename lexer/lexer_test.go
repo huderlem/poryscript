@@ -22,6 +22,7 @@ func TestNextToken(t *testing.T) {
 		=
 		!
 		/
+		while
 		("Hello\n"
 		"I'm glad to see$")
 		raw RawTest ` + "`" + `
@@ -85,6 +86,7 @@ func TestNextToken(t *testing.T) {
 		{token.ILLEGAL, "="},
 		{token.ILLEGAL, "!"},
 		{token.ILLEGAL, "/"},
+		{token.WHILE, "while"},
 		{token.LPAREN, "("},
 		{token.STRING, "Hello\\n\nI'm glad to see$"},
 		{token.RPAREN, ")"},

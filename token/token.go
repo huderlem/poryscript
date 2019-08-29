@@ -47,6 +47,7 @@ const (
 	IF     = "IF"
 	ELSE   = "ELSE"
 	ELSEIF = "ELSEIF"
+	WHILE  = "WHILE"
 )
 
 // If statement comparison types
@@ -56,17 +57,18 @@ const (
 )
 
 var keywords = map[string]Type{
-	"script":     SCRIPT,
-	"raw":        RAW,
-	"var":        VAR,
-	"flag":       FLAG,
-	"TRUE":       TRUE,
-	"FALSE":      FALSE,
-	"true":       TRUE,
-	"false":      FALSE,
-	"if":         IF,
-	"else":       ELSE,
-	"elif":       ELSEIF,
+	"script": SCRIPT,
+	"raw":    RAW,
+	"var":    VAR,
+	"flag":   FLAG,
+	"TRUE":   TRUE,
+	"FALSE":  FALSE,
+	"true":   TRUE,
+	"false":  FALSE,
+	"if":     IF,
+	"else":   ELSE,
+	"elif":   ELSEIF,
+	"while":  WHILE,
 }
 
 // GetIdentType looks up the token type for the given identifier
