@@ -5,33 +5,17 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/huderlem/poryscript/token"
-
 	"github.com/huderlem/poryscript/ast"
+	"github.com/huderlem/poryscript/token"
 )
 
-// Helper types for keeping track of script chunk branching logic.
-type destination struct {
-	id              int
-	compareType     token.Type
-	operand         string
-	operator        token.Type
-	comparisonValue string
-}
-
-type ifBranch struct {
-	consequence      *destination
-	elifConsequences []*destination
-	elseConsequence  *destination
-}
-
+// Represents a single chunk of script output. Each chunk has an associated label in
+// the emitted bytecode output.
 type chunk struct {
-	id           int
-	returnID     int
-	statements   []ast.Statement
-	ifBranch     *ifBranch
-	whileStartID int
-	whileBranch  *destination
+	id             int
+	returnID       int
+	statements     []ast.Statement
+	branchBehavior brancher
 }
 
 // Emitter is responsible for transforming a parsed Poryscript program into
@@ -139,12 +123,22 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 		if stmt, ok := curChunk.statements[i].(*ast.IfStatement); ok {
 			newRemainingChunks, ifBranch := createIfStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
 			remainingChunks = newRemainingChunks
-			completeChunk := chunk{id: curChunk.id, returnID: curChunk.returnID, statements: curChunk.statements[:i], ifBranch: ifBranch}
+			completeChunk := chunk{
+				id:             curChunk.id,
+				returnID:       curChunk.returnID,
+				statements:     curChunk.statements[:i],
+				branchBehavior: ifBranch,
+			}
 			finalChunks[completeChunk.id] = completeChunk
 		} else if stmt, ok := curChunk.statements[i].(*ast.WhileStatement); ok {
-			newRemainingChunks, whileStartID := createWhileStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
+			newRemainingChunks, whileStart := createWhileStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
 			remainingChunks = newRemainingChunks
-			completeChunk := chunk{id: curChunk.id, returnID: curChunk.returnID, statements: curChunk.statements[:i], whileStartID: whileStartID}
+			completeChunk := chunk{
+				id:             curChunk.id,
+				returnID:       curChunk.returnID,
+				statements:     curChunk.statements[:i],
+				branchBehavior: whileStart,
+			}
 			finalChunks[completeChunk.id] = completeChunk
 		} else {
 			completeChunk := chunk{id: curChunk.id, returnID: curChunk.returnID, statements: curChunk.statements[:i]}
@@ -155,28 +149,14 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 	return renderChunks(finalChunks, scriptStmt.Name.Value)
 }
 
-func createDestination(compareType token.Type, operand string, operator token.Type, comparisonValue string, destinationChunk int) *destination {
-	return &destination{
+func createConditionDestination(compareType token.Type, operand string, operator token.Type, comparisonValue string, destinationChunk int) *conditionDestination {
+	return &conditionDestination{
 		id:              destinationChunk,
 		compareType:     compareType,
 		operand:         operand,
 		operator:        operator,
 		comparisonValue: comparisonValue,
 	}
-}
-
-func createIfBranch(ifStmt *ast.IfStatement) ifBranch {
-	branch := ifBranch{}
-	branch.consequence = createDestination(ifStmt.Consequence.Type, ifStmt.Consequence.Operand, ifStmt.Consequence.Operator, ifStmt.Consequence.ComparisonValue, -1)
-	branch.elifConsequences = []*destination{}
-	for _, elifStmt := range ifStmt.ElifConsequences {
-		branch.elifConsequences = append(branch.elifConsequences,
-			createDestination(elifStmt.Type, elifStmt.Operand, elifStmt.Operator, elifStmt.ComparisonValue, -1))
-	}
-	if ifStmt.ElseConsequence != nil {
-		branch.elseConsequence = &destination{id: -1}
-	}
-	return branch
 }
 
 func renderChunks(finalChunks map[int]chunk, scriptName string) string {
@@ -189,7 +169,6 @@ func renderChunks(finalChunks map[int]chunk, scriptName string) string {
 
 	var sb strings.Builder
 	for _, chunkID := range chunkIDs {
-		requireTailJump := true
 		chunk := finalChunks[chunkID]
 		if chunk.id == 0 {
 			// Main script entrypoint, so it gets a global label.
@@ -210,25 +189,15 @@ func renderChunks(finalChunks map[int]chunk, scriptName string) string {
 		}
 
 		// Render branching conditions.
-		if chunk.ifBranch != nil {
-			renderBranchComparison(&sb, chunk.ifBranch.consequence, scriptName)
-			for _, dest := range chunk.ifBranch.elifConsequences {
-				renderBranchComparison(&sb, dest, scriptName)
-			}
-			if chunk.ifBranch.elseConsequence != nil {
-				sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, chunk.ifBranch.elseConsequence.id))
-				requireTailJump = false
-			}
-		} else if chunk.whileStartID != 0 {
-			sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, chunk.whileStartID))
-			requireTailJump = false
-		} else if chunk.whileBranch != nil {
-			renderBranchComparison(&sb, chunk.whileBranch, scriptName)
+		requiresTailJump := true
+		if chunk.branchBehavior != nil {
+			chunk.branchBehavior.renderBranchConditions(&sb, scriptName)
+			requiresTailJump = chunk.branchBehavior.requiresTailJump()
 		}
 
 		// Sometimes, a tail jump/return isn't needed.  For example, a chunk that ends in an "else"
 		// branch will always naturally end with a "goto" bytecode command.
-		if requireTailJump {
+		if requiresTailJump {
 			if chunk.returnID == -1 {
 				sb.WriteString("\treturn\n")
 			} else {
@@ -242,7 +211,7 @@ func renderChunks(finalChunks map[int]chunk, scriptName string) string {
 	return sb.String()
 }
 
-func renderBranchComparison(sb *strings.Builder, dest *destination, scriptName string) {
+func renderBranchComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
 	if dest.compareType == token.FLAG {
 		renderFlagComparison(sb, dest, scriptName)
 	} else if dest.compareType == token.VAR {
@@ -250,7 +219,7 @@ func renderBranchComparison(sb *strings.Builder, dest *destination, scriptName s
 	}
 }
 
-func renderFlagComparison(sb *strings.Builder, dest *destination, scriptName string) {
+func renderFlagComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
 	if dest.comparisonValue == token.TRUE {
 		sb.WriteString(fmt.Sprintf("\tgoto_if_set %s, %s_%d\n", dest.operand, scriptName, dest.id))
 	} else {
@@ -258,7 +227,7 @@ func renderFlagComparison(sb *strings.Builder, dest *destination, scriptName str
 	}
 }
 
-func renderVarComparison(sb *strings.Builder, dest *destination, scriptName string) {
+func renderVarComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
 	sb.WriteString(fmt.Sprintf("\tcompare %s, %s\n", dest.operand, dest.comparisonValue))
 	switch dest.operator {
 	case token.EQ:
@@ -276,7 +245,7 @@ func renderVarComparison(sb *strings.Builder, dest *destination, scriptName stri
 	}
 }
 
-func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *ifBranch) {
+func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *ifHeader) {
 	var returnID int
 	if i == len(curChunk.statements)-1 {
 		// This if statement is the last of the current chunk, so it
@@ -304,10 +273,10 @@ func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, rema
 		statements: stmt.Consequence.Body.Statements,
 	}
 	remainingChunks = append(remainingChunks, consequenceChunk)
-	branch := &ifBranch{}
-	branch.consequence = createDestination(stmt.Consequence.Type, stmt.Consequence.Operand, stmt.Consequence.Operator, stmt.Consequence.ComparisonValue, consequenceChunk.id)
+	branch := &ifHeader{}
+	branch.consequence = createConditionDestination(stmt.Consequence.Type, stmt.Consequence.Operand, stmt.Consequence.Operator, stmt.Consequence.ComparisonValue, consequenceChunk.id)
 
-	branch.elifConsequences = []*destination{}
+	branch.elifConsequences = []*conditionDestination{}
 	for _, elifStmt := range stmt.ElifConsequences {
 		*chunkCounter++
 		elifChunk := chunk{
@@ -317,7 +286,7 @@ func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, rema
 		}
 		remainingChunks = append(remainingChunks, elifChunk)
 		branch.elifConsequences = append(branch.elifConsequences,
-			createDestination(elifStmt.Type, elifStmt.Operand, elifStmt.Operator, elifStmt.ComparisonValue, elifChunk.id))
+			createConditionDestination(elifStmt.Type, elifStmt.Operand, elifStmt.Operator, elifStmt.ComparisonValue, elifChunk.id))
 	}
 
 	if stmt.ElseConsequence != nil {
@@ -328,13 +297,13 @@ func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, rema
 			statements: stmt.ElseConsequence.Statements,
 		}
 		remainingChunks = append(remainingChunks, elseChunk)
-		branch.elseConsequence = &destination{id: elseChunk.id}
+		branch.elseConsequence = &conditionDestination{id: elseChunk.id}
 	}
 
 	return remainingChunks, branch
 }
 
-func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, int) {
+func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *whileStart) {
 	var returnID int
 	if i == len(curChunk.statements)-1 {
 		// The condition statement is the last of the current chunk, so it
@@ -368,11 +337,12 @@ func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk
 		returnID:   headerChunk.id,
 		statements: stmt.Consequence.Body.Statements,
 	}
-	headerChunk.whileBranch = createDestination(stmt.Consequence.Type, stmt.Consequence.Operand, stmt.Consequence.Operator, stmt.Consequence.ComparisonValue, consequenceChunk.id)
+	dest := createConditionDestination(stmt.Consequence.Type, stmt.Consequence.Operand, stmt.Consequence.Operator, stmt.Consequence.ComparisonValue, consequenceChunk.id)
+	headerChunk.branchBehavior = &whileHeader{dest: dest}
 	remainingChunks = append(remainingChunks, consequenceChunk)
 	remainingChunks = append(remainingChunks, headerChunk)
 
-	return remainingChunks, headerChunk.id
+	return remainingChunks, &whileStart{destChunkID: headerChunk.id}
 }
 
 func renderCommandStatement(commandStmt *ast.CommandStatement) string {
