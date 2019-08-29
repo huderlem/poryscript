@@ -36,7 +36,7 @@ ok      github.com/huderlem/poryscript/parser   0.779s
 ```
 
 # Usage
-Poryscript reads an input script and outputs the resulting compiled bytecode script. You can either feed it the input script from a file or from `stdin`.  Similarly, Poryscript and output a file or to `stdout`.
+Poryscript reads an input script and outputs the resulting compiled bytecode script. You can either feed it the input script from a file or from `stdin`.  Similarly, Poryscript can output a file or to `stdout`.
 
 ```
 > ./poryscript -h
