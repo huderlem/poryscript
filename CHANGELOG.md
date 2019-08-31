@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `go.mod` file so the project can be built outside of the Go workspace.
 - Add `while` loops.
 - Add `do...while` loops
+- Add `break` statement.
 
 ### Changed
 - `raw` no longer takes a label name.
