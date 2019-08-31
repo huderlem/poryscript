@@ -9,15 +9,6 @@ import (
 	"github.com/huderlem/poryscript/token"
 )
 
-// Represents a single chunk of script output. Each chunk has an associated label in
-// the emitted bytecode output.
-type chunk struct {
-	id             int
-	returnID       int
-	statements     []ast.Statement
-	branchBehavior brancher
-}
-
 // Emitter is responsible for transforming a parsed Poryscript program into
 // the target assembler bytecode script.
 type Emitter struct {
@@ -256,25 +247,7 @@ func renderVarComparison(sb *strings.Builder, dest *conditionDestination, script
 }
 
 func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *ifHeader) {
-	var returnID int
-	if i == len(curChunk.statements)-1 {
-		// This if statement is the last of the current chunk, so it
-		// has the same return point as the current chunk.
-		returnID = curChunk.returnID
-	} else {
-		// This if statement needs to return to a chunk of logic
-		// that occurs directly after it. So, create a new Chunk for
-		// that logic.
-		*chunkCounter++
-		newChunk := chunk{
-			id:         *chunkCounter,
-			returnID:   curChunk.returnID,
-			statements: curChunk.statements[i+1:],
-		}
-		remainingChunks = append(remainingChunks, newChunk)
-		returnID = newChunk.id
-		curChunk.returnID = newChunk.id
-	}
+	remainingChunks, returnID := curChunk.splitChunkForBranch(i, chunkCounter, remainingChunks)
 
 	*chunkCounter++
 	consequenceChunk := chunk{
@@ -314,25 +287,7 @@ func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, rema
 }
 
 func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *loopStart) {
-	var returnID int
-	if i == len(curChunk.statements)-1 {
-		// The statement is the last of the current chunk, so it
-		// has the same return point as the current chunk.
-		returnID = curChunk.returnID
-	} else {
-		// The statement needs to return to a chunk of logic
-		// that occurs directly after it. So, create a new Chunk for
-		// that logic.
-		*chunkCounter++
-		newChunk := chunk{
-			id:         *chunkCounter,
-			returnID:   curChunk.returnID,
-			statements: curChunk.statements[i+1:],
-		}
-		remainingChunks = append(remainingChunks, newChunk)
-		returnID = newChunk.id
-		curChunk.returnID = newChunk.id
-	}
+	remainingChunks, returnID := curChunk.splitChunkForBranch(i, chunkCounter, remainingChunks)
 
 	*chunkCounter++
 	headerChunk := chunk{
@@ -356,25 +311,7 @@ func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk
 }
 
 func createDoWhileStatementChunks(stmt *ast.DoWhileStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *loopStart) {
-	var returnID int
-	if i == len(curChunk.statements)-1 {
-		// The statement is the last of the current chunk, so it
-		// has the same return point as the current chunk.
-		returnID = curChunk.returnID
-	} else {
-		// The statement needs to return to a chunk of logic
-		// that occurs directly after it. So, create a new Chunk for
-		// that logic.
-		*chunkCounter++
-		newChunk := chunk{
-			id:         *chunkCounter,
-			returnID:   curChunk.returnID,
-			statements: curChunk.statements[i+1:],
-		}
-		remainingChunks = append(remainingChunks, newChunk)
-		returnID = newChunk.id
-		curChunk.returnID = newChunk.id
-	}
+	remainingChunks, returnID := curChunk.splitChunkForBranch(i, chunkCounter, remainingChunks)
 
 	*chunkCounter++
 	headerChunk := chunk{
