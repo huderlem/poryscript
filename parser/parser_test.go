@@ -256,7 +256,7 @@ func TestWhileStatements(t *testing.T) {
 script Test {
 	while (var(VAR_1) < 1) {
 		if (var(VAR_7) != 1) {
-			message()
+			continue
 		}
 		message()
 	}
@@ -280,12 +280,19 @@ script Test {
 	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
 	whileStmt := scriptStmt.Body.Statements[0].(*ast.WhileStatement)
 	testConditionExpression(t, whileStmt.Consequence, token.VAR, "VAR_1", token.LT, "1")
+	ifStmt := whileStmt.Consequence.Body.Statements[0].(*ast.IfStatement)
+	continueStmt := ifStmt.Consequence.Body.Statements[0].(*ast.ContinueStatement)
+	if continueStmt.LoopStatment != whileStmt {
+		t.Fatalf("continueStmt != whileStmt")
+	}
+
 	whileStmt = scriptStmt.Body.Statements[1].(*ast.WhileStatement)
 	testConditionExpression(t, whileStmt.Consequence, token.FLAG, "FLAG_1", token.EQ, "TRUE")
 	breakStmt := whileStmt.Consequence.Body.Statements[1].(*ast.BreakStatement)
 	if breakStmt.LoopStatment != whileStmt {
 		t.Fatalf("breakStmt != whileStmt")
 	}
+
 	doWhileStmt := scriptStmt.Body.Statements[2].(*ast.DoWhileStatement)
 	testConditionExpression(t, doWhileStmt.Consequence, token.VAR, "VAR_1", token.GT, "2")
 	breakStmt = doWhileStmt.Consequence.Body.Statements[1].(*ast.BreakStatement)

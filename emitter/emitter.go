@@ -72,6 +72,7 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 		{id: chunkCounter, returnID: -1, statements: scriptStmt.Body.Statements[:]},
 	}
 	loopStatementReturnChunks := make(map[ast.Statement]int)
+	loopStatementOriginChunks := make(map[ast.Statement]int)
 	for len(remainingChunks) > 0 {
 		ids := []int{}
 		for _, c := range remainingChunks {
@@ -133,6 +134,7 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 			}
 			finalChunks[completeChunk.id] = completeChunk
 			loopStatementReturnChunks[stmt] = returnID
+			loopStatementOriginChunks[stmt] = loopStart.destChunkID
 		} else if stmt, ok := curChunk.statements[i].(*ast.DoWhileStatement); ok {
 			newRemainingChunks, loopStart, returnID := createDoWhileStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
 			remainingChunks = newRemainingChunks
@@ -144,10 +146,23 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 			}
 			finalChunks[completeChunk.id] = completeChunk
 			loopStatementReturnChunks[stmt] = returnID
+			loopStatementOriginChunks[stmt] = loopStart.destChunkID
 		} else if stmt, ok := curChunk.statements[i].(*ast.BreakStatement); ok {
 			destChunkID, ok := loopStatementReturnChunks[stmt.LoopStatment]
 			if !ok {
 				panic("Could not emit 'break' statement because its return point is unknown.")
+			}
+			completeChunk := chunk{
+				id:             curChunk.id,
+				returnID:       curChunk.returnID,
+				statements:     curChunk.statements[:i],
+				branchBehavior: &breakContext{destChunkID: destChunkID},
+			}
+			finalChunks[completeChunk.id] = completeChunk
+		} else if stmt, ok := curChunk.statements[i].(*ast.ContinueStatement); ok {
+			destChunkID, ok := loopStatementOriginChunks[stmt.LoopStatment]
+			if !ok {
+				panic("Could not emit 'continue' statement because its return point is unknown.")
 			}
 			completeChunk := chunk{
 				id:             curChunk.id,

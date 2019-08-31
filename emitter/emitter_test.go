@@ -250,32 +250,30 @@ Route29_EventScript_WaitingMan_Text_1:
 func TestEmitBreak(t *testing.T) {
 	input := `
 script MyScript {
-	blah
 	while (var(VAR_1) < 5) {
+		first
 		do {
-			delay(5)
-			if (flag(FLAG) == false) {
-				break
+			if (flag(FLAG_1) == true) {
+				stuff
+				before
+				continue
 			}
-		} while (var(VAR_2) == 7)
-
-		if (flag(FLAG_2) == true) {
-			break
+			last
+		} while (flag(FLAG_2) == false)
+		if (flag(FLAG_3) == true) {
+			continue
 		}
-		special(UpdateFoo)
+		lastinwhile
 	}
-	blah
-	stuff
-}
+	release
+}	
 `
 
 	expected := `MyScript::
-	blah
 	goto MyScript_2
 
 MyScript_1:
-	blah
-	stuff
+	release
 	return
 
 MyScript_2:
@@ -284,31 +282,36 @@ MyScript_2:
 	goto MyScript_1
 
 MyScript_3:
+	first
 	goto MyScript_6
 
 MyScript_4:
-	goto_if_set FLAG_2, MyScript_8
+	goto_if_set FLAG_3, MyScript_8
 	goto MyScript_7
 
 MyScript_5:
-	compare VAR_2, 7
-	goto_if_eq MyScript_6
+	goto_if_unset FLAG_2, MyScript_6
 	goto MyScript_4
 
 MyScript_6:
-	delay 5
-	goto_if_unset FLAG, MyScript_9
-	goto MyScript_5
+	goto_if_set FLAG_1, MyScript_10
+	goto MyScript_9
 
 MyScript_7:
-	special UpdateFoo
+	lastinwhile
 	goto MyScript_2
 
 MyScript_8:
-	goto MyScript_1
+	goto MyScript_2
 
 MyScript_9:
-	goto MyScript_4
+	last
+	goto MyScript_5
+
+MyScript_10:
+	stuff
+	before
+	goto MyScript_6
 
 `
 	l := lexer.New(input)

@@ -94,7 +94,7 @@ func (rs *RawStatement) statementNode() {}
 // TokenLiteral returns a string representation of the raw statement.
 func (rs *RawStatement) TokenLiteral() string { return rs.Token.Literal }
 
-// ConditionExpression is the condition for an if statement.
+// ConditionExpression is the condition for a condition.
 type ConditionExpression struct {
 	Type            token.Type
 	Operand         string
@@ -124,7 +124,7 @@ type WhileStatement struct {
 
 func (ws *WhileStatement) statementNode() {}
 
-// TokenLiteral returns a string representation of the if statement.
+// TokenLiteral returns a string representation of the while statement.
 func (ws *WhileStatement) TokenLiteral() string { return ws.Token.Literal }
 
 // DoWhileStatement is a do-while statement in Poryscript.
@@ -135,7 +135,7 @@ type DoWhileStatement struct {
 
 func (dws *DoWhileStatement) statementNode() {}
 
-// TokenLiteral returns a string representation of the if statement.
+// TokenLiteral returns a string representation of the do...while statement.
 func (dws *DoWhileStatement) TokenLiteral() string { return dws.Token.Literal }
 
 // BreakStatement is a break statement in Poryscript.
@@ -144,7 +144,18 @@ type BreakStatement struct {
 	LoopStatment Statement
 }
 
-func (dws *BreakStatement) statementNode() {}
+func (bs *BreakStatement) statementNode() {}
 
-// TokenLiteral returns a string representation of the if statement.
-func (dws *BreakStatement) TokenLiteral() string { return dws.Token.Literal }
+// TokenLiteral returns a string representation of the break statement.
+func (bs *BreakStatement) TokenLiteral() string { return bs.Token.Literal }
+
+// ContinueStatement is a continue statement in Poryscript.
+type ContinueStatement struct {
+	Token        token.Token
+	LoopStatment Statement
+}
+
+func (cs *ContinueStatement) statementNode() {}
+
+// TokenLiteral returns a string representation of the continue statement.
+func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }

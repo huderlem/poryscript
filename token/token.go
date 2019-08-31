@@ -38,18 +38,19 @@ const (
 	RBRACE = "}"
 
 	// Keywords
-	SCRIPT = "SCRIPT"
-	RAW    = "RAW"
-	VAR    = "VAR"
-	FLAG   = "FLAG"
-	TRUE   = "TRUE"
-	FALSE  = "FALSE"
-	IF     = "IF"
-	ELSE   = "ELSE"
-	ELSEIF = "ELSEIF"
-	DO     = "DO"
-	WHILE  = "WHILE"
-	BREAK  = "BREAK"
+	SCRIPT   = "SCRIPT"
+	RAW      = "RAW"
+	VAR      = "VAR"
+	FLAG     = "FLAG"
+	TRUE     = "TRUE"
+	FALSE    = "FALSE"
+	IF       = "IF"
+	ELSE     = "ELSE"
+	ELSEIF   = "ELSEIF"
+	DO       = "DO"
+	WHILE    = "WHILE"
+	BREAK    = "BREAK"
+	CONTINUE = "CONTINUE"
 )
 
 // If statement comparison types
@@ -59,20 +60,21 @@ const (
 )
 
 var keywords = map[string]Type{
-	"script": SCRIPT,
-	"raw":    RAW,
-	"var":    VAR,
-	"flag":   FLAG,
-	"TRUE":   TRUE,
-	"FALSE":  FALSE,
-	"true":   TRUE,
-	"false":  FALSE,
-	"if":     IF,
-	"else":   ELSE,
-	"elif":   ELSEIF,
-	"do":     DO,
-	"while":  WHILE,
-	"break":  BREAK,
+	"script":   SCRIPT,
+	"raw":      RAW,
+	"var":      VAR,
+	"flag":     FLAG,
+	"TRUE":     TRUE,
+	"FALSE":    FALSE,
+	"true":     TRUE,
+	"false":    FALSE,
+	"if":       IF,
+	"else":     ELSE,
+	"elif":     ELSEIF,
+	"do":       DO,
+	"while":    WHILE,
+	"break":    BREAK,
+	"continue": CONTINUE,
 }
 
 // GetIdentType looks up the token type for the given identifier

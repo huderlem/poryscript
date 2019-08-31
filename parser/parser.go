@@ -210,6 +210,12 @@ func (p *Parser) parseStatement(scriptName string) ast.Statement {
 			return nil
 		}
 		return statement
+	case token.CONTINUE:
+		statement := p.parseContinueStatement(scriptName)
+		if statement == nil {
+			return nil
+		}
+		return statement
 	}
 
 	msg := fmt.Sprintf("line %d: could not parse statement for '%s'\n", p.curToken.LineNumber, p.curToken.Literal)
@@ -384,7 +390,28 @@ func (p *Parser) parseBreakStatement(scriptName string) *ast.BreakStatement {
 	statement.LoopStatment = p.peekLoopStack()
 
 	if p.peekToken.Type != token.RBRACE {
-		msg := fmt.Sprintf("line %d: missing '{' after 'break'. 'break' must be the last statement in block scope.", p.peekToken.LineNumber)
+		msg := fmt.Sprintf("line %d: missing '}' after 'break'. 'break' must be the last statement in block scope.", p.peekToken.LineNumber)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	return statement
+}
+
+func (p *Parser) parseContinueStatement(scriptName string) *ast.ContinueStatement {
+	statement := &ast.ContinueStatement{
+		Token: p.curToken,
+	}
+
+	if p.peekLoopStack() == nil {
+		msg := fmt.Sprintf("line %d: 'continue' statement outside of loop scope.", p.peekToken.LineNumber)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	statement.LoopStatment = p.peekLoopStack()
+
+	if p.peekToken.Type != token.RBRACE {
+		msg := fmt.Sprintf("line %d: missing '}' after 'continue'. 'continue' must be the last statement in block scope.", p.peekToken.LineNumber)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
