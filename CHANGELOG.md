@@ -10,8 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add single-line comments with the `#` character.
 - Add `go.mod` file so the project can be built outside of the Go workspace.
 - Add `while` loops.
-- Add `do...while` loops
-- Add `break` statement.
+- Add `do...while` loops.
+- Add `break` and `continue` statements.
 
 ### Changed
 - `raw` no longer takes a label name.

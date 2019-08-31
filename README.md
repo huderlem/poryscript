@@ -119,7 +119,7 @@ Note the special keyword `elif`.  This is just the way Poryscript specifies an "
     } while (var(VAR_RESULT) == 0)
 ```
 
-`break` can be used to break out of a loop, like many programming languages.
+`break` can be used to break out of a loop, like many programming languages. Similary, `continue` returns to the start of the loop.
 
 The conditions have strict rules about what conditions they accept. The operand on the left side of the condition must either be a `flag()` or `var()` check. They each have a different set of valid comparison operators, shown below.
 
