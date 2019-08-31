@@ -92,3 +92,22 @@ func (ih *ifHeader) requiresTailJump() bool {
 	}
 	return true
 }
+
+// Represents a break statement, where it branches to after its loop scope.
+type breakContext struct {
+	destChunkID int
+}
+
+// Satisfies brancher interface.
+func (bc *breakContext) renderBranchConditions(sb *strings.Builder, scriptName string) {
+	if bc.destChunkID == -1 {
+		sb.WriteString("\treturn\n")
+	} else {
+		sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, bc.destChunkID))
+	}
+}
+
+// Satisfies brancher interface.
+func (bc *breakContext) requiresTailJump() bool {
+	return false
+}

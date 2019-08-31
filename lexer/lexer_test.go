@@ -23,6 +23,7 @@ func TestNextToken(t *testing.T) {
 		!
 		/
 		do
+		break
 		while
 		("Hello\n"
 		"I'm glad to see$")
@@ -88,6 +89,7 @@ func TestNextToken(t *testing.T) {
 		{token.ILLEGAL, "!"},
 		{token.ILLEGAL, "/"},
 		{token.DO, "do"},
+		{token.BREAK, "break"},
 		{token.WHILE, "while"},
 		{token.LPAREN, "("},
 		{token.STRING, "Hello\\n\nI'm glad to see$"},

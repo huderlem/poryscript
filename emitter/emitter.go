@@ -71,6 +71,7 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 	remainingChunks := []chunk{
 		{id: chunkCounter, returnID: -1, statements: scriptStmt.Body.Statements[:]},
 	}
+	loopStatementReturnChunks := make(map[ast.Statement]int)
 	for len(remainingChunks) > 0 {
 		ids := []int{}
 		for _, c := range remainingChunks {
@@ -122,7 +123,7 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 			}
 			finalChunks[completeChunk.id] = completeChunk
 		} else if stmt, ok := curChunk.statements[i].(*ast.WhileStatement); ok {
-			newRemainingChunks, loopStart := createWhileStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
+			newRemainingChunks, loopStart, returnID := createWhileStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
 			remainingChunks = newRemainingChunks
 			completeChunk := chunk{
 				id:             curChunk.id,
@@ -131,14 +132,28 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 				branchBehavior: loopStart,
 			}
 			finalChunks[completeChunk.id] = completeChunk
+			loopStatementReturnChunks[stmt] = returnID
 		} else if stmt, ok := curChunk.statements[i].(*ast.DoWhileStatement); ok {
-			newRemainingChunks, loopStart := createDoWhileStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
+			newRemainingChunks, loopStart, returnID := createDoWhileStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
 			remainingChunks = newRemainingChunks
 			completeChunk := chunk{
 				id:             curChunk.id,
 				returnID:       curChunk.returnID,
 				statements:     curChunk.statements[:i],
 				branchBehavior: loopStart,
+			}
+			finalChunks[completeChunk.id] = completeChunk
+			loopStatementReturnChunks[stmt] = returnID
+		} else if stmt, ok := curChunk.statements[i].(*ast.BreakStatement); ok {
+			destChunkID, ok := loopStatementReturnChunks[stmt.LoopStatment]
+			if !ok {
+				panic("Could not emit 'break' statement because its return point is unknown.")
+			}
+			completeChunk := chunk{
+				id:             curChunk.id,
+				returnID:       curChunk.returnID,
+				statements:     curChunk.statements[:i],
+				branchBehavior: &breakContext{destChunkID: destChunkID},
 			}
 			finalChunks[completeChunk.id] = completeChunk
 		} else {
@@ -286,7 +301,7 @@ func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, rema
 	return remainingChunks, branch
 }
 
-func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *loopStart) {
+func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *loopStart, int) {
 	remainingChunks, returnID := curChunk.splitChunkForBranch(i, chunkCounter, remainingChunks)
 
 	*chunkCounter++
@@ -307,10 +322,10 @@ func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk
 	remainingChunks = append(remainingChunks, consequenceChunk)
 	remainingChunks = append(remainingChunks, headerChunk)
 
-	return remainingChunks, &loopStart{destChunkID: headerChunk.id}
+	return remainingChunks, &loopStart{destChunkID: headerChunk.id}, returnID
 }
 
-func createDoWhileStatementChunks(stmt *ast.DoWhileStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *loopStart) {
+func createDoWhileStatementChunks(stmt *ast.DoWhileStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *loopStart, int) {
 	remainingChunks, returnID := curChunk.splitChunkForBranch(i, chunkCounter, remainingChunks)
 
 	*chunkCounter++
@@ -331,7 +346,7 @@ func createDoWhileStatementChunks(stmt *ast.DoWhileStatement, i int, curChunk *c
 	remainingChunks = append(remainingChunks, consequenceChunk)
 	remainingChunks = append(remainingChunks, headerChunk)
 
-	return remainingChunks, &loopStart{destChunkID: consequenceChunk.id}
+	return remainingChunks, &loopStart{destChunkID: consequenceChunk.id}, returnID
 }
 
 func renderCommandStatement(commandStmt *ast.CommandStatement) string {

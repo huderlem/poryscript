@@ -137,3 +137,14 @@ func (dws *DoWhileStatement) statementNode() {}
 
 // TokenLiteral returns a string representation of the if statement.
 func (dws *DoWhileStatement) TokenLiteral() string { return dws.Token.Literal }
+
+// BreakStatement is a break statement in Poryscript.
+type BreakStatement struct {
+	Token        token.Token
+	LoopStatment Statement
+}
+
+func (dws *BreakStatement) statementNode() {}
+
+// TokenLiteral returns a string representation of the if statement.
+func (dws *BreakStatement) TokenLiteral() string { return dws.Token.Literal }

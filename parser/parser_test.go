@@ -262,9 +262,11 @@ script Test {
 	}
 	while (flag(FLAG_1) == true) {
 		message()
+		break
 	}
 	do {
 		message()
+		break
 	} while (var(VAR_1) > 2)
 }
 `
@@ -280,6 +282,14 @@ script Test {
 	testConditionExpression(t, whileStmt.Consequence, token.VAR, "VAR_1", token.LT, "1")
 	whileStmt = scriptStmt.Body.Statements[1].(*ast.WhileStatement)
 	testConditionExpression(t, whileStmt.Consequence, token.FLAG, "FLAG_1", token.EQ, "TRUE")
+	breakStmt := whileStmt.Consequence.Body.Statements[1].(*ast.BreakStatement)
+	if breakStmt.LoopStatment != whileStmt {
+		t.Fatalf("breakStmt != whileStmt")
+	}
 	doWhileStmt := scriptStmt.Body.Statements[2].(*ast.DoWhileStatement)
 	testConditionExpression(t, doWhileStmt.Consequence, token.VAR, "VAR_1", token.GT, "2")
+	breakStmt = doWhileStmt.Consequence.Body.Statements[1].(*ast.BreakStatement)
+	if breakStmt.LoopStatment != doWhileStmt {
+		t.Fatalf("breakStmt != doWhileStmt")
+	}
 }

@@ -17,6 +17,7 @@ type Parser struct {
 	errors           []string
 	inlineTexts      []ast.Text
 	inlineTextCounts map[string]int
+	loopStack        []ast.Statement
 }
 
 // New creates a new Poryscript AST Parser.
@@ -31,6 +32,21 @@ func New(l *lexer.Lexer) *Parser {
 	p.nextToken()
 	p.nextToken()
 	return p
+}
+
+func (p *Parser) pushLoopStack(statement ast.Statement) {
+	p.loopStack = append(p.loopStack, statement)
+}
+
+func (p *Parser) popLoopStack() {
+	p.loopStack = p.loopStack[:len(p.loopStack)-1]
+}
+
+func (p *Parser) peekLoopStack() ast.Statement {
+	if len(p.loopStack) == 0 {
+		return nil
+	}
+	return p.loopStack[len(p.loopStack)-1]
 }
 
 // Errors returns the list of parser error messages.
@@ -188,6 +204,12 @@ func (p *Parser) parseStatement(scriptName string) ast.Statement {
 			return nil
 		}
 		return statement
+	case token.BREAK:
+		statement := p.parseBreakStatement(scriptName)
+		if statement == nil {
+			return nil
+		}
+		return statement
 	}
 
 	msg := fmt.Sprintf("line %d: could not parse statement for '%s'\n", p.curToken.LineNumber, p.curToken.Literal)
@@ -302,9 +324,11 @@ func (p *Parser) parseWhileStatement(scriptName string) *ast.WhileStatement {
 	statement := &ast.WhileStatement{
 		Token: p.curToken,
 	}
+	p.pushLoopStack(statement)
 
 	// while statement condition
 	consequence := p.parseConditionExpression(scriptName, statement.Token.LineNumber)
+	p.popLoopStack()
 	if consequence == nil {
 		return nil
 	}
@@ -317,6 +341,7 @@ func (p *Parser) parseDoWhileStatement(scriptName string) *ast.DoWhileStatement 
 	statement := &ast.DoWhileStatement{
 		Token: p.curToken,
 	}
+	p.pushLoopStack(statement)
 	expression := &ast.ConditionExpression{}
 
 	if !p.expectPeek(token.LBRACE) {
@@ -326,6 +351,10 @@ func (p *Parser) parseDoWhileStatement(scriptName string) *ast.DoWhileStatement 
 	}
 	p.nextToken()
 	expression.Body = p.parseBlockStatement(scriptName)
+	if expression.Body == nil {
+		return nil
+	}
+	p.popLoopStack()
 
 	if !p.expectPeek(token.WHILE) {
 		msg := fmt.Sprintf("line %d: missing 'while' after body of do-while statement '%s'", p.peekToken.LineNumber, p.peekToken.Literal)
@@ -338,6 +367,27 @@ func (p *Parser) parseDoWhileStatement(scriptName string) *ast.DoWhileStatement 
 	}
 
 	statement.Consequence = expression
+
+	return statement
+}
+
+func (p *Parser) parseBreakStatement(scriptName string) *ast.BreakStatement {
+	statement := &ast.BreakStatement{
+		Token: p.curToken,
+	}
+
+	if p.peekLoopStack() == nil {
+		msg := fmt.Sprintf("line %d: 'break' statement outside of loop scope.", p.peekToken.LineNumber)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	statement.LoopStatment = p.peekLoopStack()
+
+	if p.peekToken.Type != token.RBRACE {
+		msg := fmt.Sprintf("line %d: missing '{' after 'break'. 'break' must be the last statement in block scope.", p.peekToken.LineNumber)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
 
 	return statement
 }

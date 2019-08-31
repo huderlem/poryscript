@@ -49,6 +49,7 @@ const (
 	ELSEIF = "ELSEIF"
 	DO     = "DO"
 	WHILE  = "WHILE"
+	BREAK  = "BREAK"
 )
 
 // If statement comparison types
@@ -71,6 +72,7 @@ var keywords = map[string]Type{
 	"elif":   ELSEIF,
 	"do":     DO,
 	"while":  WHILE,
+	"break":  BREAK,
 }
 
 // GetIdentType looks up the token type for the given identifier

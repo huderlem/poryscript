@@ -246,3 +246,81 @@ Route29_EventScript_WaitingMan_Text_1:
 		t.Errorf("Mismatching emit -- Expected=%q, Got=%q", expected, result)
 	}
 }
+
+func TestEmitBreak(t *testing.T) {
+	input := `
+script MyScript {
+	blah
+	while (var(VAR_1) < 5) {
+		do {
+			delay(5)
+			if (flag(FLAG) == false) {
+				break
+			}
+		} while (var(VAR_2) == 7)
+
+		if (flag(FLAG_2) == true) {
+			break
+		}
+		special(UpdateFoo)
+	}
+	blah
+	stuff
+}
+`
+
+	expected := `MyScript::
+	blah
+	goto MyScript_2
+
+MyScript_1:
+	blah
+	stuff
+	return
+
+MyScript_2:
+	compare VAR_1, 5
+	goto_if_lt MyScript_3
+	goto MyScript_1
+
+MyScript_3:
+	goto MyScript_6
+
+MyScript_4:
+	goto_if_set FLAG_2, MyScript_8
+	goto MyScript_7
+
+MyScript_5:
+	compare VAR_2, 7
+	goto_if_eq MyScript_6
+	goto MyScript_4
+
+MyScript_6:
+	delay 5
+	goto_if_unset FLAG, MyScript_9
+	goto MyScript_5
+
+MyScript_7:
+	special UpdateFoo
+	goto MyScript_2
+
+MyScript_8:
+	goto MyScript_1
+
+MyScript_9:
+	goto MyScript_4
+
+`
+	l := lexer.New(input)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if program == nil {
+		t.Fatalf("ParseProgram() returned nil")
+	}
+
+	e := New(program)
+	result := e.Emit()
+	if result != expected {
+		t.Errorf("Mismatching emit -- Expected=%q, Got=%q", expected, result)
+	}
+}
