@@ -7,7 +7,7 @@ import (
 	"github.com/huderlem/poryscript/parser"
 )
 
-func TestEmit(t *testing.T) {
+func TestEmit1(t *testing.T) {
 	input := `
 script Route29_EventScript_WaitingMan {
 	lock
@@ -167,6 +167,71 @@ Route29_EventScript_Dude_Text_1:
 	.string "That's how you do it.\p"
 	.string "If you weaken them first, POKéMON\n"
 	.string "are easier to catch.$"
+`
+	l := lexer.New(input)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if program == nil {
+		t.Fatalf("ParseProgram() returned nil")
+	}
+
+	e := New(program)
+	result := e.Emit()
+	if result != expected {
+		t.Errorf("Mismatching emit -- Expected=%q, Got=%q", expected, result)
+	}
+}
+
+func TestEmitDoWhile(t *testing.T) {
+	input := `
+script Route29_EventScript_WaitingMan {
+	lock
+	faceplayer
+	# Force player to answer "Yes" to NPC question.
+	msgbox("Do you agree to the quest?$", MSGBOX_YESNO)
+	do {
+		if (flag(FLAG_1) == false) {
+			msgbox("...How about now?$", MSGBOX_YESNO)
+		} else {
+			special(OtherThing)
+		}
+	} while (var(VAR_RESULT) == 1)
+	release
+}`
+
+	expected := `Route29_EventScript_WaitingMan::
+	lock
+	faceplayer
+	msgbox Route29_EventScript_WaitingMan_Text_0, MSGBOX_YESNO
+	goto Route29_EventScript_WaitingMan_3
+
+Route29_EventScript_WaitingMan_1:
+	release
+	return
+
+Route29_EventScript_WaitingMan_2:
+	compare VAR_RESULT, 1
+	goto_if_eq Route29_EventScript_WaitingMan_3
+	goto Route29_EventScript_WaitingMan_1
+
+Route29_EventScript_WaitingMan_3:
+	goto_if_unset FLAG_1, Route29_EventScript_WaitingMan_4
+	goto Route29_EventScript_WaitingMan_5
+
+Route29_EventScript_WaitingMan_4:
+	msgbox Route29_EventScript_WaitingMan_Text_1, MSGBOX_YESNO
+	goto Route29_EventScript_WaitingMan_2
+
+Route29_EventScript_WaitingMan_5:
+	special OtherThing
+	goto Route29_EventScript_WaitingMan_2
+
+
+Route29_EventScript_WaitingMan_Text_0:
+	.string "Do you agree to the quest?$"
+
+Route29_EventScript_WaitingMan_Text_1:
+	.string "...How about now?$"
 `
 	l := lexer.New(input)
 	p := parser.New(l)

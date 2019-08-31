@@ -131,13 +131,23 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 			}
 			finalChunks[completeChunk.id] = completeChunk
 		} else if stmt, ok := curChunk.statements[i].(*ast.WhileStatement); ok {
-			newRemainingChunks, whileStart := createWhileStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
+			newRemainingChunks, loopStart := createWhileStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
 			remainingChunks = newRemainingChunks
 			completeChunk := chunk{
 				id:             curChunk.id,
 				returnID:       curChunk.returnID,
 				statements:     curChunk.statements[:i],
-				branchBehavior: whileStart,
+				branchBehavior: loopStart,
+			}
+			finalChunks[completeChunk.id] = completeChunk
+		} else if stmt, ok := curChunk.statements[i].(*ast.DoWhileStatement); ok {
+			newRemainingChunks, loopStart := createDoWhileStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
+			remainingChunks = newRemainingChunks
+			completeChunk := chunk{
+				id:             curChunk.id,
+				returnID:       curChunk.returnID,
+				statements:     curChunk.statements[:i],
+				branchBehavior: loopStart,
 			}
 			finalChunks[completeChunk.id] = completeChunk
 		} else {
@@ -303,14 +313,14 @@ func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, rema
 	return remainingChunks, branch
 }
 
-func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *whileStart) {
+func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *loopStart) {
 	var returnID int
 	if i == len(curChunk.statements)-1 {
-		// The condition statement is the last of the current chunk, so it
+		// The statement is the last of the current chunk, so it
 		// has the same return point as the current chunk.
 		returnID = curChunk.returnID
 	} else {
-		// The condition statement needs to return to a chunk of logic
+		// The statement needs to return to a chunk of logic
 		// that occurs directly after it. So, create a new Chunk for
 		// that logic.
 		*chunkCounter++
@@ -342,7 +352,49 @@ func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk
 	remainingChunks = append(remainingChunks, consequenceChunk)
 	remainingChunks = append(remainingChunks, headerChunk)
 
-	return remainingChunks, &whileStart{destChunkID: headerChunk.id}
+	return remainingChunks, &loopStart{destChunkID: headerChunk.id}
+}
+
+func createDoWhileStatementChunks(stmt *ast.DoWhileStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *loopStart) {
+	var returnID int
+	if i == len(curChunk.statements)-1 {
+		// The statement is the last of the current chunk, so it
+		// has the same return point as the current chunk.
+		returnID = curChunk.returnID
+	} else {
+		// The statement needs to return to a chunk of logic
+		// that occurs directly after it. So, create a new Chunk for
+		// that logic.
+		*chunkCounter++
+		newChunk := chunk{
+			id:         *chunkCounter,
+			returnID:   curChunk.returnID,
+			statements: curChunk.statements[i+1:],
+		}
+		remainingChunks = append(remainingChunks, newChunk)
+		returnID = newChunk.id
+		curChunk.returnID = newChunk.id
+	}
+
+	*chunkCounter++
+	headerChunk := chunk{
+		id:         *chunkCounter,
+		returnID:   returnID,
+		statements: []ast.Statement{},
+	}
+
+	*chunkCounter++
+	consequenceChunk := chunk{
+		id:         *chunkCounter,
+		returnID:   headerChunk.id,
+		statements: stmt.Consequence.Body.Statements,
+	}
+	dest := createConditionDestination(stmt.Consequence.Type, stmt.Consequence.Operand, stmt.Consequence.Operator, stmt.Consequence.ComparisonValue, consequenceChunk.id)
+	headerChunk.branchBehavior = &whileHeader{dest: dest}
+	remainingChunks = append(remainingChunks, consequenceChunk)
+	remainingChunks = append(remainingChunks, headerChunk)
+
+	return remainingChunks, &loopStart{destChunkID: consequenceChunk.id}
 }
 
 func renderCommandStatement(commandStmt *ast.CommandStatement) string {

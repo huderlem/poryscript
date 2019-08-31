@@ -22,18 +22,18 @@ type conditionDestination struct {
 	comparisonValue string
 }
 
-// Represents the initial jump to a while header chunk.
-type whileStart struct {
+// Represents the initial jump to a loop chunk.
+type loopStart struct {
 	destChunkID int
 }
 
 // Satisfies brancher interface.
-func (wsb *whileStart) renderBranchConditions(sb *strings.Builder, scriptName string) {
+func (wsb *loopStart) renderBranchConditions(sb *strings.Builder, scriptName string) {
 	sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, wsb.destChunkID))
 }
 
 // Satisfies brancher interface.
-func (wsb *whileStart) requiresTailJump() bool {
+func (wsb *loopStart) requiresTailJump() bool {
 	return false
 }
 
@@ -49,6 +49,21 @@ func (wh *whileHeader) renderBranchConditions(sb *strings.Builder, scriptName st
 
 // Satisfies brancher interface.
 func (wh *whileHeader) requiresTailJump() bool {
+	return true
+}
+
+// Represents a do-while loop header, where its branching conditions occur.
+type doWhileHeader struct {
+	dest *conditionDestination
+}
+
+// Satisfies brancher interface.
+func (dwh *doWhileHeader) renderBranchConditions(sb *strings.Builder, scriptName string) {
+	renderBranchComparison(sb, dwh.dest, scriptName)
+}
+
+// Satisfies brancher interface.
+func (dwh *doWhileHeader) requiresTailJump() bool {
 	return true
 }
 

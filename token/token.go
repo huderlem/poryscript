@@ -47,6 +47,7 @@ const (
 	IF     = "IF"
 	ELSE   = "ELSE"
 	ELSEIF = "ELSEIF"
+	DO     = "DO"
 	WHILE  = "WHILE"
 )
 
@@ -68,6 +69,7 @@ var keywords = map[string]Type{
 	"if":     IF,
 	"else":   ELSE,
 	"elif":   ELSEIF,
+	"do":     DO,
 	"while":  WHILE,
 }
 

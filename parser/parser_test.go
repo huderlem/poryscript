@@ -263,6 +263,9 @@ script Test {
 	while (flag(FLAG_1) == true) {
 		message()
 	}
+	do {
+		message()
+	} while (var(VAR_1) > 2)
 }
 `
 	l := lexer.New(input)
@@ -277,4 +280,6 @@ script Test {
 	testConditionExpression(t, whileStmt.Consequence, token.VAR, "VAR_1", token.LT, "1")
 	whileStmt = scriptStmt.Body.Statements[1].(*ast.WhileStatement)
 	testConditionExpression(t, whileStmt.Consequence, token.FLAG, "FLAG_1", token.EQ, "TRUE")
+	doWhileStmt := scriptStmt.Body.Statements[2].(*ast.DoWhileStatement)
+	testConditionExpression(t, doWhileStmt.Consequence, token.VAR, "VAR_1", token.GT, "2")
 }

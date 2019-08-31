@@ -182,6 +182,12 @@ func (p *Parser) parseStatement(scriptName string) ast.Statement {
 			return nil
 		}
 		return statement
+	case token.DO:
+		statement := p.parseDoWhileStatement(scriptName)
+		if statement == nil {
+			return nil
+		}
+		return statement
 	}
 
 	msg := fmt.Sprintf("line %d: could not parse statement for '%s'\n", p.curToken.LineNumber, p.curToken.Literal)
@@ -259,11 +265,6 @@ func (p *Parser) parseIfStatement(scriptName string) *ast.IfStatement {
 	statement := &ast.IfStatement{
 		Token: p.curToken,
 	}
-	if !p.expectPeek(token.LPAREN) {
-		msg := fmt.Sprintf("line %d: missing opening parenthesis of if statement '%s'", statement.Token.LineNumber, p.peekToken.Literal)
-		p.errors = append(p.errors, msg)
-		return nil
-	}
 
 	// First if statement condition
 	consequence := p.parseConditionExpression(scriptName, statement.Token.LineNumber)
@@ -275,11 +276,6 @@ func (p *Parser) parseIfStatement(scriptName string) *ast.IfStatement {
 	// Possibly-many elif conditions
 	for p.peekToken.Type == token.ELSEIF {
 		p.nextToken()
-		if !p.expectPeek(token.LPAREN) {
-			msg := fmt.Sprintf("line %d: missing opening parenthesis of elif statement '%s'", p.curToken.LineNumber, p.peekToken.Literal)
-			p.errors = append(p.errors, msg)
-			return nil
-		}
 		consequence = p.parseConditionExpression(scriptName, p.peekToken.LineNumber)
 		if consequence == nil {
 			return nil
@@ -306,11 +302,6 @@ func (p *Parser) parseWhileStatement(scriptName string) *ast.WhileStatement {
 	statement := &ast.WhileStatement{
 		Token: p.curToken,
 	}
-	if !p.expectPeek(token.LPAREN) {
-		msg := fmt.Sprintf("line %d: missing opening parenthesis of while statement '%s'", statement.Token.LineNumber, p.peekToken.Literal)
-		p.errors = append(p.errors, msg)
-		return nil
-	}
 
 	// while statement condition
 	consequence := p.parseConditionExpression(scriptName, statement.Token.LineNumber)
@@ -322,24 +313,73 @@ func (p *Parser) parseWhileStatement(scriptName string) *ast.WhileStatement {
 	return statement
 }
 
-func (p *Parser) parseConditionExpression(scriptName string, lineNumber int) *ast.ConditionExpression {
-	if !p.peekTokenIs(token.VAR) && !p.peekTokenIs(token.FLAG) {
-		msg := fmt.Sprintf("line %d: invalid condition statement command '%s'", lineNumber, p.peekToken.Literal)
+func (p *Parser) parseDoWhileStatement(scriptName string) *ast.DoWhileStatement {
+	statement := &ast.DoWhileStatement{
+		Token: p.curToken,
+	}
+	expression := &ast.ConditionExpression{}
+
+	if !p.expectPeek(token.LBRACE) {
+		msg := fmt.Sprintf("line %d: missing opening curly brace of do-while statement '%s'", p.peekToken.LineNumber, p.peekToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	p.nextToken()
+	expression.Body = p.parseBlockStatement(scriptName)
+
+	if !p.expectPeek(token.WHILE) {
+		msg := fmt.Sprintf("line %d: missing 'while' after body of do-while statement '%s'", p.peekToken.LineNumber, p.peekToken.Literal)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
 
+	if !p.parseCondition(expression, statement.Token.LineNumber) {
+		return nil
+	}
+
+	statement.Consequence = expression
+
+	return statement
+}
+
+func (p *Parser) parseConditionExpression(scriptName string, lineNumber int) *ast.ConditionExpression {
+	expression := &ast.ConditionExpression{}
+	if !p.parseCondition(expression, lineNumber) {
+		return nil
+	}
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
 	p.nextToken()
-	expression := &ast.ConditionExpression{Type: p.curToken.Type}
+
+	expression.Body = p.parseBlockStatement(scriptName)
+	return expression
+}
+
+func (p *Parser) parseCondition(expression *ast.ConditionExpression, lineNumber int) bool {
+	if !p.expectPeek(token.LPAREN) {
+		msg := fmt.Sprintf("line %d: missing opening parenthesis of condition '%s'", lineNumber, p.peekToken.Literal)
+		p.errors = append(p.errors, msg)
+		return false
+	}
+
+	if !p.peekTokenIs(token.VAR) && !p.peekTokenIs(token.FLAG) {
+		msg := fmt.Sprintf("line %d: invalid condition statement command '%s'", lineNumber, p.peekToken.Literal)
+		p.errors = append(p.errors, msg)
+		return false
+	}
+
+	p.nextToken()
+	expression.Type = p.curToken.Type
 	if !p.expectPeek(token.LPAREN) {
 		msg := fmt.Sprintf("line %d: missing opening parenthesis for condition operator '%s'", lineNumber, expression.Type)
 		p.errors = append(p.errors, msg)
-		return nil
+		return false
 	}
 	if p.peekToken.Type == token.RPAREN {
 		msg := fmt.Sprintf("line %d: missing value for condition operator '%s'", lineNumber, expression.Type)
 		p.errors = append(p.errors, msg)
-		return nil
+		return false
 	}
 	p.nextToken()
 
@@ -354,17 +394,15 @@ func (p *Parser) parseConditionExpression(scriptName string, lineNumber int) *as
 	if expression.Type == token.VAR {
 		ok := p.parseConditionVarOperator(expression)
 		if !ok {
-			return nil
+			return false
 		}
 	} else if expression.Type == token.FLAG {
 		ok := p.parseConditionFlagOperator(expression)
 		if !ok {
-			return nil
+			return false
 		}
 	}
-
-	expression.Body = p.parseBlockStatement(scriptName)
-	return expression
+	return true
 }
 
 func (p *Parser) parseConditionVarOperator(expression *ast.ConditionExpression) bool {
@@ -387,12 +425,8 @@ func (p *Parser) parseConditionVarOperator(expression *ast.ConditionExpression) 
 		parts = append(parts, p.curToken.Literal)
 		p.nextToken()
 	}
-	if !p.expectPeek(token.LBRACE) {
-		return false
-	}
 
 	expression.ComparisonValue = strings.Join(parts, " ")
-	p.nextToken()
 	return true
 }
 
@@ -421,10 +455,6 @@ func (p *Parser) parseConditionFlagOperator(expression *ast.ConditionExpression)
 	if !p.expectPeek(token.RPAREN) {
 		return false
 	}
-	if !p.expectPeek(token.LBRACE) {
-		return false
-	}
 
-	p.nextToken()
 	return true
 }

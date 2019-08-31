@@ -126,3 +126,14 @@ func (ws *WhileStatement) statementNode() {}
 
 // TokenLiteral returns a string representation of the if statement.
 func (ws *WhileStatement) TokenLiteral() string { return ws.Token.Literal }
+
+// DoWhileStatement is a do-while statement in Poryscript.
+type DoWhileStatement struct {
+	Token       token.Token
+	Consequence *ConditionExpression
+}
+
+func (dws *DoWhileStatement) statementNode() {}
+
+// TokenLiteral returns a string representation of the if statement.
+func (dws *DoWhileStatement) TokenLiteral() string { return dws.Token.Literal }
