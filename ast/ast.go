@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/huderlem/poryscript/token"
+import (
+	"fmt"
+
+	"github.com/huderlem/poryscript/token"
+)
 
 // Node is an interface that represents a node in a Poryscript AST.
 type Node interface {
@@ -94,13 +98,44 @@ func (rs *RawStatement) statementNode() {}
 // TokenLiteral returns a string representation of the raw statement.
 func (rs *RawStatement) TokenLiteral() string { return rs.Token.Literal }
 
-// ConditionExpression is the condition for a condition.
-type ConditionExpression struct {
-	Type            token.Type
+// BooleanExpression is a part of a boolean expression.
+type BooleanExpression interface {
+	booleanExpressionNode()
+	String() string
+}
+
+// BinaryExpression is a binary boolean expression.
+type BinaryExpression struct {
+	Left     BooleanExpression
+	Operator token.Type
+	Right    BooleanExpression
+}
+
+func (be *BinaryExpression) booleanExpressionNode() {}
+
+func (be *BinaryExpression) String() string {
+	return fmt.Sprintf("(%s) %s (%s)", be.Left.String(), be.Operator, be.Right.String())
+}
+
+// OperatorExpression represents a built-in operator, like flag(FLAG_1) and var(VAR_1).
+type OperatorExpression struct {
 	Operand         string
 	Operator        token.Type
 	ComparisonValue string
-	Body            *BlockStatement
+	Type            token.Type
+}
+
+func (oe *OperatorExpression) booleanExpressionNode() {}
+
+func (oe *OperatorExpression) String() string {
+	return fmt.Sprintf("%s(%s) %s %s", oe.Type, oe.Operand, oe.Operator, oe.ComparisonValue)
+}
+
+// ConditionExpression is the expression for a condition, and the resulting body of statements
+// when the expression evaluates to true.
+type ConditionExpression struct {
+	Expression BooleanExpression
+	Body       *BlockStatement
 }
 
 // IfStatement is an if statement in Poryscript.

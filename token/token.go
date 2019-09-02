@@ -28,6 +28,8 @@ const (
 	GT  = ">"
 	LTE = "<="
 	GTE = ">="
+	AND = "&&"
+	OR  = "||"
 
 	// Delimeters
 	COMMA = ","

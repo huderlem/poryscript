@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/huderlem/poryscript/ast"
 	"github.com/huderlem/poryscript/token"
 )
 
@@ -15,82 +16,23 @@ type brancher interface {
 
 // Helper types for keeping track of script chunk branching logic.
 type conditionDestination struct {
-	id              int
-	compareType     token.Type
-	operand         string
-	operator        token.Type
-	comparisonValue string
+	id                 int
+	operatorExpression *ast.OperatorExpression
 }
 
-// Represents the initial jump to a loop chunk.
-type loopStart struct {
+// Represents the initial jump to a loop or comparison chunk.
+type jump struct {
 	destChunkID int
 }
 
 // Satisfies brancher interface.
-func (wsb *loopStart) renderBranchConditions(sb *strings.Builder, scriptName string) {
-	sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, wsb.destChunkID))
+func (j *jump) renderBranchConditions(sb *strings.Builder, scriptName string) {
+	sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, j.destChunkID))
 }
 
 // Satisfies brancher interface.
-func (wsb *loopStart) requiresTailJump() bool {
+func (j *jump) requiresTailJump() bool {
 	return false
-}
-
-// Represents a while loop header, where its branching conditions occur.
-type whileHeader struct {
-	dest *conditionDestination
-}
-
-// Satisfies brancher interface.
-func (wh *whileHeader) renderBranchConditions(sb *strings.Builder, scriptName string) {
-	renderBranchComparison(sb, wh.dest, scriptName)
-}
-
-// Satisfies brancher interface.
-func (wh *whileHeader) requiresTailJump() bool {
-	return true
-}
-
-// Represents a do-while loop header, where its branching conditions occur.
-type doWhileHeader struct {
-	dest *conditionDestination
-}
-
-// Satisfies brancher interface.
-func (dwh *doWhileHeader) renderBranchConditions(sb *strings.Builder, scriptName string) {
-	renderBranchComparison(sb, dwh.dest, scriptName)
-}
-
-// Satisfies brancher interface.
-func (dwh *doWhileHeader) requiresTailJump() bool {
-	return true
-}
-
-// Represents an if statement header, where its branching conditions occur.
-type ifHeader struct {
-	consequence      *conditionDestination
-	elifConsequences []*conditionDestination
-	elseConsequence  *conditionDestination
-}
-
-// Satisfies brancher interface.
-func (ih *ifHeader) renderBranchConditions(sb *strings.Builder, scriptName string) {
-	renderBranchComparison(sb, ih.consequence, scriptName)
-	for _, dest := range ih.elifConsequences {
-		renderBranchComparison(sb, dest, scriptName)
-	}
-	if ih.elseConsequence != nil {
-		sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, ih.elseConsequence.id))
-	}
-}
-
-// Satisfies brancher interface.
-func (ih *ifHeader) requiresTailJump() bool {
-	if ih.elseConsequence != nil {
-		return false
-	}
-	return true
 }
 
 // Represents a break statement, where it branches to after its loop scope.
@@ -110,4 +52,59 @@ func (bc *breakContext) renderBranchConditions(sb *strings.Builder, scriptName s
 // Satisfies brancher interface.
 func (bc *breakContext) requiresTailJump() bool {
 	return false
+}
+
+// Represents a leaf expression of a compound boolean expression.
+type leafExpressionBranch struct {
+	truthyDest     *conditionDestination
+	falseyReturnID int
+}
+
+// Satisfies brancher interface.
+func (l *leafExpressionBranch) renderBranchConditions(sb *strings.Builder, scriptName string) {
+	renderBranchComparison(sb, l.truthyDest, scriptName)
+	if l.falseyReturnID == -1 {
+		sb.WriteString("\treturn\n")
+	} else {
+		sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, l.falseyReturnID))
+	}
+}
+
+// Satisfies brancher interface.
+func (l *leafExpressionBranch) requiresTailJump() bool {
+	return false
+}
+
+func renderBranchComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
+	if dest.operatorExpression.Type == token.FLAG {
+		renderFlagComparison(sb, dest, scriptName)
+	} else if dest.operatorExpression.Type == token.VAR {
+		renderVarComparison(sb, dest, scriptName)
+	}
+}
+
+func renderFlagComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
+	if dest.operatorExpression.ComparisonValue == token.TRUE {
+		sb.WriteString(fmt.Sprintf("\tgoto_if_set %s, %s_%d\n", dest.operatorExpression.Operand, scriptName, dest.id))
+	} else {
+		sb.WriteString(fmt.Sprintf("\tgoto_if_unset %s, %s_%d\n", dest.operatorExpression.Operand, scriptName, dest.id))
+	}
+}
+
+func renderVarComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
+	sb.WriteString(fmt.Sprintf("\tcompare %s, %s\n", dest.operatorExpression.Operand, dest.operatorExpression.ComparisonValue))
+	switch dest.operatorExpression.Operator {
+	case token.EQ:
+		sb.WriteString(fmt.Sprintf("\tgoto_if_eq %s_%d\n", scriptName, dest.id))
+	case token.NEQ:
+		sb.WriteString(fmt.Sprintf("\tgoto_if_ne %s_%d\n", scriptName, dest.id))
+	case token.LT:
+		sb.WriteString(fmt.Sprintf("\tgoto_if_lt %s_%d\n", scriptName, dest.id))
+	case token.LTE:
+		sb.WriteString(fmt.Sprintf("\tgoto_if_le %s_%d\n", scriptName, dest.id))
+	case token.GT:
+		sb.WriteString(fmt.Sprintf("\tgoto_if_gt %s_%d\n", scriptName, dest.id))
+	case token.GTE:
+		sb.WriteString(fmt.Sprintf("\tgoto_if_ge %s_%d\n", scriptName, dest.id))
+	}
 }

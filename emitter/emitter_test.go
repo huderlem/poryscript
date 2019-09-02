@@ -73,12 +73,10 @@ Route29_Text_Dude_CatchingTutRejected:
 	lock
 	faceplayer
 	gettime
-	compare VAR_0x8002, TIME_NIGHT
-	goto_if_eq Route29_EventScript_WaitingMan_2
-	goto Route29_EventScript_WaitingMan_3
+	goto Route29_EventScript_WaitingMan_4
 
 Route29_EventScript_WaitingMan_1:
-	goto Route29_EventScript_WaitingMan_5
+	goto Route29_EventScript_WaitingMan_6
 
 Route29_EventScript_WaitingMan_2:
 	msgbox Route29_EventScript_WaitingMan_Text_0
@@ -89,26 +87,32 @@ Route29_EventScript_WaitingMan_3:
 	goto Route29_EventScript_WaitingMan_1
 
 Route29_EventScript_WaitingMan_4:
+	compare VAR_0x8002, TIME_NIGHT
+	goto_if_eq Route29_EventScript_WaitingMan_2
+	goto Route29_EventScript_WaitingMan_3
+
+Route29_EventScript_WaitingMan_5:
 	release
 	return
 
-Route29_EventScript_WaitingMan_5:
-	compare VAR_0x8002, TIME_NIGHT
-	goto_if_eq Route29_EventScript_WaitingMan_6
-	goto Route29_EventScript_WaitingMan_4
-
 Route29_EventScript_WaitingMan_6:
+	goto Route29_EventScript_WaitingMan_8
+
+Route29_EventScript_WaitingMan_7:
 	advancetime 5
 	gettime
+	goto Route29_EventScript_WaitingMan_6
+
+Route29_EventScript_WaitingMan_8:
+	compare VAR_0x8002, TIME_NIGHT
+	goto_if_eq Route29_EventScript_WaitingMan_7
 	goto Route29_EventScript_WaitingMan_5
 
 
 Route29_EventScript_Dude::
 	lock
 	faceplayer
-	goto_if_set FLAG_LEARNED_TO_CATCH_POKEMON, Route29_EventScript_Dude_2
-	goto_if_unset FLAG_GAVE_MYSTERY_EGG_TO_ELM, Route29_EventScript_Dude_3
-	goto Route29_EventScript_Dude_4
+	goto Route29_EventScript_Dude_6
 
 Route29_EventScript_Dude_1:
 	release
@@ -124,15 +128,21 @@ Route29_EventScript_Dude_3:
 
 Route29_EventScript_Dude_4:
 	msgbox Route29_EventScript_Dude_Text_0, MSGBOX_YESNO
-	compare VAR_RESULT, 0
-	goto_if_eq Route29_EventScript_Dude_5
-	goto Route29_EventScript_Dude_6
+	goto Route29_EventScript_Dude_9
 
 Route29_EventScript_Dude_5:
+	goto_if_unset FLAG_GAVE_MYSTERY_EGG_TO_ELM, Route29_EventScript_Dude_3
+	goto Route29_EventScript_Dude_4
+
+Route29_EventScript_Dude_6:
+	goto_if_set FLAG_LEARNED_TO_CATCH_POKEMON, Route29_EventScript_Dude_2
+	goto Route29_EventScript_Dude_5
+
+Route29_EventScript_Dude_7:
 	msgbox Route29_Text_Dude_CatchingTutRejected
 	goto Route29_EventScript_Dude_1
 
-Route29_EventScript_Dude_6:
+Route29_EventScript_Dude_8:
 	closemessage
 	special StartDudeTutorialBattle
 	waitstate
@@ -140,6 +150,11 @@ Route29_EventScript_Dude_6:
 	msgbox Route29_EventScript_Dude_Text_1
 	setflag FLAG_LEARNED_TO_CATCH_POKEMON
 	goto Route29_EventScript_Dude_1
+
+Route29_EventScript_Dude_9:
+	compare VAR_RESULT, 0
+	goto_if_eq Route29_EventScript_Dude_7
+	goto Route29_EventScript_Dude_8
 
 
 Route29_Text_PokemonInTheGrass:
@@ -210,21 +225,27 @@ Route29_EventScript_WaitingMan_1:
 	return
 
 Route29_EventScript_WaitingMan_2:
+	goto Route29_EventScript_WaitingMan_4
+
+Route29_EventScript_WaitingMan_3:
+	goto Route29_EventScript_WaitingMan_7
+
+Route29_EventScript_WaitingMan_4:
 	compare VAR_RESULT, 1
 	goto_if_eq Route29_EventScript_WaitingMan_3
 	goto Route29_EventScript_WaitingMan_1
 
-Route29_EventScript_WaitingMan_3:
-	goto_if_unset FLAG_1, Route29_EventScript_WaitingMan_4
-	goto Route29_EventScript_WaitingMan_5
-
-Route29_EventScript_WaitingMan_4:
+Route29_EventScript_WaitingMan_5:
 	msgbox Route29_EventScript_WaitingMan_Text_1, MSGBOX_YESNO
 	goto Route29_EventScript_WaitingMan_2
 
-Route29_EventScript_WaitingMan_5:
+Route29_EventScript_WaitingMan_6:
 	special OtherThing
 	goto Route29_EventScript_WaitingMan_2
+
+Route29_EventScript_WaitingMan_7:
+	goto_if_unset FLAG_1, Route29_EventScript_WaitingMan_5
+	goto Route29_EventScript_WaitingMan_6
 
 
 Route29_EventScript_WaitingMan_Text_0:
@@ -277,41 +298,146 @@ MyScript_1:
 	return
 
 MyScript_2:
+	goto MyScript_4
+
+MyScript_3:
+	first
+	goto MyScript_7
+
+MyScript_4:
 	compare VAR_1, 5
 	goto_if_lt MyScript_3
 	goto MyScript_1
 
-MyScript_3:
-	first
-	goto MyScript_6
-
-MyScript_4:
-	goto_if_set FLAG_3, MyScript_8
-	goto MyScript_7
-
 MyScript_5:
-	goto_if_unset FLAG_2, MyScript_6
-	goto MyScript_4
+	goto MyScript_11
 
 MyScript_6:
-	goto_if_set FLAG_1, MyScript_10
-	goto MyScript_9
+	goto MyScript_8
 
 MyScript_7:
+	goto MyScript_14
+
+MyScript_8:
+	goto_if_unset FLAG_2, MyScript_7
+	goto MyScript_5
+
+MyScript_9:
 	lastinwhile
 	goto MyScript_2
 
-MyScript_8:
+MyScript_10:
 	goto MyScript_2
 
-MyScript_9:
-	last
-	goto MyScript_5
+MyScript_11:
+	goto_if_set FLAG_3, MyScript_10
+	goto MyScript_9
 
-MyScript_10:
+MyScript_12:
+	last
+	goto MyScript_6
+
+MyScript_13:
 	stuff
 	before
+	goto MyScript_7
+
+MyScript_14:
+	goto_if_set FLAG_1, MyScript_13
+	goto MyScript_12
+
+`
+	l := lexer.New(input)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if program == nil {
+		t.Fatalf("ParseProgram() returned nil")
+	}
+
+	e := New(program)
+	result := e.Emit()
+	if result != expected {
+		t.Errorf("Mismatching emit -- Expected=%q, Got=%q", expected, result)
+	}
+}
+
+func TestEmitCompoundBooleanExpressions(t *testing.T) {
+	input := `
+script MyScript {
+	do {
+		message()
+		if (flag(FLAG_3) == false || (var(VAR_44) > 3 && var(VAR_55) <= 5)) {
+			hey
+		}
+	} while ((flag(FLAG_1) == true || flag(FLAG_2) == true) && (var(VAR_1) == 2 || var(VAR_2) == 3))
+	blah
+}	
+`
+
+	expected := `MyScript::
+	goto MyScript_3
+
+MyScript_1:
+	blah
+	return
+
+MyScript_2:
 	goto MyScript_6
+
+MyScript_3:
+	message
+	goto MyScript_13
+
+MyScript_4:
+	goto MyScript_9
+
+MyScript_5:
+	goto MyScript_7
+
+MyScript_6:
+	goto_if_set FLAG_1, MyScript_4
+	goto MyScript_5
+
+MyScript_7:
+	goto_if_set FLAG_2, MyScript_4
+	goto MyScript_1
+
+MyScript_8:
+	goto MyScript_10
+
+MyScript_9:
+	compare VAR_1, 2
+	goto_if_eq MyScript_3
+	goto MyScript_8
+
+MyScript_10:
+	compare VAR_2, 3
+	goto_if_eq MyScript_3
+	goto MyScript_1
+
+MyScript_11:
+	hey
+	goto MyScript_2
+
+MyScript_12:
+	goto MyScript_15
+
+MyScript_13:
+	goto_if_unset FLAG_3, MyScript_11
+	goto MyScript_12
+
+MyScript_14:
+	goto MyScript_16
+
+MyScript_15:
+	compare VAR_44, 3
+	goto_if_gt MyScript_14
+	goto MyScript_2
+
+MyScript_16:
+	compare VAR_55, 5
+	goto_if_le MyScript_11
+	goto MyScript_2
 
 `
 	l := lexer.New(input)

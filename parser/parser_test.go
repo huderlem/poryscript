@@ -220,23 +220,23 @@ script Test {
 
 	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
 	ifStmt := scriptStmt.Body.Statements[0].(*ast.IfStatement)
-	testConditionExpression(t, ifStmt.Consequence, token.VAR, "VAR_1", token.EQ, "1")
-	testConditionExpression(t, ifStmt.ElifConsequences[0], token.VAR, "VAR_2", token.NEQ, "2")
-	testConditionExpression(t, ifStmt.ElifConsequences[1], token.VAR, "VAR_3", token.LT, "3")
-	testConditionExpression(t, ifStmt.ElifConsequences[2], token.VAR, "VAR_4", token.LTE, "4")
-	testConditionExpression(t, ifStmt.ElifConsequences[3], token.VAR, "VAR_5", token.GT, "5")
-	testConditionExpression(t, ifStmt.ElifConsequences[4], token.VAR, "VAR_6", token.GTE, "6")
-	testConditionExpression(t, ifStmt.ElifConsequences[5], token.FLAG, "FLAG_1", token.EQ, "TRUE")
-	testConditionExpression(t, ifStmt.ElifConsequences[6], token.FLAG, "FLAG_2 + BASE", token.EQ, "FALSE")
+	testConditionExpression(t, ifStmt.Consequence.Expression.(*ast.OperatorExpression), token.VAR, "VAR_1", token.EQ, "1")
+	testConditionExpression(t, ifStmt.ElifConsequences[0].Expression.(*ast.OperatorExpression), token.VAR, "VAR_2", token.NEQ, "2")
+	testConditionExpression(t, ifStmt.ElifConsequences[1].Expression.(*ast.OperatorExpression), token.VAR, "VAR_3", token.LT, "3")
+	testConditionExpression(t, ifStmt.ElifConsequences[2].Expression.(*ast.OperatorExpression), token.VAR, "VAR_4", token.LTE, "4")
+	testConditionExpression(t, ifStmt.ElifConsequences[3].Expression.(*ast.OperatorExpression), token.VAR, "VAR_5", token.GT, "5")
+	testConditionExpression(t, ifStmt.ElifConsequences[4].Expression.(*ast.OperatorExpression), token.VAR, "VAR_6", token.GTE, "6")
+	testConditionExpression(t, ifStmt.ElifConsequences[5].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_1", token.EQ, "TRUE")
+	testConditionExpression(t, ifStmt.ElifConsequences[6].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_2 + BASE", token.EQ, "FALSE")
 	nested := ifStmt.Consequence.Body.Statements[0].(*ast.IfStatement)
-	testConditionExpression(t, nested.Consequence, token.VAR, "VAR_7", token.NEQ, "1")
+	testConditionExpression(t, nested.Consequence.Expression.(*ast.OperatorExpression), token.VAR, "VAR_7", token.NEQ, "1")
 
 	if len(ifStmt.ElseConsequence.Statements) != 5 {
 		t.Fatalf("len(ifStmt.ElseConsequences) should be '%d'. got=%d", 5, len(ifStmt.ElseConsequence.Statements))
 	}
 }
 
-func testConditionExpression(t *testing.T, expression *ast.ConditionExpression, expectedType token.Type, expectedOperand string, expectedOperator token.Type, expectedComparisonValue string) {
+func testConditionExpression(t *testing.T, expression *ast.OperatorExpression, expectedType token.Type, expectedOperand string, expectedOperator token.Type, expectedComparisonValue string) {
 	if expression.Type != expectedType {
 		t.Fatalf("expression.Type not '%s'. got=%s", expectedType, expression.Type)
 	}
@@ -279,7 +279,7 @@ script Test {
 
 	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
 	whileStmt := scriptStmt.Body.Statements[0].(*ast.WhileStatement)
-	testConditionExpression(t, whileStmt.Consequence, token.VAR, "VAR_1", token.LT, "1")
+	testConditionExpression(t, whileStmt.Consequence.Expression.(*ast.OperatorExpression), token.VAR, "VAR_1", token.LT, "1")
 	ifStmt := whileStmt.Consequence.Body.Statements[0].(*ast.IfStatement)
 	continueStmt := ifStmt.Consequence.Body.Statements[0].(*ast.ContinueStatement)
 	if continueStmt.LoopStatment != whileStmt {
@@ -287,16 +287,90 @@ script Test {
 	}
 
 	whileStmt = scriptStmt.Body.Statements[1].(*ast.WhileStatement)
-	testConditionExpression(t, whileStmt.Consequence, token.FLAG, "FLAG_1", token.EQ, "TRUE")
+	testConditionExpression(t, whileStmt.Consequence.Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_1", token.EQ, "TRUE")
 	breakStmt := whileStmt.Consequence.Body.Statements[1].(*ast.BreakStatement)
 	if breakStmt.LoopStatment != whileStmt {
 		t.Fatalf("breakStmt != whileStmt")
 	}
 
 	doWhileStmt := scriptStmt.Body.Statements[2].(*ast.DoWhileStatement)
-	testConditionExpression(t, doWhileStmt.Consequence, token.VAR, "VAR_1", token.GT, "2")
+	testConditionExpression(t, doWhileStmt.Consequence.Expression.(*ast.OperatorExpression), token.VAR, "VAR_1", token.GT, "2")
 	breakStmt = doWhileStmt.Consequence.Body.Statements[1].(*ast.BreakStatement)
 	if breakStmt.LoopStatment != doWhileStmt {
 		t.Fatalf("breakStmt != doWhileStmt")
+	}
+}
+
+func TestCompoundBooleanExpressions(t *testing.T) {
+	input := `
+script Test {
+	if (var(VAR_1) < 1 || flag(FLAG_2) == true && var(VAR_3) > 4) {
+		message()
+	}
+	if (var(VAR_1) < 1 && flag(FLAG_2) == true || var(VAR_3) > 4) {
+		message()
+	}
+	if ((var(VAR_1) == 10 || ((var(VAR_1) == 12))) && flag(FLAG_1) == true) {
+		message()
+	}
+}
+`
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	if program == nil {
+		t.Fatalf("ParseProgram() returned nil")
+	}
+
+	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
+	ifStmt := scriptStmt.Body.Statements[0].(*ast.IfStatement)
+	ex := ifStmt.Consequence.Expression.(*ast.BinaryExpression)
+	if ex.Operator != token.OR {
+		t.Fatalf("ex.Operator != token.OR. Got '%s' instead.", ex.Operator)
+	}
+	op := ex.Left.(*ast.OperatorExpression)
+	testOperatorExpression(t, op, token.VAR, "1", "VAR_1", token.LT)
+	op = (ex.Right.(*ast.BinaryExpression)).Left.(*ast.OperatorExpression)
+	testOperatorExpression(t, op, token.FLAG, "TRUE", "FLAG_2", token.EQ)
+	op = (ex.Right.(*ast.BinaryExpression)).Right.(*ast.OperatorExpression)
+	testOperatorExpression(t, op, token.VAR, "4", "VAR_3", token.GT)
+
+	ifStmt = scriptStmt.Body.Statements[1].(*ast.IfStatement)
+	ex = ifStmt.Consequence.Expression.(*ast.BinaryExpression)
+	if ex.Operator != token.OR {
+		t.Fatalf("ex.Operator != token.OR Got '%s' instead.", ex.Operator)
+	}
+	op = (ex.Left.(*ast.BinaryExpression)).Left.(*ast.OperatorExpression)
+	testOperatorExpression(t, op, token.VAR, "1", "VAR_1", token.LT)
+	op = (ex.Left.(*ast.BinaryExpression)).Right.(*ast.OperatorExpression)
+	testOperatorExpression(t, op, token.FLAG, "TRUE", "FLAG_2", token.EQ)
+	op = ex.Right.(*ast.OperatorExpression)
+	testOperatorExpression(t, op, token.VAR, "4", "VAR_3", token.GT)
+
+	ifStmt = scriptStmt.Body.Statements[2].(*ast.IfStatement)
+	ex = ifStmt.Consequence.Expression.(*ast.BinaryExpression)
+	if ex.Operator != token.AND {
+		t.Fatalf("ex.Operator != token.AND Got '%s' instead.", ex.Operator)
+	}
+	op = (ex.Left.(*ast.BinaryExpression)).Left.(*ast.OperatorExpression)
+	testOperatorExpression(t, op, token.VAR, "10", "VAR_1", token.EQ)
+	op = (ex.Left.(*ast.BinaryExpression)).Right.(*ast.OperatorExpression)
+	testOperatorExpression(t, op, token.VAR, "12", "VAR_1", token.EQ)
+	op = ex.Right.(*ast.OperatorExpression)
+	testOperatorExpression(t, op, token.FLAG, "TRUE", "FLAG_1", token.EQ)
+}
+
+func testOperatorExpression(t *testing.T, ex *ast.OperatorExpression, expectType token.Type, comparisonValue string, operand string, operator token.Type) {
+	if ex.Type != expectType {
+		t.Fatalf("ex.Type != %s. Got '%s' instead.", expectType, ex.Type)
+	}
+	if ex.ComparisonValue != comparisonValue {
+		t.Fatalf("ex.ComparisonValue != %s. Got '%s' instead.", comparisonValue, ex.ComparisonValue)
+	}
+	if ex.Operand != operand {
+		t.Fatalf("ex.Operand != %s. Got '%s' instead.", operand, ex.Operand)
+	}
+	if ex.Operator != operator {
+		t.Fatalf("ex.Operator != %s. Got '%s' instead.", operator, ex.Operator)
 	}
 }

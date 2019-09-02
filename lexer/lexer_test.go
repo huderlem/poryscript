@@ -22,6 +22,8 @@ func TestNextToken(t *testing.T) {
 		=
 		!
 		/
+		&&&
+		|||
 		do
 		break
 		continue
@@ -89,6 +91,10 @@ func TestNextToken(t *testing.T) {
 		{token.ILLEGAL, "="},
 		{token.ILLEGAL, "!"},
 		{token.ILLEGAL, "/"},
+		{token.AND, "&&"},
+		{token.ILLEGAL, "&"},
+		{token.OR, "||"},
+		{token.ILLEGAL, "|"},
 		{token.DO, "do"},
 		{token.BREAK, "break"},
 		{token.CONTINUE, "continue"},

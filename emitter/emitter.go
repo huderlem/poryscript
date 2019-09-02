@@ -5,8 +5,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/huderlem/poryscript/ast"
 	"github.com/huderlem/poryscript/token"
+
+	"github.com/huderlem/poryscript/ast"
 )
 
 // Emitter is responsible for transforming a parsed Poryscript program into
@@ -67,9 +68,9 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 	// as new chunks for the destination of the branching logic. When creating and processing
 	// new chunks, it's important to remember where the chunks should return to.
 	chunkCounter := 0
-	finalChunks := make(map[int]chunk)
-	remainingChunks := []chunk{
-		{id: chunkCounter, returnID: -1, statements: scriptStmt.Body.Statements[:]},
+	finalChunks := make(map[int]*chunk)
+	remainingChunks := []*chunk{
+		&chunk{id: chunkCounter, returnID: -1, statements: scriptStmt.Body.Statements[:]},
 	}
 	loopStatementReturnChunks := make(map[ast.Statement]int)
 	loopStatementOriginChunks := make(map[ast.Statement]int)
@@ -95,7 +96,7 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 			// the current logic scope. Therefore, we should not process any further into the
 			// current chunk, and mark it as finalized.
 			if commandStmt.Name.Value == "end" || commandStmt.Name.Value == "return" {
-				completeChunk := chunk{id: curChunk.id, returnID: -1, statements: curChunk.statements[:i]}
+				completeChunk := &chunk{id: curChunk.id, returnID: -1, statements: curChunk.statements[:i]}
 				finalChunks[completeChunk.id] = completeChunk
 				shouldContinue = true
 				break
@@ -114,9 +115,9 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 
 		// Create new chunks from if statement blocks.
 		if stmt, ok := curChunk.statements[i].(*ast.IfStatement); ok {
-			newRemainingChunks, ifBranch := createIfStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
+			newRemainingChunks, ifBranch := createIfStatementChunks(stmt, i, curChunk, remainingChunks, &chunkCounter)
 			remainingChunks = newRemainingChunks
-			completeChunk := chunk{
+			completeChunk := &chunk{
 				id:             curChunk.id,
 				returnID:       curChunk.returnID,
 				statements:     curChunk.statements[:i],
@@ -124,35 +125,35 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 			}
 			finalChunks[completeChunk.id] = completeChunk
 		} else if stmt, ok := curChunk.statements[i].(*ast.WhileStatement); ok {
-			newRemainingChunks, loopStart, returnID := createWhileStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
+			newRemainingChunks, jump, returnID := createWhileStatementChunks(stmt, i, curChunk, remainingChunks, &chunkCounter)
 			remainingChunks = newRemainingChunks
-			completeChunk := chunk{
+			completeChunk := &chunk{
 				id:             curChunk.id,
 				returnID:       curChunk.returnID,
 				statements:     curChunk.statements[:i],
-				branchBehavior: loopStart,
+				branchBehavior: jump,
 			}
 			finalChunks[completeChunk.id] = completeChunk
 			loopStatementReturnChunks[stmt] = returnID
-			loopStatementOriginChunks[stmt] = loopStart.destChunkID
+			loopStatementOriginChunks[stmt] = jump.destChunkID
 		} else if stmt, ok := curChunk.statements[i].(*ast.DoWhileStatement); ok {
-			newRemainingChunks, loopStart, returnID := createDoWhileStatementChunks(stmt, i, &curChunk, remainingChunks, &chunkCounter)
+			newRemainingChunks, jump, returnID := createDoWhileStatementChunks(stmt, i, curChunk, remainingChunks, &chunkCounter)
 			remainingChunks = newRemainingChunks
-			completeChunk := chunk{
+			completeChunk := &chunk{
 				id:             curChunk.id,
 				returnID:       curChunk.returnID,
 				statements:     curChunk.statements[:i],
-				branchBehavior: loopStart,
+				branchBehavior: jump,
 			}
 			finalChunks[completeChunk.id] = completeChunk
 			loopStatementReturnChunks[stmt] = returnID
-			loopStatementOriginChunks[stmt] = loopStart.destChunkID
+			loopStatementOriginChunks[stmt] = jump.destChunkID
 		} else if stmt, ok := curChunk.statements[i].(*ast.BreakStatement); ok {
 			destChunkID, ok := loopStatementReturnChunks[stmt.LoopStatment]
 			if !ok {
 				panic("Could not emit 'break' statement because its return point is unknown.")
 			}
-			completeChunk := chunk{
+			completeChunk := &chunk{
 				id:             curChunk.id,
 				returnID:       curChunk.returnID,
 				statements:     curChunk.statements[:i],
@@ -164,7 +165,7 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 			if !ok {
 				panic("Could not emit 'continue' statement because its return point is unknown.")
 			}
-			completeChunk := chunk{
+			completeChunk := &chunk{
 				id:             curChunk.id,
 				returnID:       curChunk.returnID,
 				statements:     curChunk.statements[:i],
@@ -172,7 +173,11 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 			}
 			finalChunks[completeChunk.id] = completeChunk
 		} else {
-			completeChunk := chunk{id: curChunk.id, returnID: curChunk.returnID, statements: curChunk.statements[:i]}
+			completeChunk := &chunk{
+				id:         curChunk.id,
+				returnID:   curChunk.returnID,
+				statements: curChunk.statements[:i],
+			}
 			finalChunks[completeChunk.id] = completeChunk
 		}
 	}
@@ -180,198 +185,195 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 	return renderChunks(finalChunks, scriptStmt.Name.Value)
 }
 
-func createConditionDestination(compareType token.Type, operand string, operator token.Type, comparisonValue string, destinationChunk int) *conditionDestination {
+func createConditionDestination(destinationChunk int, operatorExpression *ast.OperatorExpression) *conditionDestination {
 	return &conditionDestination{
-		id:              destinationChunk,
-		compareType:     compareType,
-		operand:         operand,
-		operator:        operator,
-		comparisonValue: comparisonValue,
+		id:                 destinationChunk,
+		operatorExpression: operatorExpression,
 	}
 }
 
-func renderChunks(finalChunks map[int]chunk, scriptName string) string {
+func renderChunks(chunkRenderers map[int]*chunk, scriptName string) string {
 	// Get sorted list of final chunk ids.
 	chunkIDs := make([]int, 0)
-	for k := range finalChunks {
+	for k := range chunkRenderers {
 		chunkIDs = append(chunkIDs, k)
 	}
 	sort.Ints(chunkIDs)
 
 	var sb strings.Builder
 	for _, chunkID := range chunkIDs {
-		chunk := finalChunks[chunkID]
-		if chunk.id == 0 {
-			// Main script entrypoint, so it gets a global label.
-			sb.WriteString(fmt.Sprintf("%s::\n", scriptName))
-		} else {
-			sb.WriteString(fmt.Sprintf("%s_%d:\n", scriptName, chunk.id))
-		}
-
-		// Render basic non-branching commands.
-		for _, stmt := range chunk.statements {
-			commandStmt, ok := stmt.(*ast.CommandStatement)
-			if !ok {
-				fmt.Printf("Could not render chunk statement because it is not a command statement %q", stmt.TokenLiteral())
-				return ""
-			}
-
-			sb.WriteString(renderCommandStatement(commandStmt))
-		}
-
-		// Render branching conditions.
-		requiresTailJump := true
-		if chunk.branchBehavior != nil {
-			chunk.branchBehavior.renderBranchConditions(&sb, scriptName)
-			requiresTailJump = chunk.branchBehavior.requiresTailJump()
-		}
-
-		// Sometimes, a tail jump/return isn't needed.  For example, a chunk that ends in an "else"
-		// branch will always naturally end with a "goto" bytecode command.
-		if requiresTailJump {
-			if chunk.returnID == -1 {
-				sb.WriteString("\treturn\n")
-			} else {
-				sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, chunk.returnID))
-			}
-		}
-
+		cr := chunkRenderers[chunkID]
+		cr.renderLabel(scriptName, &sb)
+		cr.renderStatements(&sb)
+		cr.renderBranching(scriptName, &sb)
 		sb.WriteString("\n")
 	}
 
 	return sb.String()
 }
 
-func renderBranchComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
-	if dest.compareType == token.FLAG {
-		renderFlagComparison(sb, dest, scriptName)
-	} else if dest.compareType == token.VAR {
-		renderVarComparison(sb, dest, scriptName)
-	}
-}
-
-func renderFlagComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
-	if dest.comparisonValue == token.TRUE {
-		sb.WriteString(fmt.Sprintf("\tgoto_if_set %s, %s_%d\n", dest.operand, scriptName, dest.id))
-	} else {
-		sb.WriteString(fmt.Sprintf("\tgoto_if_unset %s, %s_%d\n", dest.operand, scriptName, dest.id))
-	}
-}
-
-func renderVarComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
-	sb.WriteString(fmt.Sprintf("\tcompare %s, %s\n", dest.operand, dest.comparisonValue))
-	switch dest.operator {
-	case token.EQ:
-		sb.WriteString(fmt.Sprintf("\tgoto_if_eq %s_%d\n", scriptName, dest.id))
-	case token.NEQ:
-		sb.WriteString(fmt.Sprintf("\tgoto_if_ne %s_%d\n", scriptName, dest.id))
-	case token.LT:
-		sb.WriteString(fmt.Sprintf("\tgoto_if_lt %s_%d\n", scriptName, dest.id))
-	case token.LTE:
-		sb.WriteString(fmt.Sprintf("\tgoto_if_le %s_%d\n", scriptName, dest.id))
-	case token.GT:
-		sb.WriteString(fmt.Sprintf("\tgoto_if_gt %s_%d\n", scriptName, dest.id))
-	case token.GTE:
-		sb.WriteString(fmt.Sprintf("\tgoto_if_ge %s_%d\n", scriptName, dest.id))
-	}
-}
-
-func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *ifHeader) {
+func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, remainingChunks []*chunk, chunkCounter *int) ([]*chunk, *jump) {
 	remainingChunks, returnID := curChunk.splitChunkForBranch(i, chunkCounter, remainingChunks)
 
 	*chunkCounter++
-	consequenceChunk := chunk{
+	consequenceChunk := &chunk{
 		id:         *chunkCounter,
 		returnID:   returnID,
 		statements: stmt.Consequence.Body.Statements,
 	}
 	remainingChunks = append(remainingChunks, consequenceChunk)
-	branch := &ifHeader{}
-	branch.consequence = createConditionDestination(stmt.Consequence.Type, stmt.Consequence.Operand, stmt.Consequence.Operator, stmt.Consequence.ComparisonValue, consequenceChunk.id)
 
-	branch.elifConsequences = []*conditionDestination{}
+	elifChunks := []*chunk{}
 	for _, elifStmt := range stmt.ElifConsequences {
 		*chunkCounter++
-		elifChunk := chunk{
+		elifChunk := &chunk{
 			id:         *chunkCounter,
 			returnID:   returnID,
 			statements: elifStmt.Body.Statements,
 		}
 		remainingChunks = append(remainingChunks, elifChunk)
-		branch.elifConsequences = append(branch.elifConsequences,
-			createConditionDestination(elifStmt.Type, elifStmt.Operand, elifStmt.Operator, elifStmt.ComparisonValue, elifChunk.id))
+		elifChunks = append(elifChunks, elifChunk)
 	}
 
+	var elseChunk *chunk
 	if stmt.ElseConsequence != nil {
 		*chunkCounter++
-		elseChunk := chunk{
+		elseChunk = &chunk{
 			id:         *chunkCounter,
 			returnID:   returnID,
 			statements: stmt.ElseConsequence.Statements,
 		}
 		remainingChunks = append(remainingChunks, elseChunk)
-		branch.elseConsequence = &conditionDestination{id: elseChunk.id}
 	}
 
-	return remainingChunks, branch
+	// Stitch together the return ids for the cascading if statements in reverse order.
+	prevElifEntryID := -1
+	if len(elifChunks) > 0 {
+		for i := len(elifChunks) - 1; i >= 0; i-- {
+			if i == len(elifChunks)-1 {
+				if elseChunk != nil {
+					remainingChunks, _, prevElifEntryID = splitBooleanExpressionChunks(stmt.ElifConsequences[i].Expression, chunkCounter, elifChunks[i].id, elseChunk.id, remainingChunks, -1)
+				} else {
+					remainingChunks, _, prevElifEntryID = splitBooleanExpressionChunks(stmt.ElifConsequences[i].Expression, chunkCounter, elifChunks[i].id, returnID, remainingChunks, -1)
+				}
+			} else {
+				remainingChunks, _, prevElifEntryID = splitBooleanExpressionChunks(stmt.ElifConsequences[i].Expression, chunkCounter, elifChunks[i].id, prevElifEntryID, remainingChunks, -1)
+			}
+		}
+	}
+
+	var initialEntryChunkID int
+	if len(elifChunks) > 0 {
+		remainingChunks, _, initialEntryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, prevElifEntryID, remainingChunks, -1)
+	} else if elseChunk != nil {
+		remainingChunks, _, initialEntryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, elseChunk.id, remainingChunks, -1)
+	} else {
+		remainingChunks, _, initialEntryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, returnID, remainingChunks, -1)
+	}
+
+	return remainingChunks, &jump{destChunkID: initialEntryChunkID}
 }
 
-func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *loopStart, int) {
+func splitBooleanExpressionChunks(expression ast.BooleanExpression, chunkCounter *int, successChunkID int, failureChunkID int, remainingChunks []*chunk, firstID int) ([]*chunk, *chunk, int) {
+	if operatorExpression, ok := expression.(*ast.OperatorExpression); ok {
+		dest := createConditionDestination(successChunkID, operatorExpression)
+		*chunkCounter++
+		newChunk := &chunk{
+			id:             *chunkCounter,
+			statements:     []ast.Statement{},
+			branchBehavior: &leafExpressionBranch{truthyDest: dest, falseyReturnID: failureChunkID},
+		}
+		remainingChunks = append(remainingChunks, newChunk)
+		if firstID == -1 {
+			firstID = newChunk.id
+		}
+		return remainingChunks, newChunk, firstID
+	}
+
+	if binaryExpression, ok := expression.(*ast.BinaryExpression); ok {
+		if binaryExpression.Operator == token.AND {
+			*chunkCounter++
+			successChunk := &chunk{
+				id:         *chunkCounter,
+				statements: []ast.Statement{},
+			}
+			var linkChunk *chunk
+			var leftLink *chunk
+			remainingChunks, leftLink, firstID = splitBooleanExpressionChunks(binaryExpression.Left, chunkCounter, successChunk.id, failureChunkID, remainingChunks, firstID)
+			remainingChunks, linkChunk, firstID = splitBooleanExpressionChunks(binaryExpression.Right, chunkCounter, successChunkID, failureChunkID, remainingChunks, firstID)
+			successChunk.branchBehavior = &jump{destChunkID: linkChunk.id}
+			remainingChunks = append(remainingChunks, successChunk)
+			return remainingChunks, leftLink, firstID
+		} else if binaryExpression.Operator == token.OR {
+			*chunkCounter++
+			failChunk := &chunk{
+				id:         *chunkCounter,
+				statements: []ast.Statement{},
+			}
+			var linkChunk *chunk
+			var leftLink *chunk
+			remainingChunks, leftLink, firstID = splitBooleanExpressionChunks(binaryExpression.Left, chunkCounter, successChunkID, failChunk.id, remainingChunks, firstID)
+			remainingChunks, linkChunk, firstID = splitBooleanExpressionChunks(binaryExpression.Right, chunkCounter, successChunkID, failureChunkID, remainingChunks, firstID)
+			failChunk.branchBehavior = &jump{destChunkID: linkChunk.id}
+			remainingChunks = append(remainingChunks, failChunk)
+			return remainingChunks, leftLink, firstID
+		}
+	}
+
+	return remainingChunks, nil, firstID
+}
+
+func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk, remainingChunks []*chunk, chunkCounter *int) ([]*chunk, *jump, int) {
+
 	remainingChunks, returnID := curChunk.splitChunkForBranch(i, chunkCounter, remainingChunks)
 
 	*chunkCounter++
-	headerChunk := chunk{
+	headerChunk := &chunk{
 		id:         *chunkCounter,
 		returnID:   returnID,
 		statements: []ast.Statement{},
 	}
 
 	*chunkCounter++
-	consequenceChunk := chunk{
+	consequenceChunk := &chunk{
 		id:         *chunkCounter,
 		returnID:   headerChunk.id,
 		statements: stmt.Consequence.Body.Statements,
 	}
-	dest := createConditionDestination(stmt.Consequence.Type, stmt.Consequence.Operand, stmt.Consequence.Operator, stmt.Consequence.ComparisonValue, consequenceChunk.id)
-	headerChunk.branchBehavior = &whileHeader{dest: dest}
+
+	var entryChunkID int
+	remainingChunks, _, entryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, returnID, remainingChunks, -1)
+	headerChunk.branchBehavior = &jump{destChunkID: entryChunkID}
 	remainingChunks = append(remainingChunks, consequenceChunk)
 	remainingChunks = append(remainingChunks, headerChunk)
 
-	return remainingChunks, &loopStart{destChunkID: headerChunk.id}, returnID
+	return remainingChunks, &jump{destChunkID: headerChunk.id}, returnID
 }
 
-func createDoWhileStatementChunks(stmt *ast.DoWhileStatement, i int, curChunk *chunk, remainingChunks []chunk, chunkCounter *int) ([]chunk, *loopStart, int) {
+func createDoWhileStatementChunks(stmt *ast.DoWhileStatement, i int, curChunk *chunk, remainingChunks []*chunk, chunkCounter *int) ([]*chunk, *jump, int) {
 	remainingChunks, returnID := curChunk.splitChunkForBranch(i, chunkCounter, remainingChunks)
 
 	*chunkCounter++
-	headerChunk := chunk{
+	headerChunk := &chunk{
 		id:         *chunkCounter,
 		returnID:   returnID,
 		statements: []ast.Statement{},
 	}
 
 	*chunkCounter++
-	consequenceChunk := chunk{
+	consequenceChunk := &chunk{
 		id:         *chunkCounter,
 		returnID:   headerChunk.id,
 		statements: stmt.Consequence.Body.Statements,
 	}
-	dest := createConditionDestination(stmt.Consequence.Type, stmt.Consequence.Operand, stmt.Consequence.Operator, stmt.Consequence.ComparisonValue, consequenceChunk.id)
-	headerChunk.branchBehavior = &whileHeader{dest: dest}
+
+	var entryChunkID int
+	remainingChunks, _, entryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, returnID, remainingChunks, -1)
+	headerChunk.branchBehavior = &jump{destChunkID: entryChunkID}
 	remainingChunks = append(remainingChunks, consequenceChunk)
 	remainingChunks = append(remainingChunks, headerChunk)
 
-	return remainingChunks, &loopStart{destChunkID: consequenceChunk.id}, returnID
-}
-
-func renderCommandStatement(commandStmt *ast.CommandStatement) string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("\t%s", commandStmt.Name.Value))
-	if len(commandStmt.Args) > 0 {
-		sb.WriteString(fmt.Sprintf(" %s", strings.Join(commandStmt.Args, ", ")))
-	}
-	sb.WriteString("\n")
-	return sb.String()
+	return remainingChunks, &jump{destChunkID: consequenceChunk.id}, returnID
 }
 
 func emitText(text ast.Text) string {

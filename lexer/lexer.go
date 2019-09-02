@@ -89,7 +89,22 @@ func (l *Lexer) NextToken() token.Token {
 		} else {
 			tok = newToken(token.GT, l.ch, l.lineNumber)
 		}
-
+	case '&':
+		if l.peekChar() == '&' {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.AND, Literal: string(ch) + string(l.ch), LineNumber: l.lineNumber}
+		} else {
+			tok = newToken(token.ILLEGAL, l.ch, l.lineNumber)
+		}
+	case '|':
+		if l.peekChar() == '|' {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{Type: token.OR, Literal: string(ch) + string(l.ch), LineNumber: l.lineNumber}
+		} else {
+			tok = newToken(token.ILLEGAL, l.ch, l.lineNumber)
+		}
 	case '(':
 		tok = newToken(token.LPAREN, l.ch, l.lineNumber)
 	case ')':
