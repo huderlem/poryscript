@@ -1,7 +1,7 @@
 # Poryscript
 
 Poryscript is a higher-level scripting language that compiles into the scripting language used in [pokeemerald](https://github.com/pret/pokeemerald), [pokefirered](https://github.com/pret/pokefirered), and [pokeruby](https://github.com/pret/pokeruby). It's aimed to make scripting faster and easier. The main advantages to using Poryscript are:
-1. Automatic branching control flow with `if`, `elif`, `else`, `while`, and `do...while` statements.
+1. Automatic branching control flow with `if`, `elif`, `else`, `while`, `do...while`, and `switch` statements.
 2. Inline text
 
 View the [Changelog](https://github.com/huderlem/poryscript/blob/master/CHANGELOG.md) to see what's new, and find the latest stable version from the [Releases](https://github.com/huderlem/poryscript/releases).
@@ -167,6 +167,20 @@ script MyScript {
 
     ...
 }
+```
+
+A `switch` statement is an easy way to separate different logic for a set of concrete values. Poryscript `switch` statements behave similarly to other languages. However, the cases `break` implicitly. It is not possible to "fall through" to the next case by omitting a `break` at the end of a case, like in C. You *can* use `break` to break out of a case, though--it's just not required. Multiple cases can be designated by listing them immediately after another without a body. Finally, an optional `default` case will take over if none of the provided `case` values are met.  A `switch` statement's comparison value *must always be a `var()` operator*.  Of course, `switch` statements can appear anywhere in the script's logic, such as inside `while` loops, or even other `switch` statements.
+
+```
+    switch (var(VAR_NUM_THINGS)) {
+        case 0:
+            msgbox("You have 0 things.$")
+        case 1:
+        case 2:
+            msgbox("You have 1 or 2 things.$")
+        default:
+            msgbox("You have at least 3 things.$")
+    }
 ```
 
 Use `raw` to include raw bytecode script. Anything in a `raw` statement will be directly included into the compiled script. This is useful for defining data or long text.

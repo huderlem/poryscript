@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `break` and `continue` statements.
 - Add compound boolean expressions.
 - Add output optimization which significantly simplifies and shrinks the resulting compiled scripts. Turn off optimization by specifying `-optimize=false`.
+- Add `switch` statements.
 
 ### Changed
 - `raw` no longer takes a label name.
