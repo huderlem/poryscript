@@ -69,7 +69,7 @@ Route29_Text_Dude_CatchingTutRejected:
 	.string "POKéMON, you have to walk a lot.$"
 ` + "`"
 
-	expected := `Route29_EventScript_WaitingMan::
+	expectedUnoptimized := `Route29_EventScript_WaitingMan::
 	lock
 	faceplayer
 	gettime
@@ -183,6 +183,88 @@ Route29_EventScript_Dude_Text_1:
 	.string "If you weaken them first, POKéMON\n"
 	.string "are easier to catch.$"
 `
+
+	expectedOptimized := `Route29_EventScript_WaitingMan::
+	lock
+	faceplayer
+	gettime
+	compare VAR_0x8002, TIME_NIGHT
+	goto_if_eq Route29_EventScript_WaitingMan_2
+	msgbox Route29_EventScript_WaitingMan_Text_1
+Route29_EventScript_WaitingMan_1:
+Route29_EventScript_WaitingMan_6:
+	compare VAR_0x8002, TIME_NIGHT
+	goto_if_eq Route29_EventScript_WaitingMan_7
+	release
+	return
+
+Route29_EventScript_WaitingMan_2:
+	msgbox Route29_EventScript_WaitingMan_Text_0
+	goto Route29_EventScript_WaitingMan_1
+
+Route29_EventScript_WaitingMan_7:
+	advancetime 5
+	gettime
+	goto Route29_EventScript_WaitingMan_6
+
+
+Route29_EventScript_Dude::
+	lock
+	faceplayer
+	goto_if_set FLAG_LEARNED_TO_CATCH_POKEMON, Route29_EventScript_Dude_2
+	goto_if_unset FLAG_GAVE_MYSTERY_EGG_TO_ELM, Route29_EventScript_Dude_3
+	msgbox Route29_EventScript_Dude_Text_0, MSGBOX_YESNO
+	compare VAR_RESULT, 0
+	goto_if_eq Route29_EventScript_Dude_7
+	closemessage
+	special StartDudeTutorialBattle
+	waitstate
+	lock
+	msgbox Route29_EventScript_Dude_Text_1
+	setflag FLAG_LEARNED_TO_CATCH_POKEMON
+Route29_EventScript_Dude_1:
+	release
+	return
+
+Route29_EventScript_Dude_2:
+	msgbox Route29_Text_PokemonInTheGrass
+	goto Route29_EventScript_Dude_1
+
+Route29_EventScript_Dude_3:
+	msgbox Route29_Text_PokemonInTheGrass
+	goto Route29_EventScript_Dude_1
+
+Route29_EventScript_Dude_7:
+	msgbox Route29_Text_Dude_CatchingTutRejected
+	goto Route29_EventScript_Dude_1
+
+
+Route29_Text_PokemonInTheGrass:
+	.string "POKéMON hide in the grass.\n"
+	.string "Who knows when they'll pop out…$"
+
+Route29_Text_Dude_CatchingTutRejected:
+	.string "Oh.\n"
+	.string "Fine, then.\p"
+	.string "Anyway, if you want to catch\n"
+	.string "POKéMON, you have to walk a lot.$"
+
+Route29_EventScript_WaitingMan_Text_0:
+	.string "I'm waiting for POKéMON that appear\n"
+	.string "only in the morning.$"
+
+Route29_EventScript_WaitingMan_Text_1:
+	.string "I'm waiting for POKéMON that appear\n"
+	.string "only at night.$"
+
+Route29_EventScript_Dude_Text_0:
+	.string "Huh? You want me to show you how\nto catch POKéMON?$"
+
+Route29_EventScript_Dude_Text_1:
+	.string "That's how you do it.\p"
+	.string "If you weaken them first, POKéMON\n"
+	.string "are easier to catch.$"
+`
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
@@ -190,10 +272,16 @@ Route29_EventScript_Dude_Text_1:
 		t.Fatalf("ParseProgram() returned nil")
 	}
 
-	e := New(program)
+	e := New(program, false)
 	result := e.Emit()
-	if result != expected {
-		t.Errorf("Mismatching emit -- Expected=%q, Got=%q", expected, result)
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
 	}
 }
 
@@ -214,7 +302,7 @@ script Route29_EventScript_WaitingMan {
 	release
 }`
 
-	expected := `Route29_EventScript_WaitingMan::
+	expectedUnoptimized := `Route29_EventScript_WaitingMan::
 	lock
 	faceplayer
 	msgbox Route29_EventScript_WaitingMan_Text_0, MSGBOX_YESNO
@@ -254,6 +342,31 @@ Route29_EventScript_WaitingMan_Text_0:
 Route29_EventScript_WaitingMan_Text_1:
 	.string "...How about now?$"
 `
+
+	expectedOptimized := `Route29_EventScript_WaitingMan::
+	lock
+	faceplayer
+	msgbox Route29_EventScript_WaitingMan_Text_0, MSGBOX_YESNO
+Route29_EventScript_WaitingMan_3:
+	goto_if_unset FLAG_1, Route29_EventScript_WaitingMan_5
+	special OtherThing
+Route29_EventScript_WaitingMan_2:
+	compare VAR_RESULT, 1
+	goto_if_eq Route29_EventScript_WaitingMan_3
+	release
+	return
+
+Route29_EventScript_WaitingMan_5:
+	msgbox Route29_EventScript_WaitingMan_Text_1, MSGBOX_YESNO
+	goto Route29_EventScript_WaitingMan_2
+
+
+Route29_EventScript_WaitingMan_Text_0:
+	.string "Do you agree to the quest?$"
+
+Route29_EventScript_WaitingMan_Text_1:
+	.string "...How about now?$"
+`
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
@@ -261,10 +374,16 @@ Route29_EventScript_WaitingMan_Text_1:
 		t.Fatalf("ParseProgram() returned nil")
 	}
 
-	e := New(program)
+	e := New(program, false)
 	result := e.Emit()
-	if result != expected {
-		t.Errorf("Mismatching emit -- Expected=%q, Got=%q", expected, result)
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
 	}
 }
 
@@ -277,7 +396,7 @@ script MyScript {
 			if (flag(FLAG_1) == true) {
 				stuff
 				before
-				continue
+				break
 			}
 			last
 		} while (flag(FLAG_2) == false)
@@ -290,7 +409,7 @@ script MyScript {
 }	
 `
 
-	expected := `MyScript::
+	expectedUnoptimized := `MyScript::
 	goto MyScript_2
 
 MyScript_1:
@@ -340,13 +459,41 @@ MyScript_12:
 MyScript_13:
 	stuff
 	before
-	goto MyScript_7
+	goto MyScript_5
 
 MyScript_14:
 	goto_if_set FLAG_1, MyScript_13
 	goto MyScript_12
 
 `
+	expectedOptimized := `MyScript::
+MyScript_2:
+	compare VAR_1, 5
+	goto_if_lt MyScript_3
+	release
+	return
+
+MyScript_3:
+	first
+MyScript_7:
+	goto_if_set FLAG_1, MyScript_13
+	last
+	goto_if_unset FLAG_2, MyScript_7
+MyScript_5:
+	goto_if_set FLAG_3, MyScript_10
+	lastinwhile
+	goto MyScript_2
+
+MyScript_10:
+	goto MyScript_2
+
+MyScript_13:
+	stuff
+	before
+	goto MyScript_5
+
+`
+
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
@@ -354,10 +501,16 @@ MyScript_14:
 		t.Fatalf("ParseProgram() returned nil")
 	}
 
-	e := New(program)
+	e := New(program, false)
 	result := e.Emit()
-	if result != expected {
-		t.Errorf("Mismatching emit -- Expected=%q, Got=%q", expected, result)
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
 	}
 }
 
@@ -374,7 +527,7 @@ script MyScript {
 }	
 `
 
-	expected := `MyScript::
+	expectedUnoptimized := `MyScript::
 	goto MyScript_3
 
 MyScript_1:
@@ -440,6 +593,37 @@ MyScript_16:
 	goto MyScript_2
 
 `
+
+	expectedOptimized := `MyScript::
+MyScript_3:
+	message
+	goto_if_unset FLAG_3, MyScript_11
+	compare VAR_44, 3
+	goto_if_gt MyScript_14
+MyScript_2:
+	goto_if_set FLAG_1, MyScript_4
+	goto_if_set FLAG_2, MyScript_4
+MyScript_1:
+	blah
+	return
+
+MyScript_4:
+	compare VAR_1, 2
+	goto_if_eq MyScript_3
+	compare VAR_2, 3
+	goto_if_eq MyScript_3
+	goto MyScript_1
+
+MyScript_11:
+	hey
+	goto MyScript_2
+
+MyScript_14:
+	compare VAR_55, 5
+	goto_if_le MyScript_11
+	goto MyScript_2
+
+`
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
@@ -447,9 +631,15 @@ MyScript_16:
 		t.Fatalf("ParseProgram() returned nil")
 	}
 
-	e := New(program)
+	e := New(program, false)
 	result := e.Emit()
-	if result != expected {
-		t.Errorf("Mismatching emit -- Expected=%q, Got=%q", expected, result)
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
 	}
 }

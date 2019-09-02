@@ -13,13 +13,15 @@ import (
 // Emitter is responsible for transforming a parsed Poryscript program into
 // the target assembler bytecode script.
 type Emitter struct {
-	program *ast.Program
+	program  *ast.Program
+	optimize bool
 }
 
 // New creates a new Poryscript program emitter.
-func New(program *ast.Program) *Emitter {
+func New(program *ast.Program, optimize bool) *Emitter {
 	return &Emitter{
-		program: program,
+		program:  program,
+		optimize: optimize,
 	}
 }
 
@@ -34,7 +36,7 @@ func (e *Emitter) Emit() string {
 
 		scriptStmt, ok := stmt.(*ast.ScriptStatement)
 		if ok {
-			sb.WriteString(emitScriptStatement(scriptStmt))
+			sb.WriteString(e.emitScriptStatement(scriptStmt))
 			i++
 			continue
 		}
@@ -61,7 +63,7 @@ func (e *Emitter) Emit() string {
 	return sb.String()
 }
 
-func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
+func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 	// The algorithm for emitting script statements is to split the scripts into
 	// self-contained chunks that logically branch to one another. When branching logic
 	// occurs, create a new chunk for any shared logic that follows the branching, as well
@@ -182,7 +184,7 @@ func emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 		}
 	}
 
-	return renderChunks(finalChunks, scriptStmt.Name.Value)
+	return e.renderChunks(finalChunks, scriptStmt.Name.Value)
 }
 
 func createConditionDestination(destinationChunk int, operatorExpression *ast.OperatorExpression) *conditionDestination {
@@ -190,26 +192,6 @@ func createConditionDestination(destinationChunk int, operatorExpression *ast.Op
 		id:                 destinationChunk,
 		operatorExpression: operatorExpression,
 	}
-}
-
-func renderChunks(chunkRenderers map[int]*chunk, scriptName string) string {
-	// Get sorted list of final chunk ids.
-	chunkIDs := make([]int, 0)
-	for k := range chunkRenderers {
-		chunkIDs = append(chunkIDs, k)
-	}
-	sort.Ints(chunkIDs)
-
-	var sb strings.Builder
-	for _, chunkID := range chunkIDs {
-		cr := chunkRenderers[chunkID]
-		cr.renderLabel(scriptName, &sb)
-		cr.renderStatements(&sb)
-		cr.renderBranching(scriptName, &sb)
-		sb.WriteString("\n")
-	}
-
-	return sb.String()
 }
 
 func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, remainingChunks []*chunk, chunkCounter *int) ([]*chunk, *jump) {
@@ -374,6 +356,106 @@ func createDoWhileStatementChunks(stmt *ast.DoWhileStatement, i int, curChunk *c
 	remainingChunks = append(remainingChunks, headerChunk)
 
 	return remainingChunks, &jump{destChunkID: consequenceChunk.id}, returnID
+}
+
+func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string) string {
+	// Get sorted list of final chunk ids.
+	var chunkIDs []int
+	if e.optimize {
+		chunkIDs = optimizeChunkOrder(chunks)
+	} else {
+		chunkIDs = make([]int, 0)
+		for k := range chunks {
+			chunkIDs = append(chunkIDs, k)
+		}
+		sort.Ints(chunkIDs)
+	}
+
+	// First, render the bodies of each chunk. We'll
+	// render the actual chunk labels after, since there is
+	// an opportunity to skip renering unnecessary labels.
+	var nextChunkID int
+	chunkBodies := make(map[int]*strings.Builder)
+	jumpChunks := make(map[int]bool)
+	registerJumpChunk := func(chunkID int) {
+		jumpChunks[chunkID] = true
+	}
+	for i, chunkID := range chunkIDs {
+		var sb strings.Builder
+		chunkBodies[chunkID] = &sb
+		if i < len(chunkIDs)-1 {
+			nextChunkID = chunkIDs[i+1]
+		} else {
+			nextChunkID = -1
+		}
+		chunk := chunks[chunkID]
+		chunk.renderStatements(&sb)
+		isFallThrough := chunk.renderBranching(scriptName, &sb, nextChunkID, registerJumpChunk)
+		if !isFallThrough {
+			sb.WriteString("\n")
+		}
+	}
+
+	// Render the labels of each chunk, followed by its body.
+	// A label doesn't need to be rendered if nothing ever jumps
+	// to it.
+	var sb strings.Builder
+	for _, chunkID := range chunkIDs {
+		chunk := chunks[chunkID]
+		if chunkID == 0 || jumpChunks[chunkID] {
+			chunk.renderLabel(scriptName, &sb)
+		}
+		sb.WriteString(chunkBodies[chunkID].String())
+	}
+
+	return sb.String()
+}
+
+// Reorders chunks to take advantage of fall-throughs, rather than using
+// unncessary wasteful "goto" commands.
+func optimizeChunkOrder(chunks map[int]*chunk) []int {
+	unvisited := make(map[int]bool)
+	for k := range chunks {
+		unvisited[k] = true
+	}
+
+	chunkIDs := make([]int, 0)
+	if len(chunks) == 0 {
+		return chunkIDs
+	}
+
+	chunkIDs = append(chunkIDs, 0)
+	delete(unvisited, 0)
+	i := 1
+	for len(chunkIDs) < len(chunks) {
+		curChunk := chunks[chunkIDs[len(chunkIDs)-1]]
+		var nextChunkID int
+		if curChunk.branchBehavior != nil {
+			nextChunkID = curChunk.branchBehavior.getTailChunkID()
+		} else {
+			nextChunkID = curChunk.returnID
+		}
+
+		if nextChunkID != -1 {
+			if _, ok := unvisited[nextChunkID]; ok {
+				chunkIDs = append(chunkIDs, nextChunkID)
+				delete(unvisited, nextChunkID)
+				continue
+			}
+		}
+
+		// Choose random unvisited chunk for the next one.
+		for i < len(chunks) {
+			_, ok := unvisited[i]
+			if ok {
+				chunkIDs = append(chunkIDs, i)
+				delete(unvisited, i)
+				break
+			}
+			i++
+		}
+	}
+	return chunkIDs
 }
 
 func emitText(text ast.Text) string {

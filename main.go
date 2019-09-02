@@ -17,6 +17,7 @@ const version = "1.0.0"
 type options struct {
 	inputFilepath  string
 	outputFilepath string
+	optimize       bool
 }
 
 func parseOptions() options {
@@ -24,6 +25,7 @@ func parseOptions() options {
 	versionPtr := flag.Bool("v", false, "show version of poryscript")
 	inputPtr := flag.String("i", "", "input poryscript file (leave empty to read from standard input)")
 	outputPtr := flag.String("o", "", "output script file (leave empty to write to standard output)")
+	optimizePtr := flag.Bool("optimize", true, "optimize compiled script size (To disable, use '-optimize=false')")
 	flag.Parse()
 
 	if *helpPtr == true {
@@ -39,6 +41,7 @@ func parseOptions() options {
 	return options{
 		inputFilepath:  *inputPtr,
 		outputFilepath: *outputPtr,
+		optimize:       *optimizePtr,
 	}
 }
 
@@ -83,7 +86,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	emitter := emitter.New(program)
+	emitter := emitter.New(program, options.optimize)
 	result := emitter.Emit()
 	writeOutput(result, options.outputFilepath)
 }

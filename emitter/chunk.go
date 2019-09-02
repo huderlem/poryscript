@@ -37,21 +37,24 @@ func (c *chunk) renderStatements(sb *strings.Builder) {
 	}
 }
 
-func (c *chunk) renderBranching(scriptName string, sb *strings.Builder) {
-	requiresTailJump := true
+func (c *chunk) renderBranching(scriptName string, sb *strings.Builder, nextChunkID int, registerJumpChunk func(int)) bool {
 	if c.branchBehavior != nil {
-		c.branchBehavior.renderBranchConditions(sb, scriptName)
-		requiresTailJump = c.branchBehavior.requiresTailJump()
+		isFallThrough := c.branchBehavior.renderBranchConditions(sb, scriptName, nextChunkID, registerJumpChunk)
+		return isFallThrough
 	}
-	// Sometimes, a tail jump/return isn't needed.  For example, a chunk that ends in an "else"
-	// branch will always naturally end with a "goto" bytecode command.
-	if requiresTailJump {
-		if c.returnID == -1 {
-			sb.WriteString("\treturn\n")
-		} else {
-			sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, c.returnID))
-		}
+
+	// Handle natural return logic that wasn't covered by a branch behavior.
+	if c.returnID == -1 {
+		sb.WriteString("\treturn\n")
+		return false
+	} else if c.returnID != nextChunkID {
+		registerJumpChunk(c.returnID)
+		sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, c.returnID))
+		return false
 	}
+
+	// Fallthrough to next chunk.
+	return true
 }
 
 func (c *chunk) splitChunkForBranch(statementIndex int, chunkCounter *int, remainingChunks []*chunk) ([]*chunk, int) {
