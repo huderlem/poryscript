@@ -643,3 +643,97 @@ MyScript_14:
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
 	}
 }
+
+// Helper benchmark var to prevent compiler/runtime optimizations.
+// https://dave.cheney.net/2013/06/30/how-to-write-benchmarks-in-go
+var benchResult string
+
+func BenchmarkEmit1(b *testing.B) {
+	input := `
+script Route29_EventScript_WaitingMan {
+	lock
+	faceplayer
+	# Display message based on time of day.
+	gettime
+	if (var(VAR_0x8002) == TIME_NIGHT) {
+		msgbox("I'm waiting for POKéMON that appear\n"
+				"only in the morning.$")
+	} else {
+		msgbox("I'm waiting for POKéMON that appear\n"
+				"only at night.$")
+	}
+	# Wait for morning.
+	while (var(VAR_0x8002) == TIME_NIGHT) {
+		advancetime(5)
+		gettime
+	}
+	release
+}
+
+script Route29_EventScript_Dude {
+	lock
+	faceplayer
+	if (flag(FLAG_LEARNED_TO_CATCH_POKEMON) == true) {
+		msgbox(Route29_Text_PokemonInTheGrass)
+	} elif (flag(FLAG_GAVE_MYSTERY_EGG_TO_ELM) == false) {
+		msgbox(Route29_Text_PokemonInTheGrass)
+	} else {
+		msgbox("Huh? You want me to show you how\nto catch POKéMON?$", MSGBOX_YESNO)
+		if (var(VAR_RESULT) == 0) {
+			msgbox(Route29_Text_Dude_CatchingTutRejected)
+		} else {
+			# Teach the player how to catch.
+			closemessage
+			special(StartDudeTutorialBattle)
+			waitstate
+			lock
+			msgbox("That's how you do it.\p"
+					"If you weaken them first, POKéMON\n"
+					"are easier to catch.$")
+			setflag(FLAG_LEARNED_TO_CATCH_POKEMON)
+		}
+	}
+	release
+}
+
+raw ` + "`" + `
+Route29_Text_PokemonInTheGrass:
+	.string "POKéMON hide in the grass.\n"
+	.string "Who knows when they'll pop out…$"
+` + "`" + `
+
+raw ` + "`" + `
+Route29_Text_Dude_CatchingTutRejected:
+	.string "Oh.\n"
+	.string "Fine, then.\p"
+	.string "Anyway, if you want to catch\n"
+	.string "POKéMON, you have to walk a lot.$"
+` + "`"
+
+	// According to my benchmarks, Unoptimized and Optimized have seemingly-identical performance.
+	// I would expect Optimized to be consistently a little bit slower,
+	// but I guess the optimizations in the emitter are so computationally light, that they
+	// doesn't incur a performance hit.
+	var result string
+	b.Run("unoptimized", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			l := lexer.New(input)
+			p := parser.New(l)
+			program := p.ParseProgram()
+			e := New(program, false)
+			result = e.Emit()
+		}
+	})
+	benchResult = result
+
+	b.Run("optimized", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			l := lexer.New(input)
+			p := parser.New(l)
+			program := p.ParseProgram()
+			e := New(program, true)
+			result = e.Emit()
+		}
+	})
+	benchResult = result
+}
