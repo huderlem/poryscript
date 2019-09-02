@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `while` loops.
 - Add `do...while` loops.
 - Add `break` and `continue` statements.
+- Add compound boolean expressions.
 
 ### Changed
 - `raw` no longer takes a label name.

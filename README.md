@@ -101,6 +101,19 @@ As you can see, using `if` statements greatly simplifies writing scripts because
 
 Note the special keyword `elif`.  This is just the way Poryscript specifies an "else if". Many `elif` statements can be chained together.
 
+Compound boolean expressions are also supported. This means you can use the AND (`&&`) and OR (`||`) logical operators to combine expressions. For example:
+```
+    # Basic AND of two conditions.
+    if (flag(FLAG_BADGE04_GET) == false && var(VAR_TIME) != DAY) {
+        msgbox("The Gym's doors don't open until morning.$")
+    }
+    ...
+    # Group nested conditions together with another set of parentheses.
+    if (flag(FLAG_IS_CHAMPION) && (flag(FLAG_SYS_TOWER_GOLD) || flag(FLAG_SYS_DOME_GOLD))) {
+        msgbox("Wow, you're a Battle Frontier pro!$)
+    }
+```
+
 `while` statements are used to do loops.  They can be nested inside each or inside `if` statements, as one would expect.
 ```
     # Force player to answer "Yes" to NPC question.
@@ -121,7 +134,7 @@ Note the special keyword `elif`.  This is just the way Poryscript specifies an "
 
 `break` can be used to break out of a loop, like many programming languages. Similary, `continue` returns to the start of the loop.
 
-The conditions have strict rules about what conditions they accept. The operand on the left side of the condition must either be a `flag()` or `var()` check. They each have a different set of valid comparison operators, shown below.
+The condition operators have strict rules about what conditions they accept. The operand on the left side of the condition must either be a `flag()` or `var()` check. They each have a different set of valid comparison operators, shown below.
 
 | Type | Valid Operators |
 | ---- | --------------- |
