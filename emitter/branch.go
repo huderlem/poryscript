@@ -60,9 +60,6 @@ func (bc *breakContext) renderBranchConditions(sb *strings.Builder, scriptName s
 
 // Satisfies brancher interface.
 func (bc *breakContext) getTailChunkID() int {
-	if bc.destChunkID == -1 {
-		return -1
-	}
 	return bc.destChunkID
 }
 
@@ -89,10 +86,55 @@ func (l *leafExpressionBranch) renderBranchConditions(sb *strings.Builder, scrip
 
 // Satisfies brancher interface.
 func (l *leafExpressionBranch) getTailChunkID() int {
-	if l.falseyReturnID == -1 {
-		return -1
-	}
 	return l.falseyReturnID
+}
+
+type switchCaseBranch struct {
+	comparisonValue string
+	destChunkID     int
+}
+
+// Represents the a switch statement branch behavior.
+type switchBranch struct {
+	operand     string
+	cases       []*switchCaseBranch
+	defaultCase *switchCaseBranch
+	destChunkID int
+}
+
+// Satisfies brancher interface.
+func (s *switchBranch) renderBranchConditions(sb *strings.Builder, scriptName string, nextChunkID int, registerJumpChunk func(int)) bool {
+	sb.WriteString(fmt.Sprintf("\tswitch %s\n", s.operand))
+	for _, switchCase := range s.cases {
+		registerJumpChunk(switchCase.destChunkID)
+		sb.WriteString(fmt.Sprintf("\tcase %s, %s_%d\n", switchCase.comparisonValue, scriptName, switchCase.destChunkID))
+	}
+
+	if s.defaultCase != nil {
+		if s.defaultCase.destChunkID != nextChunkID {
+			registerJumpChunk(s.defaultCase.destChunkID)
+			sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, s.defaultCase.destChunkID))
+			return false
+		}
+	} else if s.destChunkID != nextChunkID {
+		if s.destChunkID == -1 {
+			sb.WriteString("\treturn\n")
+		} else {
+			registerJumpChunk(s.destChunkID)
+			sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, s.destChunkID))
+		}
+		return false
+	}
+
+	return true
+}
+
+// Satisfies brancher interface.
+func (s *switchBranch) getTailChunkID() int {
+	if s.defaultCase != nil {
+		return s.defaultCase.destChunkID
+	}
+	return s.destChunkID
 }
 
 func renderBranchComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {

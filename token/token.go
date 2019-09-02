@@ -33,6 +33,7 @@ const (
 
 	// Delimeters
 	COMMA = ","
+	COLON = ":"
 
 	LPAREN = "("
 	RPAREN = ")"
@@ -53,6 +54,9 @@ const (
 	WHILE    = "WHILE"
 	BREAK    = "BREAK"
 	CONTINUE = "CONTINUE"
+	SWITCH   = "SWITCH"
+	CASE     = "CASE"
+	DEFAULT  = "DEFAULT"
 )
 
 // If statement comparison types
@@ -77,6 +81,9 @@ var keywords = map[string]Type{
 	"while":    WHILE,
 	"break":    BREAK,
 	"continue": CONTINUE,
+	"switch":   SWITCH,
+	"case":     CASE,
+	"default":  DEFAULT,
 }
 
 // GetIdentType looks up the token type for the given identifier

@@ -175,8 +175,8 @@ func (dws *DoWhileStatement) TokenLiteral() string { return dws.Token.Literal }
 
 // BreakStatement is a break statement in Poryscript.
 type BreakStatement struct {
-	Token        token.Token
-	LoopStatment Statement
+	Token         token.Token
+	ScopeStatment Statement
 }
 
 func (bs *BreakStatement) statementNode() {}
@@ -194,3 +194,22 @@ func (cs *ContinueStatement) statementNode() {}
 
 // TokenLiteral returns a string representation of the continue statement.
 func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }
+
+// SwitchCase is a single case in a switch statement.
+type SwitchCase struct {
+	Value string
+	Body  *BlockStatement
+}
+
+// SwitchStatement is a switch statement in Poryscript.
+type SwitchStatement struct {
+	Token       token.Token
+	Operand     string
+	Cases       []*SwitchCase
+	DefaultCase *SwitchCase
+}
+
+func (cs *SwitchStatement) statementNode() {}
+
+// TokenLiteral returns a string representation of the switch statement.
+func (cs *SwitchStatement) TokenLiteral() string { return cs.Token.Literal }

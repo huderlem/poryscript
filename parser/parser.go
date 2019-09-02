@@ -17,7 +17,8 @@ type Parser struct {
 	errors           []string
 	inlineTexts      []ast.Text
 	inlineTextCounts map[string]int
-	loopStack        []ast.Statement
+	breakStack       []ast.Statement
+	continueStack    []ast.Statement
 }
 
 // New creates a new Poryscript AST Parser.
@@ -34,19 +35,34 @@ func New(l *lexer.Lexer) *Parser {
 	return p
 }
 
-func (p *Parser) pushLoopStack(statement ast.Statement) {
-	p.loopStack = append(p.loopStack, statement)
+func (p *Parser) pushBreakStack(statement ast.Statement) {
+	p.breakStack = append(p.breakStack, statement)
 }
 
-func (p *Parser) popLoopStack() {
-	p.loopStack = p.loopStack[:len(p.loopStack)-1]
+func (p *Parser) popBreakStack() {
+	p.breakStack = p.breakStack[:len(p.breakStack)-1]
 }
 
-func (p *Parser) peekLoopStack() ast.Statement {
-	if len(p.loopStack) == 0 {
+func (p *Parser) peekBreakStack() ast.Statement {
+	if len(p.breakStack) == 0 {
 		return nil
 	}
-	return p.loopStack[len(p.loopStack)-1]
+	return p.breakStack[len(p.breakStack)-1]
+}
+
+func (p *Parser) pushContinueStack(statement ast.Statement) {
+	p.continueStack = append(p.continueStack, statement)
+}
+
+func (p *Parser) popContinueStack() {
+	p.continueStack = p.continueStack[:len(p.continueStack)-1]
+}
+
+func (p *Parser) peekContinueStack() ast.Statement {
+	if len(p.continueStack) == 0 {
+		return nil
+	}
+	return p.continueStack[len(p.continueStack)-1]
 }
 
 // Errors returns the list of parser error messages.
@@ -178,6 +194,31 @@ func (p *Parser) parseBlockStatement(scriptName string) *ast.BlockStatement {
 	return block
 }
 
+func (p *Parser) parseSwitchBlockStatement(scriptName string) *ast.BlockStatement {
+	block := &ast.BlockStatement{
+		Token:      p.curToken,
+		Statements: []ast.Statement{},
+	}
+
+	for p.curToken.Type != token.RBRACE && p.curToken.Type != token.CASE && p.curToken.Type != token.DEFAULT {
+		if p.curToken.Type == token.EOF {
+			msg := fmt.Sprintf("line %d: missing end for switch case body", block.Token.LineNumber)
+			p.errors = append(p.errors, msg)
+			return nil
+		}
+
+		statement := p.parseStatement(scriptName)
+		if statement == nil {
+			return nil
+		}
+
+		block.Statements = append(block.Statements, statement)
+		p.nextToken()
+	}
+
+	return block
+}
+
 func (p *Parser) parseStatement(scriptName string) ast.Statement {
 	switch p.curToken.Type {
 	case token.IDENT:
@@ -212,6 +253,12 @@ func (p *Parser) parseStatement(scriptName string) ast.Statement {
 		return statement
 	case token.CONTINUE:
 		statement := p.parseContinueStatement(scriptName)
+		if statement == nil {
+			return nil
+		}
+		return statement
+	case token.SWITCH:
+		statement := p.parseSwitchStatement(scriptName)
 		if statement == nil {
 			return nil
 		}
@@ -330,11 +377,13 @@ func (p *Parser) parseWhileStatement(scriptName string) *ast.WhileStatement {
 	statement := &ast.WhileStatement{
 		Token: p.curToken,
 	}
-	p.pushLoopStack(statement)
+	p.pushBreakStack(statement)
+	p.pushContinueStack(statement)
 
 	// while statement condition
 	consequence := p.parseConditionExpression(scriptName)
-	p.popLoopStack()
+	p.popBreakStack()
+	p.popContinueStack()
 	if consequence == nil {
 		return nil
 	}
@@ -347,7 +396,8 @@ func (p *Parser) parseDoWhileStatement(scriptName string) *ast.DoWhileStatement 
 	statement := &ast.DoWhileStatement{
 		Token: p.curToken,
 	}
-	p.pushLoopStack(statement)
+	p.pushBreakStack(statement)
+	p.pushContinueStack(statement)
 	expression := &ast.ConditionExpression{}
 
 	if !p.expectPeek(token.LBRACE) {
@@ -360,7 +410,8 @@ func (p *Parser) parseDoWhileStatement(scriptName string) *ast.DoWhileStatement 
 	if expression.Body == nil {
 		return nil
 	}
-	p.popLoopStack()
+	p.popBreakStack()
+	p.popContinueStack()
 
 	if !p.expectPeek(token.WHILE) {
 		msg := fmt.Sprintf("line %d: missing 'while' after body of do...while statement '%s'", p.peekToken.LineNumber, p.peekToken.Literal)
@@ -388,18 +439,12 @@ func (p *Parser) parseBreakStatement(scriptName string) *ast.BreakStatement {
 		Token: p.curToken,
 	}
 
-	if p.peekLoopStack() == nil {
-		msg := fmt.Sprintf("line %d: 'break' statement outside of loop scope.", p.peekToken.LineNumber)
+	if p.peekBreakStack() == nil {
+		msg := fmt.Sprintf("line %d: 'break' statement outside of any break-able scope.", p.peekToken.LineNumber)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
-	statement.LoopStatment = p.peekLoopStack()
-
-	if p.peekToken.Type != token.RBRACE {
-		msg := fmt.Sprintf("line %d: missing '}' after 'break'. 'break' must be the last statement in block scope.", p.peekToken.LineNumber)
-		p.errors = append(p.errors, msg)
-		return nil
-	}
+	statement.ScopeStatment = p.peekBreakStack()
 
 	return statement
 }
@@ -409,15 +454,119 @@ func (p *Parser) parseContinueStatement(scriptName string) *ast.ContinueStatemen
 		Token: p.curToken,
 	}
 
-	if p.peekLoopStack() == nil {
-		msg := fmt.Sprintf("line %d: 'continue' statement outside of loop scope.", p.peekToken.LineNumber)
+	if p.peekContinueStack() == nil {
+		msg := fmt.Sprintf("line %d: 'continue' statement outside of any continue-able scope.", p.peekToken.LineNumber)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
-	statement.LoopStatment = p.peekLoopStack()
+	statement.LoopStatment = p.peekContinueStack()
 
 	if p.peekToken.Type != token.RBRACE {
 		msg := fmt.Sprintf("line %d: missing '}' after 'continue'. 'continue' must be the last statement in block scope.", p.peekToken.LineNumber)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	return statement
+}
+
+func (p *Parser) parseSwitchStatement(scriptName string) *ast.SwitchStatement {
+	statement := &ast.SwitchStatement{
+		Token: p.curToken,
+		Cases: []*ast.SwitchCase{},
+	}
+	p.pushBreakStack(statement)
+	originalLineNumber := p.curToken.LineNumber
+
+	if !p.expectPeek(token.LPAREN) {
+		msg := fmt.Sprintf("line %d: missing opening parenthesis of switch statement operand '%s'", p.peekToken.LineNumber, p.peekToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	if !p.expectPeek(token.VAR) {
+		msg := fmt.Sprintf("line %d: invalid switch statement operand '%s'. Must be 'var`.", p.peekToken.LineNumber, p.peekToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	if !p.expectPeek(token.LPAREN) {
+		msg := fmt.Sprintf("line %d: missing '(' after var operator. Got '%s` instead.", p.peekToken.LineNumber, p.peekToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	p.nextToken()
+	parts := []string{}
+	for p.curToken.Type != token.RPAREN {
+		parts = append(parts, p.curToken.Literal)
+		p.nextToken()
+	}
+	p.nextToken()
+	statement.Operand = strings.Join(parts, " ")
+
+	if !p.expectPeek(token.LBRACE) {
+		msg := fmt.Sprintf("line %d: missing opening curly brace of switch statement '%s'", p.peekToken.LineNumber, p.peekToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	p.nextToken()
+
+	// Parse each of the switch cases, including "default".
+	caseValues := make(map[string]bool)
+	for p.curToken.Type != token.RBRACE {
+		if p.curToken.Type == token.CASE {
+			p.nextToken()
+			parts := []string{}
+			for p.curToken.Type != token.COLON {
+				parts = append(parts, p.curToken.Literal)
+				p.nextToken()
+			}
+			caseValue := strings.Join(parts, " ")
+			if caseValues[caseValue] {
+				msg := fmt.Sprintf("line %d: duplicate switch cases detected for case '%s'.", p.curToken.LineNumber, caseValue)
+				p.errors = append(p.errors, msg)
+				return nil
+			}
+			caseValues[caseValue] = true
+			p.nextToken()
+
+			body := p.parseSwitchBlockStatement(scriptName)
+			if body == nil {
+				return nil
+			}
+			statement.Cases = append(statement.Cases, &ast.SwitchCase{
+				Value: caseValue,
+				Body:  body,
+			})
+		} else if p.curToken.Type == token.DEFAULT {
+			if statement.DefaultCase != nil {
+				msg := fmt.Sprintf("line %d: multiple `default` cases found in switch statement. Only one `default` case is allowed.", p.peekToken.LineNumber)
+				p.errors = append(p.errors, msg)
+				return nil
+			}
+			if !p.expectPeek(token.COLON) {
+				msg := fmt.Sprintf("line %d: missing `:` after default", p.peekToken.LineNumber)
+				p.errors = append(p.errors, msg)
+				return nil
+			}
+			p.nextToken()
+			body := p.parseSwitchBlockStatement(scriptName)
+			if body == nil {
+				return nil
+			}
+			statement.DefaultCase = &ast.SwitchCase{
+				Body: body,
+			}
+		} else {
+			msg := fmt.Sprintf("line %d: invalid start of switch case '%s'. Expected 'case' or 'default'", p.peekToken.LineNumber, p.peekToken.Literal)
+			p.errors = append(p.errors, msg)
+			return nil
+		}
+	}
+
+	p.popBreakStack()
+
+	if len(statement.Cases) == 0 && statement.DefaultCase == nil {
+		msg := fmt.Sprintf("line %d: switch statement has no cases or default case.", originalLineNumber)
 		p.errors = append(p.errors, msg)
 		return nil
 	}

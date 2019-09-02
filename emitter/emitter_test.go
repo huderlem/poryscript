@@ -644,6 +644,194 @@ MyScript_14:
 	}
 }
 
+func TestSwitchStatements(t *testing.T) {
+	input := `
+script MyScript {
+	while (var(VAR_2) == 2) {
+		switch (var(VAR_1)) {
+			default: messagedefault()
+			case 0:
+				if (flag(FLAG_1) == true) {
+					delay(5)
+				}
+				message0()
+			case 72:
+				switch (var(VAR_5)) {
+					case 434:
+					case 2:
+						secondfirst()
+						if (flag(FLAG_TEMP_1) == false) {
+							break
+						}
+						foo()
+					default:
+						seconddefault()
+						continue
+				}
+			case 1:
+			case 2:
+				message1()
+				messagedefault()
+		}
+		afterswitch()
+	}
+	release
+}`
+
+	expectedUnoptimized := `MyScript::
+	goto MyScript_2
+
+MyScript_1:
+	release
+	return
+
+MyScript_2:
+	goto MyScript_4
+
+MyScript_3:
+	goto MyScript_6
+
+MyScript_4:
+	compare VAR_2, 2
+	goto_if_eq MyScript_3
+	goto MyScript_1
+
+MyScript_5:
+	afterswitch
+	goto MyScript_2
+
+MyScript_6:
+	switch VAR_1
+	case 0, MyScript_7
+	case 72, MyScript_8
+	case 1, MyScript_9
+	case 2, MyScript_9
+	goto MyScript_10
+
+MyScript_7:
+	goto MyScript_13
+
+MyScript_8:
+	goto MyScript_14
+
+MyScript_9:
+	message1
+	messagedefault
+	goto MyScript_5
+
+MyScript_10:
+	messagedefault
+	goto MyScript_5
+
+MyScript_11:
+	message0
+	goto MyScript_5
+
+MyScript_12:
+	delay 5
+	goto MyScript_11
+
+MyScript_13:
+	goto_if_set FLAG_1, MyScript_12
+	goto MyScript_11
+
+MyScript_14:
+	switch VAR_5
+	case 434, MyScript_15
+	case 2, MyScript_15
+	goto MyScript_16
+
+MyScript_15:
+	secondfirst
+	goto MyScript_19
+
+MyScript_16:
+	seconddefault
+	goto MyScript_2
+
+MyScript_17:
+	foo
+	goto MyScript_5
+
+MyScript_18:
+	goto MyScript_5
+
+MyScript_19:
+	goto_if_unset FLAG_TEMP_1, MyScript_18
+	goto MyScript_17
+
+`
+
+	expectedOptimized := `MyScript::
+MyScript_2:
+	compare VAR_2, 2
+	goto_if_eq MyScript_3
+	release
+	return
+
+MyScript_3:
+	switch VAR_1
+	case 0, MyScript_7
+	case 72, MyScript_8
+	case 1, MyScript_9
+	case 2, MyScript_9
+	messagedefault
+MyScript_5:
+	afterswitch
+	goto MyScript_2
+
+MyScript_7:
+	goto_if_set FLAG_1, MyScript_12
+MyScript_11:
+	message0
+	goto MyScript_5
+
+MyScript_8:
+	switch VAR_5
+	case 434, MyScript_15
+	case 2, MyScript_15
+	seconddefault
+	goto MyScript_2
+
+MyScript_9:
+	message1
+	messagedefault
+	goto MyScript_5
+
+MyScript_12:
+	delay 5
+	goto MyScript_11
+
+MyScript_15:
+	secondfirst
+	goto_if_unset FLAG_TEMP_1, MyScript_18
+	foo
+	goto MyScript_5
+
+MyScript_18:
+	goto MyScript_5
+
+`
+	l := lexer.New(input)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if program == nil {
+		t.Fatalf("ParseProgram() returned nil")
+	}
+
+	e := New(program, false)
+	result := e.Emit()
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+	}
+}
+
 // Helper benchmark var to prevent compiler/runtime optimizations.
 // https://dave.cheney.net/2013/06/30/how-to-write-benchmarks-in-go
 var benchResult string

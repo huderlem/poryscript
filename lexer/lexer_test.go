@@ -27,6 +27,8 @@ func TestNextToken(t *testing.T) {
 		do
 		break
 		continue
+		switch
+		case: default
 		while
 		("Hello\n"
 		"I'm glad to see$")
@@ -98,6 +100,10 @@ func TestNextToken(t *testing.T) {
 		{token.DO, "do"},
 		{token.BREAK, "break"},
 		{token.CONTINUE, "continue"},
+		{token.SWITCH, "switch"},
+		{token.CASE, "case"},
+		{token.COLON, ":"},
+		{token.DEFAULT, "default"},
 		{token.WHILE, "while"},
 		{token.LPAREN, "("},
 		{token.STRING, "Hello\\n\nI'm glad to see$"},

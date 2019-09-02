@@ -74,8 +74,10 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 	remainingChunks := []*chunk{
 		&chunk{id: chunkCounter, returnID: -1, statements: scriptStmt.Body.Statements[:]},
 	}
-	loopStatementReturnChunks := make(map[ast.Statement]int)
-	loopStatementOriginChunks := make(map[ast.Statement]int)
+	breakStatementReturnChunks := make(map[ast.Statement]int)
+	breakStatementOriginChunks := make(map[ast.Statement]int)
+	continueStatementReturnChunks := make(map[ast.Statement]int)
+	continueStatementOriginChunks := make(map[ast.Statement]int)
 	for len(remainingChunks) > 0 {
 		ids := []int{}
 		for _, c := range remainingChunks {
@@ -136,8 +138,10 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 				branchBehavior: jump,
 			}
 			finalChunks[completeChunk.id] = completeChunk
-			loopStatementReturnChunks[stmt] = returnID
-			loopStatementOriginChunks[stmt] = jump.destChunkID
+			breakStatementReturnChunks[stmt] = returnID
+			breakStatementOriginChunks[stmt] = jump.destChunkID
+			continueStatementReturnChunks[stmt] = returnID
+			continueStatementOriginChunks[stmt] = jump.destChunkID
 		} else if stmt, ok := curChunk.statements[i].(*ast.DoWhileStatement); ok {
 			newRemainingChunks, jump, returnID := createDoWhileStatementChunks(stmt, i, curChunk, remainingChunks, &chunkCounter)
 			remainingChunks = newRemainingChunks
@@ -148,10 +152,12 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 				branchBehavior: jump,
 			}
 			finalChunks[completeChunk.id] = completeChunk
-			loopStatementReturnChunks[stmt] = returnID
-			loopStatementOriginChunks[stmt] = jump.destChunkID
+			breakStatementReturnChunks[stmt] = returnID
+			breakStatementOriginChunks[stmt] = jump.destChunkID
+			continueStatementReturnChunks[stmt] = returnID
+			continueStatementOriginChunks[stmt] = jump.destChunkID
 		} else if stmt, ok := curChunk.statements[i].(*ast.BreakStatement); ok {
-			destChunkID, ok := loopStatementReturnChunks[stmt.LoopStatment]
+			destChunkID, ok := breakStatementReturnChunks[stmt.ScopeStatment]
 			if !ok {
 				panic("Could not emit 'break' statement because its return point is unknown.")
 			}
@@ -163,7 +169,7 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 			}
 			finalChunks[completeChunk.id] = completeChunk
 		} else if stmt, ok := curChunk.statements[i].(*ast.ContinueStatement); ok {
-			destChunkID, ok := loopStatementOriginChunks[stmt.LoopStatment]
+			destChunkID, ok := breakStatementOriginChunks[stmt.LoopStatment]
 			if !ok {
 				panic("Could not emit 'continue' statement because its return point is unknown.")
 			}
@@ -174,6 +180,18 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 				branchBehavior: &breakContext{destChunkID: destChunkID},
 			}
 			finalChunks[completeChunk.id] = completeChunk
+		} else if stmt, ok := curChunk.statements[i].(*ast.SwitchStatement); ok {
+			newRemainingChunks, jump, returnID := createSwitchStatementChunks(stmt, i, curChunk, remainingChunks, &chunkCounter)
+			remainingChunks = newRemainingChunks
+			completeChunk := &chunk{
+				id:             curChunk.id,
+				returnID:       curChunk.returnID,
+				statements:     curChunk.statements[:i],
+				branchBehavior: jump,
+			}
+			finalChunks[completeChunk.id] = completeChunk
+			breakStatementReturnChunks[stmt] = returnID
+			breakStatementOriginChunks[stmt] = jump.destChunkID
 		} else {
 			completeChunk := &chunk{
 				id:         curChunk.id,
@@ -356,6 +374,85 @@ func createDoWhileStatementChunks(stmt *ast.DoWhileStatement, i int, curChunk *c
 	remainingChunks = append(remainingChunks, headerChunk)
 
 	return remainingChunks, &jump{destChunkID: consequenceChunk.id}, returnID
+}
+
+func createSwitchStatementChunks(stmt *ast.SwitchStatement, statementIndex int, curChunk *chunk, remainingChunks []*chunk, chunkCounter *int) ([]*chunk, *jump, int) {
+	remainingChunks, returnID := curChunk.splitChunkForBranch(statementIndex, chunkCounter, remainingChunks)
+
+	*chunkCounter++
+	switchChunk := &chunk{
+		id:       *chunkCounter,
+		returnID: returnID,
+	}
+	remainingChunks = append(remainingChunks, switchChunk)
+
+	branchBehavior := &switchBranch{operand: stmt.Operand}
+	branchCases := []*switchCaseBranch{}
+	i := 0
+	for i < len(stmt.Cases) {
+		switchCase := stmt.Cases[i]
+		destChunkID := -1
+		if len(switchCase.Body.Statements) > 0 {
+			*chunkCounter++
+			caseChunk := &chunk{
+				id:         *chunkCounter,
+				returnID:   returnID,
+				statements: switchCase.Body.Statements,
+			}
+			remainingChunks = append(remainingChunks, caseChunk)
+			destChunkID = caseChunk.id
+		} else {
+			// Scan forward for the shared case body.
+			for j := i + 1; j < len(stmt.Cases); j++ {
+				if len(stmt.Cases[j].Body.Statements) > 0 {
+					*chunkCounter++
+					caseChunk := &chunk{
+						id:         *chunkCounter,
+						returnID:   returnID,
+						statements: stmt.Cases[j].Body.Statements,
+					}
+					remainingChunks = append(remainingChunks, caseChunk)
+					destChunkID = caseChunk.id
+
+					// Apply this chunk body to all of the previous shared cases.
+					for i < j {
+						branchCases = append(branchCases, &switchCaseBranch{
+							comparisonValue: stmt.Cases[i].Value,
+							destChunkID:     destChunkID,
+						})
+						i++
+					}
+					break
+				}
+			}
+		}
+		if destChunkID != -1 {
+			branchCases = append(branchCases, &switchCaseBranch{
+				comparisonValue: stmt.Cases[i].Value,
+				destChunkID:     destChunkID,
+			})
+		}
+		i++
+	}
+	branchBehavior.cases = branchCases
+
+	if stmt.DefaultCase != nil {
+		*chunkCounter++
+		defaultChunk := &chunk{
+			id:         *chunkCounter,
+			returnID:   returnID,
+			statements: stmt.DefaultCase.Body.Statements,
+		}
+		remainingChunks = append(remainingChunks, defaultChunk)
+		branchBehavior.defaultCase = &switchCaseBranch{
+			comparisonValue: stmt.DefaultCase.Value,
+			destChunkID:     defaultChunk.id,
+		}
+	} else {
+		branchBehavior.destChunkID = returnID
+	}
+	switchChunk.branchBehavior = branchBehavior
+	return remainingChunks, &jump{destChunkID: switchChunk.id}, returnID
 }
 
 func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string) string {
