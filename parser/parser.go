@@ -110,7 +110,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 		statement := p.parseTopLevelStatement()
 		if len(p.errors) > 0 {
 			for _, err := range p.errors {
-				fmt.Printf("ERROR: %s\n", err)
+				fmt.Printf("PORYSCRIPT ERROR: %s\n", err)
 			}
 			return nil
 		}
