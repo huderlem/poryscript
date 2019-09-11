@@ -46,6 +46,8 @@ Usage of poryscript:
         input poryscript file (leave empty to read from standard input)
   -o string
         output script file (leave empty to write to standard output)
+  -optimize
+        optimize compiled script size (To disable, use '-optimize=false') (default true)
   -v    show version of poryscript
 ```
 
@@ -74,9 +76,9 @@ script MyScript {
     # Show a different message, depending on the badges the player owns.
     lock
     faceplayer
-    if (flag(FLAG_BEAT_MISTY) == true) {
+    if (flag(FLAG_BEAT_MISTY)) {
         msgbox("You beat Misty! Congrats!$")
-    } elif (flag(FLAG_BEAT_BROCK) == true) {
+    } elif (flag(FLAG_BEAT_BROCK)) {
         msgbox("You beat Brock? I'm impressed!$")
     } else {
         msgbox("Hmm, you don't have any badges.$")
@@ -104,7 +106,7 @@ Note the special keyword `elif`.  This is just the way Poryscript specifies an "
 Compound boolean expressions are also supported. This means you can use the AND (`&&`) and OR (`||`) logical operators to combine expressions. For example:
 ```
     # Basic AND of two conditions.
-    if (flag(FLAG_BADGE04_GET) == false && var(VAR_TIME) != DAY) {
+    if (!flag(FLAG_BADGE04_GET) && var(VAR_TIME) != DAY) {
         msgbox("The Gym's doors don't open until morning.$")
     }
     ...
@@ -134,14 +136,39 @@ Compound boolean expressions are also supported. This means you can use the AND 
 
 `break` can be used to break out of a loop, like many programming languages. Similary, `continue` returns to the start of the loop.
 
-The condition operators have strict rules about what conditions they accept. The operand on the left side of the condition must either be a `flag()` or `var()` check. They each have a different set of valid comparison operators, shown below.
+The condition operators have strict rules about what conditions they accept. The operand on the left side of the condition must either be a `flag()` or `var()` check. They each have a different set of valid comparison operators, described below.
 
 | Type | Valid Operators |
 | ---- | --------------- |
 | `flag` | `==` |
 | `var` | `==`, `!=`, `>`, `>=`, `<`, `<=` |
 
-Additionally, they each have different valid comparison values on the right-hand side of the condition.
+Both `flag` and `var` support implicit truthiness, which means you don't have to specify any of the above operators in a condition. Below are some examples of equivalent conditions:
+```
+# Check if the flag is set.
+if (flag(FLAG_1))
+if (flag(FLAG_1) == true)
+
+# Check if the flag is cleared.
+if (!flag(FLAG_1))
+if (flag(FLAG_1) == false)
+
+# Check if the var is not equal to 0.
+if (var(VAR_1))
+if (var(VAR_1) != 0)
+
+#Check if the var is equal to 0.
+if (!var(VAR_1))
+if (var(VAR_1) == 0)
+
+# The NOT operator (!) can only be used directly before a var() or
+# flag() operator, unlike regular programming languages.
+# This code would be an error, because the NOT operator is not
+# applying directly to a single flag() operator.
+if (!(flag(FLAG_1) && flag(FLAG_2)))
+```
+
+When not using implicit truthiness, like in the above examples, they each have different valid comparison values on the right-hand side of the condition.
 
 | Type | Valid Comparison Values |
 | ---- | --------------- |
@@ -164,7 +191,6 @@ script MyScript {
     if (flag(FLAG_WON) == true) {
         return
     }
-
     ...
 }
 ```
