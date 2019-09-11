@@ -41,6 +41,6 @@ Nothing, yet.
 Initial Release
 
 [Unreleased]: https://github.com/huderlem/poryscript/compare/2.1.0...HEAD
-[2.0.0]: https://github.com/huderlem/poryscript/compare/2.0.0...2.1.0
+[2.1.0]: https://github.com/huderlem/poryscript/compare/2.0.0...2.1.0
 [2.0.0]: https://github.com/huderlem/poryscript/compare/1.0.0...2.0.0
 [1.0.0]: https://github.com/huderlem/poryscript/tree/1.0.0
