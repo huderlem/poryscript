@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add NOT (`!`) prefix operator for `var()` and `flag()` operators.
 
 ### Changed
-- Errors are now prefixed with `PORYSCRIPT`.
+- Errors are now prefixed with `PORYSCRIPT`, and they are written to `stderr`, instead of `stdout`.
+- The program will no longer panic when handled errors occur.
 
 ### Fixed
 - Fix parser errors that were not showing the line number of the error.
