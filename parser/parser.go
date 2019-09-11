@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/huderlem/poryscript/ast"
@@ -110,7 +111,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 		statement := p.parseTopLevelStatement()
 		if len(p.errors) > 0 {
 			for _, err := range p.errors {
-				fmt.Printf("PORYSCRIPT ERROR: %s\n", err)
+				log.Fatalf("PORYSCRIPT ERROR: %s\n", err)
 			}
 			return nil
 		}

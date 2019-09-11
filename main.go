@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/huderlem/poryscript/emitter"
@@ -75,10 +76,11 @@ func writeOutput(output string, filepath string) error {
 }
 
 func main() {
+	log.SetFlags(0)
 	options := parseOptions()
 	input, err := getInput(options.inputFilepath)
 	if err != nil {
-		fmt.Print(fmt.Sprintf("PORYSCRIPT ERROR: %s\n", err.Error()))
+		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -91,12 +93,12 @@ func main() {
 	emitter := emitter.New(program, options.optimize)
 	result, err := emitter.Emit()
 	if err != nil {
-		fmt.Print(fmt.Sprintf("PORYSCRIPT ERROR: %s\n", err.Error()))
+		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
 		os.Exit(1)
 	}
 	err = writeOutput(result, options.outputFilepath)
 	if err != nil {
-		fmt.Print(fmt.Sprintf("PORYSCRIPT ERROR: %s\n", err.Error()))
+		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
 		os.Exit(1)
 	}
 }
