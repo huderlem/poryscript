@@ -1,6 +1,7 @@
 package emitter
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -26,7 +27,7 @@ func New(program *ast.Program, optimize bool) *Emitter {
 }
 
 // Emit the target assembler bytecode script.
-func (e *Emitter) Emit() string {
+func (e *Emitter) Emit() (string, error) {
 	var sb strings.Builder
 	i := 0
 	for _, stmt := range e.program.TopLevelStatements {
@@ -36,7 +37,11 @@ func (e *Emitter) Emit() string {
 
 		scriptStmt, ok := stmt.(*ast.ScriptStatement)
 		if ok {
-			sb.WriteString(e.emitScriptStatement(scriptStmt))
+			output, err := e.emitScriptStatement(scriptStmt)
+			if err != nil {
+				return "", err
+			}
+			sb.WriteString(output)
 			i++
 			continue
 		}
@@ -48,8 +53,7 @@ func (e *Emitter) Emit() string {
 			continue
 		}
 
-		fmt.Printf("Could not emit top-level statement because it is not recognized: %q", stmt.TokenLiteral())
-		return ""
+		return "", fmt.Errorf("could not emit top-level statement '%q' because it is not recognized", stmt.TokenLiteral())
 	}
 
 	for j, text := range e.program.Texts {
@@ -60,10 +64,10 @@ func (e *Emitter) Emit() string {
 		emitted := emitText(text)
 		sb.WriteString(emitted)
 	}
-	return sb.String()
+	return sb.String(), nil
 }
 
-func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
+func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, error) {
 	// The algorithm for emitting script statements is to split the scripts into
 	// self-contained chunks that logically branch to one another. When branching logic
 	// occurs, create a new chunk for any shared logic that follows the branching, as well
@@ -159,7 +163,7 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 		} else if stmt, ok := curChunk.statements[i].(*ast.BreakStatement); ok {
 			destChunkID, ok := breakStatementReturnChunks[stmt.ScopeStatment]
 			if !ok {
-				panic("Could not emit 'break' statement because its return point is unknown.")
+				return "", errors.New("could not emit 'break' statement because its return point is unknown")
 			}
 			completeChunk := &chunk{
 				id:             curChunk.id,
@@ -171,7 +175,7 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) string {
 		} else if stmt, ok := curChunk.statements[i].(*ast.ContinueStatement); ok {
 			destChunkID, ok := breakStatementOriginChunks[stmt.LoopStatment]
 			if !ok {
-				panic("Could not emit 'continue' statement because its return point is unknown.")
+				return "", errors.New("could not emit 'continue' statement because its return point is unknown")
 			}
 			completeChunk := &chunk{
 				id:             curChunk.id,
@@ -455,7 +459,7 @@ func createSwitchStatementChunks(stmt *ast.SwitchStatement, statementIndex int, 
 	return remainingChunks, &jump{destChunkID: switchChunk.id}, returnID
 }
 
-func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string) string {
+func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string) (string, error) {
 	// Get sorted list of final chunk ids.
 	var chunkIDs []int
 	if e.optimize {
@@ -486,7 +490,10 @@ func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string) string 
 			nextChunkID = -1
 		}
 		chunk := chunks[chunkID]
-		chunk.renderStatements(&sb)
+		err := chunk.renderStatements(&sb)
+		if err != nil {
+			return "", err
+		}
 		isFallThrough := chunk.renderBranching(scriptName, &sb, nextChunkID, registerJumpChunk)
 		if !isFallThrough {
 			sb.WriteString("\n")
@@ -505,7 +512,7 @@ func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string) string 
 		sb.WriteString(chunkBodies[chunkID].String())
 	}
 
-	return sb.String()
+	return sb.String(), nil
 }
 
 // Reorders chunks to take advantage of fall-throughs, rather than using

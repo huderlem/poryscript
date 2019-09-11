@@ -45,7 +45,7 @@ func parseOptions() options {
 	}
 }
 
-func getInput(filepath string) string {
+func getInput(filepath string) (string, error) {
 	var bytes []byte
 	var err error
 	if filepath == "" {
@@ -54,31 +54,33 @@ func getInput(filepath string) string {
 		bytes, err = ioutil.ReadFile(filepath)
 	}
 
-	if err != nil {
-		panic(fmt.Sprintf("Error reading poryscript input: %s", err.Error()))
-	}
-	return string(bytes)
+	return string(bytes), err
 }
 
-func writeOutput(output string, filepath string) {
+func writeOutput(output string, filepath string) error {
 	if filepath == "" {
 		fmt.Print(output)
 	} else {
 		f, err := os.Create(filepath)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		_, err = io.WriteString(f, output)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
+	return nil
 }
 
 func main() {
 	options := parseOptions()
-	input := getInput(options.inputFilepath)
+	input, err := getInput(options.inputFilepath)
+	if err != nil {
+		fmt.Print(fmt.Sprintf("PORYSCRIPT ERROR: %s\n", err.Error()))
+		os.Exit(1)
+	}
 
 	parser := parser.New(lexer.New(input))
 	program := parser.ParseProgram()
@@ -87,6 +89,14 @@ func main() {
 	}
 
 	emitter := emitter.New(program, options.optimize)
-	result := emitter.Emit()
-	writeOutput(result, options.outputFilepath)
+	result, err := emitter.Emit()
+	if err != nil {
+		fmt.Print(fmt.Sprintf("PORYSCRIPT ERROR: %s\n", err.Error()))
+		os.Exit(1)
+	}
+	err = writeOutput(result, options.outputFilepath)
+	if err != nil {
+		fmt.Print(fmt.Sprintf("PORYSCRIPT ERROR: %s\n", err.Error()))
+		os.Exit(1)
+	}
 }

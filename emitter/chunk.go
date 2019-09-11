@@ -25,16 +25,17 @@ func (c *chunk) renderLabel(scriptName string, sb *strings.Builder) {
 	}
 }
 
-func (c *chunk) renderStatements(sb *strings.Builder) {
+func (c *chunk) renderStatements(sb *strings.Builder) error {
 	// Render basic non-branching commands.
 	for _, stmt := range c.statements {
 		commandStmt, ok := stmt.(*ast.CommandStatement)
 		if !ok {
-			panic(fmt.Sprintf("Could not render chunk statement because it is not a command statement %q", stmt.TokenLiteral()))
+			return fmt.Errorf("could not render chunk statement '%q' because it is not a command statement", stmt.TokenLiteral())
 		}
 
 		sb.WriteString(renderCommandStatement(commandStmt))
 	}
+	return nil
 }
 
 func (c *chunk) renderBranching(scriptName string, sb *strings.Builder, nextChunkID int, registerJumpChunk func(int)) bool {
