@@ -90,7 +90,7 @@ func (p *Parser) expectPeek(expectedType token.Type) bool {
 }
 
 func (p *Parser) peekError(expectedType token.Type) {
-	msg := fmt.Sprintf("expected next token to be type %s, got %s instead", expectedType, p.peekToken.Type)
+	msg := fmt.Sprintf("line %d: expected next token to be type %s, got %s(%s) instead", p.peekToken.LineNumber, expectedType, p.peekToken.Type, p.peekToken.Literal)
 	p.errors = append(p.errors, msg)
 }
 
@@ -600,6 +600,9 @@ func (p *Parser) parseBooleanExpression(single bool) ast.BooleanExpression {
 		// Open parenthesis indicates a nested expression.
 		p.nextToken()
 		nestedExpression := p.parseBooleanExpression(false)
+		if nestedExpression == nil {
+			return nil
+		}
 		if p.curToken.Type != token.RPAREN {
 			msg := fmt.Sprintf("line %d: expected closing ')' for nested boolean expression. Instead, found '%s'", p.curToken.LineNumber, p.peekToken.Literal)
 			p.errors = append(p.errors, msg)
@@ -659,13 +662,21 @@ func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single boo
 
 func (p *Parser) parseLeafBooleanExpression() *ast.OperatorExpression {
 	// Left-side of binary expression must be a special condition statement.
+	usedNotOperator := true
+	operatorExpression := &ast.OperatorExpression{}
+	if p.peekTokenIs(token.NOT) {
+		operatorExpression.Operator = token.EQ
+		p.nextToken()
+		usedNotOperator = false
+	}
+
 	if !p.peekTokenIs(token.VAR) && !p.peekTokenIs(token.FLAG) {
 		msg := fmt.Sprintf("line %d: left side of binary expression must be var() or flag() operator. Instead, found '%s'", p.curToken.LineNumber, p.peekToken.Literal)
 		p.errors = append(p.errors, msg)
 		return nil
 	}
 	p.nextToken()
-	operatorExpression := &ast.OperatorExpression{Type: p.curToken.Type}
+	operatorExpression.Type = p.curToken.Type
 
 	if !p.expectPeek(token.LPAREN) {
 		msg := fmt.Sprintf("line %d: missing opening parenthesis for condition operator '%s'", p.curToken.LineNumber, operatorExpression.Type)
@@ -686,15 +697,23 @@ func (p *Parser) parseLeafBooleanExpression() *ast.OperatorExpression {
 	operatorExpression.Operand = strings.Join(parts, " ")
 	p.nextToken()
 
-	if operatorExpression.Type == token.VAR {
-		ok := p.parseConditionVarOperator(operatorExpression)
-		if !ok {
-			return nil
+	if usedNotOperator {
+		if operatorExpression.Type == token.VAR {
+			ok := p.parseConditionVarOperator(operatorExpression)
+			if !ok {
+				return nil
+			}
+		} else if operatorExpression.Type == token.FLAG {
+			ok := p.parseConditionFlagOperator(operatorExpression)
+			if !ok {
+				return nil
+			}
 		}
-	} else if operatorExpression.Type == token.FLAG {
-		ok := p.parseConditionFlagOperator(operatorExpression)
-		if !ok {
-			return nil
+	} else {
+		if operatorExpression.Type == token.VAR {
+			operatorExpression.ComparisonValue = "0"
+		} else if operatorExpression.Type == token.FLAG {
+			operatorExpression.ComparisonValue = token.FALSE
 		}
 	}
 
@@ -704,15 +723,16 @@ func (p *Parser) parseLeafBooleanExpression() *ast.OperatorExpression {
 func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) bool {
 	if p.curToken.Type != token.GT && p.curToken.Type != token.GTE && p.curToken.Type != token.LT &&
 		p.curToken.Type != token.LTE && p.curToken.Type != token.EQ && p.curToken.Type != token.NEQ {
-		msg := fmt.Sprintf("line %d: invalid condition operator '%s'", p.curToken.LineNumber, p.curToken.Literal)
-		p.errors = append(p.errors, msg)
-		return false
+		// Missing condition operator means test for implicit truthiness.
+		expression.Operator = token.NEQ
+		expression.ComparisonValue = "0"
+		return true
 	}
 	expression.Operator = p.curToken.Type
 	p.nextToken()
 
 	if p.curToken.Type == token.RPAREN {
-		msg := fmt.Sprintf("line %d: missing comparison value for if statement", p.curToken.LineNumber)
+		msg := fmt.Sprintf("line %d: missing comparison value for var operator", p.curToken.LineNumber)
 		p.errors = append(p.errors, msg)
 		return false
 	}
@@ -728,15 +748,17 @@ func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) b
 
 func (p *Parser) parseConditionFlagOperator(expression *ast.OperatorExpression) bool {
 	if p.curToken.Type != token.EQ {
-		msg := fmt.Sprintf("line %d: invalid condition operator '%s'. Only '==' is allowed.", p.curToken.LineNumber, p.curToken.Literal)
-		p.errors = append(p.errors, msg)
-		return false
+		// Missing '==' means test for implicit truthiness.
+		expression.Operator = token.EQ
+		expression.ComparisonValue = token.TRUE
+		return true
 	}
+
 	expression.Operator = p.curToken.Type
 	p.nextToken()
 
 	if p.curToken.Type == token.RPAREN {
-		msg := fmt.Sprintf("line %d: missing comparison value for if statement", p.curToken.LineNumber)
+		msg := fmt.Sprintf("line %d: missing comparison value for flag operator", p.curToken.LineNumber)
 		p.errors = append(p.errors, msg)
 		return false
 	}

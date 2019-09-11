@@ -91,7 +91,7 @@ func TestNextToken(t *testing.T) {
 		{token.GT, ">"},
 		{token.GTE, ">="},
 		{token.ILLEGAL, "="},
-		{token.ILLEGAL, "!"},
+		{token.NOT, "!"},
 		{token.ILLEGAL, "/"},
 		{token.AND, "&&"},
 		{token.ILLEGAL, "&"},

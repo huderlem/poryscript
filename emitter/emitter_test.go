@@ -32,13 +32,13 @@ script Route29_EventScript_WaitingMan {
 script Route29_EventScript_Dude {
 	lock
 	faceplayer
-	if (flag(FLAG_LEARNED_TO_CATCH_POKEMON) == true) {
+	if (flag(FLAG_LEARNED_TO_CATCH_POKEMON)) {
 		msgbox(Route29_Text_PokemonInTheGrass)
-	} elif (flag(FLAG_GAVE_MYSTERY_EGG_TO_ELM) == false) {
+	} elif (!flag(FLAG_GAVE_MYSTERY_EGG_TO_ELM)) {
 		msgbox(Route29_Text_PokemonInTheGrass)
 	} else {
 		msgbox("Huh? You want me to show you how\nto catch POKéMON?$", MSGBOX_YESNO)
-		if (var(VAR_RESULT) == 0) {
+		if (!var(VAR_RESULT)) {
 			msgbox(Route29_Text_Dude_CatchingTutRejected)
 		} else {
 			# Teach the player how to catch.
@@ -293,12 +293,12 @@ script Route29_EventScript_WaitingMan {
 	# Force player to answer "Yes" to NPC question.
 	msgbox("Do you agree to the quest?$", MSGBOX_YESNO)
 	do {
-		if (flag(FLAG_1) == false) {
+		if (!flag(FLAG_1)) {
 			msgbox("...How about now?$", MSGBOX_YESNO)
 		} else {
 			special(OtherThing)
 		}
-	} while (var(VAR_RESULT) == 1)
+	} while (var(VAR_RESULT))
 	release
 }`
 
@@ -319,8 +319,8 @@ Route29_EventScript_WaitingMan_3:
 	goto Route29_EventScript_WaitingMan_7
 
 Route29_EventScript_WaitingMan_4:
-	compare VAR_RESULT, 1
-	goto_if_eq Route29_EventScript_WaitingMan_3
+	compare VAR_RESULT, 0
+	goto_if_ne Route29_EventScript_WaitingMan_3
 	goto Route29_EventScript_WaitingMan_1
 
 Route29_EventScript_WaitingMan_5:
@@ -351,8 +351,8 @@ Route29_EventScript_WaitingMan_3:
 	goto_if_unset FLAG_1, Route29_EventScript_WaitingMan_5
 	special OtherThing
 Route29_EventScript_WaitingMan_2:
-	compare VAR_RESULT, 1
-	goto_if_eq Route29_EventScript_WaitingMan_3
+	compare VAR_RESULT, 0
+	goto_if_ne Route29_EventScript_WaitingMan_3
 	release
 	return
 
@@ -519,10 +519,10 @@ func TestEmitCompoundBooleanExpressions(t *testing.T) {
 script MyScript {
 	do {
 		message()
-		if (flag(FLAG_3) == false || (var(VAR_44) > 3 && var(VAR_55) <= 5)) {
+		if (!flag(FLAG_3) || (var(VAR_44) > 3 && var(VAR_55) <= 5)) {
 			hey
 		}
-	} while ((flag(FLAG_1) == true || flag(FLAG_2) == true) && (var(VAR_1) == 2 || var(VAR_2) == 3))
+	} while ((flag(FLAG_1) == true || flag(FLAG_2)) && (var(VAR_1) == 2 || var(VAR_2) == 3))
 	blah
 }	
 `
@@ -660,7 +660,7 @@ script MyScript {
 					case 434:
 					case 2:
 						secondfirst()
-						if (flag(FLAG_TEMP_1) == false) {
+						if (((!flag(FLAG_TEMP_1)))) {
 							break
 						}
 						foo()

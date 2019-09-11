@@ -202,6 +202,14 @@ script Test {
 		blah()
 	} elif (flag(FLAG_2 +  BASE) == false) {
 		blah()
+	} elif (flag(FLAG_3)) {
+		blah()
+	} elif (!flag(FLAG_4)) {
+		blah()
+	} elif (var(VAR_1)) {
+		blah()	
+	} elif (!var(VAR_2)) {
+		blah()	
 	} else {
 		message()
 		lock
@@ -226,8 +234,12 @@ script Test {
 	testConditionExpression(t, ifStmt.ElifConsequences[2].Expression.(*ast.OperatorExpression), token.VAR, "VAR_4", token.LTE, "4")
 	testConditionExpression(t, ifStmt.ElifConsequences[3].Expression.(*ast.OperatorExpression), token.VAR, "VAR_5", token.GT, "5")
 	testConditionExpression(t, ifStmt.ElifConsequences[4].Expression.(*ast.OperatorExpression), token.VAR, "VAR_6", token.GTE, "6")
-	testConditionExpression(t, ifStmt.ElifConsequences[5].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_1", token.EQ, "TRUE")
-	testConditionExpression(t, ifStmt.ElifConsequences[6].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_2 + BASE", token.EQ, "FALSE")
+	testConditionExpression(t, ifStmt.ElifConsequences[5].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_1", token.EQ, token.TRUE)
+	testConditionExpression(t, ifStmt.ElifConsequences[6].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_2 + BASE", token.EQ, token.FALSE)
+	testConditionExpression(t, ifStmt.ElifConsequences[7].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_3", token.EQ, token.TRUE)
+	testConditionExpression(t, ifStmt.ElifConsequences[8].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_4", token.EQ, token.FALSE)
+	testConditionExpression(t, ifStmt.ElifConsequences[9].Expression.(*ast.OperatorExpression), token.VAR, "VAR_1", token.NEQ, "0")
+	testConditionExpression(t, ifStmt.ElifConsequences[10].Expression.(*ast.OperatorExpression), token.VAR, "VAR_2", token.EQ, "0")
 	nested := ifStmt.Consequence.Body.Statements[0].(*ast.IfStatement)
 	testConditionExpression(t, nested.Consequence.Expression.(*ast.OperatorExpression), token.VAR, "VAR_7", token.NEQ, "1")
 
@@ -260,7 +272,7 @@ script Test {
 		}
 		message()
 	}
-	while (flag(FLAG_1) == true) {
+	while (flag(FLAG_1)) {
 		message()
 		break
 	}
@@ -310,7 +322,7 @@ script Test {
 	if (var(VAR_1) < 1 && flag(FLAG_2) == true || var(VAR_3) > 4) {
 		message()
 	}
-	if ((var(VAR_1) == 10 || ((var(VAR_1) == 12))) && flag(FLAG_1) == true) {
+	if ((var(VAR_1) == 10 || ((var(VAR_1) == 12))) && !flag(FLAG_1)) {
 		message()
 	}
 }
@@ -357,7 +369,7 @@ script Test {
 	op = (ex.Left.(*ast.BinaryExpression)).Right.(*ast.OperatorExpression)
 	testOperatorExpression(t, op, token.VAR, "12", "VAR_1", token.EQ)
 	op = ex.Right.(*ast.OperatorExpression)
-	testOperatorExpression(t, op, token.FLAG, "TRUE", "FLAG_1", token.EQ)
+	testOperatorExpression(t, op, token.FLAG, "FALSE", "FLAG_1", token.EQ)
 }
 
 func testOperatorExpression(t *testing.T, ex *ast.OperatorExpression, expectType token.Type, comparisonValue string, operand string, operator token.Type) {

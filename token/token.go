@@ -30,6 +30,7 @@ const (
 	GTE = ">="
 	AND = "&&"
 	OR  = "||"
+	NOT = "!"
 
 	// Delimeters
 	COMMA = ","

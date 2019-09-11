@@ -71,7 +71,7 @@ func (l *Lexer) NextToken() token.Token {
 			l.readChar()
 			tok = token.Token{Type: token.NEQ, Literal: string(ch) + string(l.ch), LineNumber: l.lineNumber}
 		} else {
-			tok = newToken(token.ILLEGAL, l.ch, l.lineNumber)
+			tok = newToken(token.NOT, l.ch, l.lineNumber)
 		}
 	case '<':
 		if l.peekChar() == '=' {
