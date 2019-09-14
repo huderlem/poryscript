@@ -267,9 +267,9 @@ Route29_EventScript_Dude_Text_1:
 `
 	l := lexer.New(input)
 	p := parser.New(l)
-	program := p.ParseProgram()
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
 
 	e := New(program, false)
@@ -369,9 +369,9 @@ Route29_EventScript_WaitingMan_Text_1:
 `
 	l := lexer.New(input)
 	p := parser.New(l)
-	program := p.ParseProgram()
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
 
 	e := New(program, false)
@@ -496,9 +496,9 @@ MyScript_13:
 
 	l := lexer.New(input)
 	p := parser.New(l)
-	program := p.ParseProgram()
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
 
 	e := New(program, false)
@@ -626,9 +626,9 @@ MyScript_14:
 `
 	l := lexer.New(input)
 	p := parser.New(l)
-	program := p.ParseProgram()
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
 
 	e := New(program, false)
@@ -814,9 +814,9 @@ MyScript_18:
 `
 	l := lexer.New(input)
 	p := parser.New(l)
-	program := p.ParseProgram()
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
 
 	e := New(program, false)
@@ -907,7 +907,7 @@ Route29_Text_Dude_CatchingTutRejected:
 		for i := 0; i < b.N; i++ {
 			l := lexer.New(input)
 			p := parser.New(l)
-			program := p.ParseProgram()
+			program, _ := p.ParseProgram()
 			e := New(program, false)
 			result, _ = e.Emit()
 		}
@@ -918,7 +918,7 @@ Route29_Text_Dude_CatchingTutRejected:
 		for i := 0; i < b.N; i++ {
 			l := lexer.New(input)
 			p := parser.New(l)
-			program := p.ParseProgram()
+			program, _ := p.ParseProgram()
 			e := New(program, true)
 			result, _ = e.Emit()
 		}

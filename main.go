@@ -85,8 +85,9 @@ func main() {
 	}
 
 	parser := parser.New(lexer.New(input))
-	program := parser.ParseProgram()
-	if program == nil {
+	program, err := parser.ParseProgram()
+	if err != nil {
+		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
 		os.Exit(1)
 	}
 

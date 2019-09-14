@@ -32,9 +32,9 @@ script MyScript3 {
 `
 	l := lexer.New(input)
 	p := New(l)
-	program := p.ParseProgram()
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
 	if len(program.TopLevelStatements) != 3 {
 		t.Fatalf("program.TopLevelStatements does not contain 3 statements. got=%d", len(program.TopLevelStatements))
@@ -136,9 +136,9 @@ raw ` + "`" + `
 ` + "`"
 	l := lexer.New(input)
 	p := New(l)
-	program := p.ParseProgram()
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
 	if len(program.TopLevelStatements) != 2 {
 		t.Fatalf("program.TopLevelStatements does not contain 2 statements. got=%d", len(program.TopLevelStatements))
@@ -221,9 +221,9 @@ script Test {
 `
 	l := lexer.New(input)
 	p := New(l)
-	program := p.ParseProgram()
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
 
 	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
@@ -284,9 +284,9 @@ script Test {
 `
 	l := lexer.New(input)
 	p := New(l)
-	program := p.ParseProgram()
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
 
 	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
@@ -329,9 +329,9 @@ script Test {
 `
 	l := lexer.New(input)
 	p := New(l)
-	program := p.ParseProgram()
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
 
 	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
@@ -406,9 +406,9 @@ script Test {
 `
 	l := lexer.New(input)
 	p := New(l)
-	program := p.ParseProgram()
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
 
 	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
