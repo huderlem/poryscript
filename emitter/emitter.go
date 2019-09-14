@@ -6,9 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/huderlem/poryscript/token"
-
 	"github.com/huderlem/poryscript/ast"
+	"github.com/huderlem/poryscript/token"
 )
 
 // Emitter is responsible for transforming a parsed Poryscript program into
@@ -80,8 +79,6 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, 
 	}
 	breakStatementReturnChunks := make(map[ast.Statement]int)
 	breakStatementOriginChunks := make(map[ast.Statement]int)
-	continueStatementReturnChunks := make(map[ast.Statement]int)
-	continueStatementOriginChunks := make(map[ast.Statement]int)
 	for len(remainingChunks) > 0 {
 		ids := []int{}
 		for _, c := range remainingChunks {
@@ -144,8 +141,6 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, 
 			finalChunks[completeChunk.id] = completeChunk
 			breakStatementReturnChunks[stmt] = returnID
 			breakStatementOriginChunks[stmt] = jump.destChunkID
-			continueStatementReturnChunks[stmt] = returnID
-			continueStatementOriginChunks[stmt] = jump.destChunkID
 		} else if stmt, ok := curChunk.statements[i].(*ast.DoWhileStatement); ok {
 			newRemainingChunks, jump, returnID := createDoWhileStatementChunks(stmt, i, curChunk, remainingChunks, &chunkCounter)
 			remainingChunks = newRemainingChunks
@@ -158,8 +153,6 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, 
 			finalChunks[completeChunk.id] = completeChunk
 			breakStatementReturnChunks[stmt] = returnID
 			breakStatementOriginChunks[stmt] = jump.destChunkID
-			continueStatementReturnChunks[stmt] = returnID
-			continueStatementOriginChunks[stmt] = jump.destChunkID
 		} else if stmt, ok := curChunk.statements[i].(*ast.BreakStatement); ok {
 			destChunkID, ok := breakStatementReturnChunks[stmt.ScopeStatment]
 			if !ok {
