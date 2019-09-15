@@ -441,3 +441,32 @@ func testSwitchCase(t *testing.T, sc *ast.SwitchCase, expectValue string, expect
 		t.Fatalf("len(sc.Body.Statements) != %d. Got '%d' instead.", expectBodyLength, len(sc.Body.Statements))
 	}
 }
+
+func TestDuplicateTexts(t *testing.T) {
+	input := `
+script Script1 {
+	msgbox("Hello$")
+	msgbox("Goodbye$")
+	msgbox("Hello\n"
+		   "Multiline$")
+}
+
+script Script2 {
+	msgbox("Test$")
+	msgbox("Goodbye$")
+	msgbox("Hello$")
+	msgbox("Hello\n"
+		"Multiline$", MSGBOX_DEFAULT)
+}
+`
+	l := lexer.New(input)
+	p := New(l)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if len(program.Texts) != 4 {
+		t.Fatalf("len(program.Texts) != 4. Got '%d' instead.", len(program.Texts))
+	}
+}

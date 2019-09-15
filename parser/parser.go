@@ -15,6 +15,7 @@ type Parser struct {
 	curToken         token.Token
 	peekToken        token.Token
 	inlineTexts      []ast.Text
+	inlineTextsSet   map[string]string
 	inlineTextCounts map[string]int
 	breakStack       []ast.Statement
 	continueStack    []ast.Statement
@@ -24,7 +25,8 @@ type Parser struct {
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{
 		l:                l,
-		inlineTexts:      []ast.Text{},
+		inlineTexts:      make([]ast.Text, 0),
+		inlineTextsSet:   make(map[string]string),
 		inlineTextCounts: make(map[string]int),
 	}
 	// Read two tokens, so curToken and peekToken are both set.
@@ -87,7 +89,8 @@ func getImplicitTextLabel(scriptName string, i int) string {
 
 // ParseProgram parses a Poryscript file into an AST.
 func (p *Parser) ParseProgram() (*ast.Program, error) {
-	p.inlineTexts = nil
+	p.inlineTexts = make([]ast.Text, 0)
+	p.inlineTextsSet = make(map[string]string)
 	program := &ast.Program{
 		TopLevelStatements: []ast.Statement{},
 		Texts:              []ast.Text{},
@@ -261,9 +264,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, error)
 				numOpenParens--
 				argParts = append(argParts, p.curToken.Literal)
 			} else if p.curToken.Type == token.STRING {
-				textLabel := getImplicitTextLabel(scriptName, p.inlineTextCounts[scriptName])
-				p.inlineTextCounts[scriptName]++
-				p.inlineTexts = append(p.inlineTexts, ast.Text{Name: textLabel, Value: p.curToken.Literal})
+				textLabel := p.addText(scriptName, p.curToken.Literal)
 				argParts = append(argParts, textLabel)
 			} else {
 				argParts = append(argParts, p.curToken.Literal)
@@ -279,6 +280,17 @@ func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, error)
 	}
 
 	return command, nil
+}
+
+func (p *Parser) addText(scriptName string, text string) string {
+	if textLabel, ok := p.inlineTextsSet[text]; ok {
+		return textLabel
+	}
+	textLabel := getImplicitTextLabel(scriptName, p.inlineTextCounts[scriptName])
+	p.inlineTextCounts[scriptName]++
+	p.inlineTextsSet[text] = textLabel
+	p.inlineTexts = append(p.inlineTexts, ast.Text{Name: textLabel, Value: text})
+	return textLabel
 }
 
 func (p *Parser) parseRawStatement() (*ast.RawStatement, error) {
