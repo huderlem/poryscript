@@ -127,6 +127,20 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.LBRACE, l.ch, l.lineNumber)
 	case '}':
 		tok = newToken(token.RBRACE, l.ch, l.lineNumber)
+	case '0':
+		if l.peekChar() == 'x' {
+			l.readChar()
+			l.readChar()
+			tok.Type = token.INT
+			tok.Literal = "0x" + l.readHexNumber()
+			tok.LineNumber = l.lineNumber
+			return tok
+		}
+
+		tok.Type = token.INT
+		tok.Literal = l.readNumber()
+		tok.LineNumber = l.lineNumber
+		return tok
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
@@ -222,6 +236,18 @@ func (l *Lexer) readNumber() string {
 	return l.input[start:l.position]
 }
 
+func (l *Lexer) readHexNumber() string {
+	start := l.position
+	for isHexDigit(l.ch) {
+		l.readChar()
+	}
+	return l.input[start:l.position]
+}
+
 func isDigit(ch byte) bool {
 	return '0' <= ch && ch <= '9'
+}
+
+func isHexDigit(ch byte) bool {
+	return ('0' <= ch && ch <= '9') || ('a' <= ch && ch <= 'f') || ('A' <= ch && ch <= 'F')
 }

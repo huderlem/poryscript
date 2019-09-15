@@ -28,6 +28,7 @@ func TestNextToken(t *testing.T) {
 		break
 		continue
 		switch
+		0x5ABCDEF
 		case: default
 		while
 		("Hello\n"
@@ -101,6 +102,7 @@ func TestNextToken(t *testing.T) {
 		{token.BREAK, "break"},
 		{token.CONTINUE, "continue"},
 		{token.SWITCH, "switch"},
+		{token.INT, "0x5ABCDEF"},
 		{token.CASE, "case"},
 		{token.COLON, ":"},
 		{token.DEFAULT, "default"},
