@@ -1,5 +1,8 @@
 # Poryscript
 
+[![Actions Status](https://github.com/huderlem/poryscript/workflows/Go/badge.svg)](https://github.com/huderlem/poryscript/actions) [![codecov](https://codecov.io/gh/huderlem/poryscript/branch/master/graph/badge.svg)](https://codecov.io/gh/huderlem/poryscript)
+
+
 Use the [Poryscript Playground](http://www.huderlem.com/poryscript-playground/) to test it out.
 
 Poryscript is a higher-level scripting language that compiles into the scripting language used in [pokeemerald](https://github.com/pret/pokeemerald), [pokefirered](https://github.com/pret/pokefirered), and [pokeruby](https://github.com/pret/pokeruby). It's aimed to make scripting faster and easier. The main advantages to using Poryscript are:
