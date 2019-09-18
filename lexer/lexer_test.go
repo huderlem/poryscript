@@ -29,13 +29,14 @@ func TestNextToken(t *testing.T) {
 		continue
 		switch
 		0x5ABCDEF
+		0435
 		case: default
 		while
 		("Hello\n"
 		"I'm glad to see$")
 		raw RawTest ` + "`" + `
-	step
-`
+	step` + "`" + `
+	>`
 
 	tests := []struct {
 		expectedType    token.Type
@@ -103,6 +104,7 @@ func TestNextToken(t *testing.T) {
 		{token.CONTINUE, "continue"},
 		{token.SWITCH, "switch"},
 		{token.INT, "0x5ABCDEF"},
+		{token.INT, "0435"},
 		{token.CASE, "case"},
 		{token.COLON, ":"},
 		{token.DEFAULT, "default"},
@@ -113,6 +115,7 @@ func TestNextToken(t *testing.T) {
 		{token.RAW, "raw"},
 		{token.IDENT, "RawTest"},
 		{token.RAWSTRING, "\tstep"},
+		{token.GT, ">"},
 		{token.EOF, ""},
 	}
 
