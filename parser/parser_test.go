@@ -471,7 +471,7 @@ script Script2 {
 	}
 }
 
-func TestBreakContinueErrors(t *testing.T) {
+func TestErrors(t *testing.T) {
 	tests := []struct {
 		input         string
 		expectedError string
@@ -521,6 +521,62 @@ script Script1 {
 }
 `,
 			expectedError: "line 8: 'continue' statement outside of any continue-able scope",
+		},
+		{
+			input: `
+script Script1 {}
+raw ` + "``" + `
+invalid
+`,
+			expectedError: "line 4: could not parse top-level statement for 'invalid'",
+		},
+		{
+			input: `
+raw "stuff"
+`,
+			expectedError: "line 2: raw statement must begin with a backtick character '`'",
+		},
+		{
+			input: `
+script {
+	foo
+}
+`,
+			expectedError: "line 2: missing name for script",
+		},
+		{
+			input: `
+script MyScript
+	foo
+}
+`,
+			expectedError: "line 2: missing opening curly brace for script 'MyScript'",
+		},
+		{
+			input: `
+script MyScript {
+	if (var(VAR_1)) {
+	foo
+}
+`,
+			expectedError: "line 3: missing closing curly brace for block statement",
+		},
+		{
+			input: `
+script MyScript {
+	switch (var(VAR_1)) {
+	case 1: foo
+`,
+			expectedError: "line 4: missing end for switch case body",
+		},
+		{
+			input: `
+script MyScript {
+	foo
+	<
+}
+`,
+			expectedError: "line 4: could not parse statement for '<'",
 		},
 	}
 

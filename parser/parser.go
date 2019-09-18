@@ -136,7 +136,7 @@ func (p *Parser) parseTopLevelStatement() (ast.Statement, error) {
 func (p *Parser) parseScriptStatement() (*ast.ScriptStatement, error) {
 	statement := &ast.ScriptStatement{Token: p.curToken}
 	if err := p.expectPeek(token.IDENT); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("line %d: missing name for script", p.curToken.LineNumber)
 	}
 
 	statement.Name = &ast.Identifier{
@@ -145,7 +145,7 @@ func (p *Parser) parseScriptStatement() (*ast.ScriptStatement, error) {
 	}
 
 	if err := p.expectPeek(token.LBRACE); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("line %d: missing opening curly brace for script '%s'", p.curToken.LineNumber, statement.Name.Value)
 	}
 
 	p.nextToken()
@@ -299,7 +299,7 @@ func (p *Parser) parseRawStatement() (*ast.RawStatement, error) {
 	}
 
 	if err := p.expectPeek(token.RAWSTRING); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("line %d: raw statement must begin with a backtick character '`'", p.curToken.LineNumber)
 	}
 
 	statement.Value = p.curToken.Literal
