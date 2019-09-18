@@ -470,3 +470,73 @@ script Script2 {
 		t.Fatalf("len(program.Texts) != 4. Got '%d' instead.", len(program.Texts))
 	}
 }
+
+func TestBreakContinueErrors(t *testing.T) {
+	tests := []struct {
+		input         string
+		expectedError string
+	}{
+		{
+			input: `
+script Script1 {
+	break
+}
+`,
+			expectedError: "line 3: 'break' statement outside of any break-able scope",
+		},
+		{
+			input: `
+script Script1 {
+	while (flag(FLAG_1)) {
+		somestuff
+		break
+	}
+	break
+}
+`,
+			expectedError: "line 7: 'break' statement outside of any break-able scope",
+		},
+		{
+			input: `
+script Script1 {
+	while (flag(FLAG_1)) {
+		somestuff
+		continue
+	}
+	continue
+}
+`,
+			expectedError: "line 7: 'continue' statement outside of any continue-able scope",
+		},
+		{
+			input: `
+script Script1 {
+	switch (var(VAR_1)) {
+	case 1:
+		msgbox
+		break
+	case 2:
+		continue
+	}
+}
+`,
+			expectedError: "line 8: 'continue' statement outside of any continue-able scope",
+		},
+	}
+
+	for _, test := range tests {
+		testForParseError(t, test.input, test.expectedError)
+	}
+}
+
+func testForParseError(t *testing.T, input string, expectedErrorText string) {
+	l := lexer.New(input)
+	p := New(l)
+	_, err := p.ParseProgram()
+	if err == nil {
+		t.Fatalf("Expected error '%s', but no error occurred", expectedErrorText)
+	}
+	if err.Error() != expectedErrorText {
+		t.Fatalf("Expected error '%s', but got '%s'", expectedErrorText, err.Error())
+	}
+}
