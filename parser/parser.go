@@ -332,7 +332,7 @@ func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, error) {
 	if p.peekToken.Type == token.ELSE {
 		p.nextToken()
 		if err := p.expectPeek(token.LBRACE); err != nil {
-			return nil, fmt.Errorf("line %d: missing opening curly brace of else statement '%s'", p.peekToken.LineNumber, p.peekToken.Literal)
+			return nil, fmt.Errorf("line %d: missing opening curly brace of else statement", p.curToken.LineNumber)
 		}
 		p.nextToken()
 		blockStmt, err := p.parseBlockStatement(scriptName)
@@ -373,7 +373,7 @@ func (p *Parser) parseDoWhileStatement(scriptName string) (*ast.DoWhileStatement
 	expression := &ast.ConditionExpression{}
 
 	if err := p.expectPeek(token.LBRACE); err != nil {
-		return nil, fmt.Errorf("line %d: missing opening curly brace of do...while statement '%s'", p.peekToken.LineNumber, p.peekToken.Literal)
+		return nil, fmt.Errorf("line %d: missing opening curly brace of do...while statement", p.curToken.LineNumber)
 	}
 	p.nextToken()
 	blockStmt, err := p.parseBlockStatement(scriptName)
@@ -385,10 +385,10 @@ func (p *Parser) parseDoWhileStatement(scriptName string) (*ast.DoWhileStatement
 	p.popContinueStack()
 
 	if err := p.expectPeek(token.WHILE); err != nil {
-		return nil, fmt.Errorf("line %d: missing 'while' after body of do...while statement '%s'", p.peekToken.LineNumber, p.peekToken.Literal)
+		return nil, fmt.Errorf("line %d: missing 'while' after body of do...while statement", p.curToken.LineNumber)
 	}
 	if err := p.expectPeek(token.LPAREN); err != nil {
-		return nil, fmt.Errorf("line %d: missing '(' to start condition for do...while statement '%s'", p.peekToken.LineNumber, p.peekToken.Literal)
+		return nil, fmt.Errorf("line %d: missing '(' to start condition for do...while statement", p.curToken.LineNumber)
 	}
 
 	boolExpression, err := p.parseBooleanExpression(false)
@@ -424,7 +424,7 @@ func (p *Parser) parseContinueStatement(scriptName string) (*ast.ContinueStateme
 	statement.LoopStatment = p.peekContinueStack()
 
 	if p.peekToken.Type != token.RBRACE {
-		return nil, fmt.Errorf("line %d: missing '}' after 'continue'. 'continue' must be the last statement in block scope", p.peekToken.LineNumber)
+		return nil, fmt.Errorf("line %d: 'continue' must be the last statement in block scope", p.peekToken.LineNumber)
 	}
 
 	return statement, nil
@@ -439,7 +439,7 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	originalLineNumber := p.curToken.LineNumber
 
 	if err := p.expectPeek(token.LPAREN); err != nil {
-		return nil, fmt.Errorf("line %d: missing opening parenthesis of switch statement operand '%s'", p.peekToken.LineNumber, p.peekToken.Literal)
+		return nil, fmt.Errorf("line %d: missing opening parenthesis of switch statement operand", p.curToken.LineNumber)
 	}
 	if err := p.expectPeek(token.VAR); err != nil {
 		return nil, fmt.Errorf("line %d: invalid switch statement operand '%s'. Must be 'var`", p.peekToken.LineNumber, p.peekToken.Literal)
@@ -458,7 +458,7 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	statement.Operand = strings.Join(parts, " ")
 
 	if err := p.expectPeek(token.LBRACE); err != nil {
-		return nil, fmt.Errorf("line %d: missing opening curly brace of switch statement '%s'", p.peekToken.LineNumber, p.peekToken.Literal)
+		return nil, fmt.Errorf("line %d: missing opening curly brace of switch statement", p.curToken.LineNumber)
 	}
 	p.nextToken()
 
@@ -466,11 +466,15 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	caseValues := make(map[string]bool)
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.CASE {
+			caseLineNum := p.curToken.LineNumber
 			p.nextToken()
 			parts := []string{}
 			for p.curToken.Type != token.COLON {
 				parts = append(parts, p.curToken.Literal)
 				p.nextToken()
+				if p.curToken.Type == token.EOF {
+					return nil, fmt.Errorf("line %d: missing `:` after 'case'", caseLineNum)
+				}
 			}
 			caseValue := strings.Join(parts, " ")
 			if caseValues[caseValue] {
@@ -492,7 +496,7 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 				return nil, fmt.Errorf("line %d: multiple `default` cases found in switch statement. Only one `default` case is allowed", p.peekToken.LineNumber)
 			}
 			if err := p.expectPeek(token.COLON); err != nil {
-				return nil, fmt.Errorf("line %d: missing `:` after default", p.peekToken.LineNumber)
+				return nil, fmt.Errorf("line %d: missing `:` after default", p.curToken.LineNumber)
 			}
 			p.nextToken()
 			body, err := p.parseSwitchBlockStatement(scriptName)
@@ -503,7 +507,7 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 				Body: body,
 			}
 		} else {
-			return nil, fmt.Errorf("line %d: invalid start of switch case '%s'. Expected 'case' or 'default'", p.peekToken.LineNumber, p.peekToken.Literal)
+			return nil, fmt.Errorf("line %d: invalid start of switch case '%s'. Expected 'case' or 'default'", p.curToken.LineNumber, p.curToken.Literal)
 		}
 	}
 
@@ -518,7 +522,7 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 
 func (p *Parser) parseConditionExpression(scriptName string) (*ast.ConditionExpression, error) {
 	if err := p.expectPeek(token.LPAREN); err != nil {
-		return nil, fmt.Errorf("line %d: missing '(' to start boolean expression. '%s'", p.peekToken.LineNumber, p.peekToken.Literal)
+		return nil, fmt.Errorf("line %d: missing '(' to start boolean expression", p.peekToken.LineNumber)
 	}
 
 	expression := &ast.ConditionExpression{}
@@ -606,12 +610,12 @@ func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single boo
 
 func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 	// Left-side of binary expression must be a special condition statement.
-	usedNotOperator := true
+	usedNotOperator := false
 	operatorExpression := &ast.OperatorExpression{}
 	if p.peekTokenIs(token.NOT) {
 		operatorExpression.Operator = token.EQ
 		p.nextToken()
-		usedNotOperator = false
+		usedNotOperator = true
 	}
 
 	if !p.peekTokenIs(token.VAR) && !p.peekTokenIs(token.FLAG) {
@@ -637,6 +641,12 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 
 	if usedNotOperator {
 		if operatorExpression.Type == token.VAR {
+			operatorExpression.ComparisonValue = "0"
+		} else if operatorExpression.Type == token.FLAG {
+			operatorExpression.ComparisonValue = token.FALSE
+		}
+	} else {
+		if operatorExpression.Type == token.VAR {
 			err := p.parseConditionVarOperator(operatorExpression)
 			if err != nil {
 				return nil, err
@@ -646,12 +656,6 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 			if err != nil {
 				return nil, err
 			}
-		}
-	} else {
-		if operatorExpression.Type == token.VAR {
-			operatorExpression.ComparisonValue = "0"
-		} else if operatorExpression.Type == token.FLAG {
-			operatorExpression.ComparisonValue = token.FALSE
 		}
 	}
 
@@ -673,9 +677,13 @@ func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) e
 		return fmt.Errorf("line %d: missing comparison value for var operator", p.curToken.LineNumber)
 	}
 	parts := []string{}
+	lineNum := p.curToken.LineNumber
 	for p.curToken.Type != token.RPAREN && p.curToken.Type != token.AND && p.curToken.Type != token.OR {
 		parts = append(parts, p.curToken.Literal)
 		p.nextToken()
+		if p.curToken.Type == token.EOF {
+			return fmt.Errorf("line %d: missing ')', '&&' or '||' when evaluating 'var' operator", lineNum)
+		}
 	}
 
 	expression.ComparisonValue = strings.Join(parts, " ")

@@ -578,6 +578,220 @@ script MyScript {
 `,
 			expectedError: "line 4: could not parse statement for '<'",
 		},
+		{
+			input: `
+script MyScript {
+	if (flag(FLAG_1)) {
+		foo
+	} else 
+		bar
+	}
+}
+`,
+			expectedError: "line 5: missing opening curly brace of else statement",
+		},
+		{
+			input: `
+script MyScript {
+	do 
+		foo
+	while (flag(FLAG_1))
+}
+`,
+			expectedError: "line 3: missing opening curly brace of do...while statement",
+		},
+		{
+			input: `
+script MyScript {
+	do {
+		foo
+	} (flag(FLAG_1))
+}
+`,
+			expectedError: "line 5: missing 'while' after body of do...while statement",
+		},
+		{
+			input: `
+script MyScript {
+	do {
+		foo
+	} while flag(FLAG_1)
+}
+`,
+			expectedError: "line 5: missing '(' to start condition for do...while statement",
+		},
+		{
+			input: `
+script MyScript {
+	while (flag(FLAG_1)) {
+		continue
+		foo
+	}
+}
+`,
+			expectedError: "line 5: 'continue' must be the last statement in block scope",
+		},
+		{
+			input: `
+script MyScript {
+	switch flag(FLAG_1) {
+	case 1:
+		foo
+	}
+}
+`,
+			expectedError: "line 3: missing opening parenthesis of switch statement operand",
+		},
+		{
+			input: `
+script MyScript {
+	switch (flag(FLAG_1)) {
+	case 1:
+		foo
+	}
+}
+`,
+			expectedError: "line 3: invalid switch statement operand 'flag'. Must be 'var`",
+		},
+		{
+			input: `
+script MyScript {
+	switch (var FLAG_1) {
+	case 1:
+		foo
+	}
+}
+`,
+			expectedError: "line 3: missing '(' after var operator. Got 'FLAG_1` instead",
+		},
+		{
+			input: `
+script MyScript {
+	switch (var(FLAG_1))
+	case 1:
+		foo
+	}
+}
+`,
+			expectedError: "line 3: missing opening curly brace of switch statement",
+		},
+		{
+			input: `
+script MyScript {
+	switch (var(FLAG_1)) {
+	case 1:
+	case 2:
+		foo
+	case 1:
+		bar
+	}
+}
+`,
+			expectedError: "line 7: duplicate switch cases detected for case '1'",
+		},
+		{
+			input: `
+script MyScript {
+	switch (var(FLAG_1)) {
+	case 2:
+		foo
+	default
+		baz
+	}
+}
+`,
+			expectedError: "line 6: missing `:` after default",
+		},
+		{
+			input: `
+script MyScript {
+	switch (var(FLAG_1)) {
+	case 2:
+	case 7
+		foo
+	}
+}
+`,
+			expectedError: "line 5: missing `:` after 'case'",
+		},
+		{
+			input: `
+script MyScript {
+	switch (var(FLAG_1)) {
+		foo
+	}
+`,
+			expectedError: "line 4: invalid start of switch case 'foo'. Expected 'case' or 'default'",
+		},
+		{
+			input: `
+script MyScript {
+	switch (var(FLAG_1)) {
+	}
+`,
+			expectedError: "line 3: switch statement has no cases or default case",
+		},
+		{
+			input: `
+script MyScript {
+	if var(FLAG_1)) {
+	}
+`,
+			expectedError: "line 3: missing '(' to start boolean expression",
+		},
+		{
+			input: `
+script MyScript {
+	if (var(FLAG_1) ||) {
+	}
+`,
+			expectedError: "line 3: left side of binary expression must be var() or flag() operator. Instead, found ')'",
+		},
+		{
+			input: `
+script MyScript {
+	if (var(FLAG_1)) 
+		foo
+	}
+`,
+			expectedError: "line 4: expected next token to be '{', got 'foo' instead",
+		},
+		{
+			input: `
+script MyScript {
+	if (var(FLAG_1) && (var(VAR_1) == 1 {
+		foo
+	}
+`,
+			expectedError: "line 3: missing ')', '&&' or '||' when evaluating 'var' operator",
+		},
+		{
+			input: `
+script MyScript {
+	if (var{FLAG_1) {
+		foo
+	}
+`,
+			expectedError: "line 3: missing opening parenthesis for condition operator 'VAR'",
+		},
+		{
+			input: `
+script MyScript {
+	if (flag{FLAG_1) {
+		foo
+	}
+`,
+			expectedError: "line 3: missing opening parenthesis for condition operator 'FLAG'",
+		},
+		{
+			input: `
+script MyScript {
+	if (flag()) {
+		foo
+	}
+`,
+			expectedError: "line 3: missing value for condition operator 'FLAG'",
+		},
 	}
 
 	for _, test := range tests {
