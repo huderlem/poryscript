@@ -553,7 +553,7 @@ func (p *Parser) parseBooleanExpression(single bool) (ast.BooleanExpression, err
 			return nil, err
 		}
 		if p.curToken.Type != token.RPAREN {
-			return nil, fmt.Errorf("line %d: expected closing ')' for nested boolean expression. Instead, found '%s'", p.curToken.LineNumber, p.peekToken.Literal)
+			return nil, fmt.Errorf("line %d: missing closing ')' for nested boolean expression", p.curToken.LineNumber)
 		}
 		if p.peekTokenIs(token.AND) || p.peekTokenIs(token.OR) {
 			p.nextToken()
@@ -632,9 +632,13 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 	}
 	p.nextToken()
 	parts := []string{}
+	lineNum := p.curToken.LineNumber
 	for p.curToken.Type != token.RPAREN {
 		parts = append(parts, p.curToken.Literal)
 		p.nextToken()
+		if p.curToken.Type == token.EOF {
+			return nil, fmt.Errorf("line %d: missing closing ')' for condition operator value", lineNum)
+		}
 	}
 	operatorExpression.Operand = strings.Join(parts, " ")
 	p.nextToken()

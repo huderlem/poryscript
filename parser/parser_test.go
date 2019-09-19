@@ -792,6 +792,139 @@ script MyScript {
 `,
 			expectedError: "line 3: missing value for condition operator 'FLAG'",
 		},
+		{
+			input: `
+script MyScript {
+	foo(sdfa
+	bar()
+}
+`,
+			expectedError: "line 3: missing closing parenthesis for command 'foo'",
+		},
+		{
+			input: `
+script MyScript {
+	if (flag(FLAG_1)) {
+		foo
+	} elif (fla(FLAG_2)) {
+		bar
+	}
+}
+`,
+			expectedError: "line 5: left side of binary expression must be var() or flag() operator. Instead, found 'fla'",
+		},
+		{
+			input: `
+script MyScript {
+	if (flag(FLAG_1)) {
+		foo
+	} else {
+		else
+	}
+}
+`,
+			expectedError: "line 6: could not parse statement for 'else'",
+		},
+		{
+			input: `
+script MyScript {
+	do {
+		continue
+		break
+	} while (flag(FLAG_1))
+}
+`,
+			expectedError: "line 5: 'continue' must be the last statement in block scope",
+		},
+		{
+			input: `
+script MyScript {
+	do {
+		continue
+	} while (flag(FLAG_1) == 45)
+}
+`,
+			expectedError: "line 5: invalid flag comparison value '45'. Only 'TRUE' and 'FALSE' are allowed",
+		},
+		{
+			input: `
+script MyScript {
+	switch (var(VAR_1)) {
+	default:
+		foo
+	case 1:
+		bar
+	default:
+		baz
+	}
+}
+`,
+			expectedError: "line 8: multiple `default` cases found in switch statement. Only one `default` case is allowed",
+		},
+		{
+			input: `
+script MyScript {
+	switch (var(VAR_1)) {
+	case 1:
+		bar
+	default:
+		baz
+		continue
+	}
+}
+`,
+			expectedError: "line 8: 'continue' statement outside of any continue-able scope",
+		},
+		{
+			input: `
+script MyScript {
+	while ((flag(FLAG_1) {
+		foo
+	}
+}
+`,
+			expectedError: "line 3: missing closing ')' for nested boolean expression",
+		},
+		{
+			input: `
+script MyScript {
+	while (flag(FLAG_1 {
+		foo
+	}
+}
+`,
+			expectedError: "line 3: missing closing ')' for condition operator value",
+		},
+		{
+			input: `
+script MyScript {
+	while (flag(FLAG_1) == ) {
+		foo
+	}
+}
+`,
+			expectedError: "line 3: missing comparison value for flag operator",
+		},
+		{
+			input: `
+script MyScript {
+	while (var(VAR_1) == ) {
+		foo
+	}
+}
+`,
+			expectedError: "line 3: missing comparison value for var operator",
+		},
+		{
+			input: `
+script MyScript {
+	while (var(VAR_1) == 1 && flag(FLAG_1) == true && flag()) {
+		foo
+	}
+}
+`,
+			expectedError: "line 3: missing value for condition operator 'FLAG'",
+		},
 	}
 
 	for _, test := range tests {
