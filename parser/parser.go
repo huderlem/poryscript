@@ -288,6 +288,13 @@ func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, error)
 			} else if p.curToken.Type == token.RPAREN {
 				numOpenParens--
 				argParts = append(argParts, p.curToken.Literal)
+			} else if p.curToken.Type == token.FORMAT {
+				strValue, err := p.parseFormatStringOperator()
+				if err != nil {
+					return nil, err
+				}
+				textLabel := p.addText(scriptName, strValue)
+				argParts = append(argParts, textLabel)
 			} else if p.curToken.Type == token.STRING {
 				textLabel := p.addText(scriptName, p.curToken.Literal)
 				argParts = append(argParts, textLabel)
@@ -351,16 +358,41 @@ func (p *Parser) parseTextStatement() (*ast.TextStatement, error) {
 	if err := p.expectPeek(token.LBRACE); err != nil {
 		return nil, fmt.Errorf("line %d: missing opening curly brace for text '%s'", p.peekToken.LineNumber, statement.Name.Value)
 	}
-	if err := p.expectPeek(token.STRING); err != nil {
-		return nil, fmt.Errorf("line %d: body of text statement must be a string. Got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+	p.nextToken()
+
+	var strValue string
+	if p.curToken.Type == token.FORMAT {
+		var err error
+		strValue, err = p.parseFormatStringOperator()
+		if err != nil {
+			return nil, err
+		}
+	} else if p.curToken.Type == token.STRING {
+		strValue = p.curToken.Literal
+	} else {
+		return nil, fmt.Errorf("line %d: body of text statement must be a string or formatted string. Got '%s' instead", p.curToken.LineNumber, p.curToken.Literal)
 	}
 
-	statement.Value = p.curToken.Literal
+	statement.Value = strValue
 	p.textStatements = append(p.textStatements, statement)
 	if err := p.expectPeek(token.RBRACE); err != nil {
 		return nil, fmt.Errorf("line %d: expected closing curly brace for text. Got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
 	}
 	return statement, nil
+}
+
+func (p *Parser) parseFormatStringOperator() (string, error) {
+	if err := p.expectPeek(token.LPAREN); err != nil {
+		return "", fmt.Errorf("line %d: format operator must begin with an open parenthesis '('", p.peekToken.LineNumber)
+	}
+	if err := p.expectPeek(token.STRING); err != nil {
+		return "", fmt.Errorf("line %d: invalid format() argument '%s'. Expected a string literal", p.peekToken.LineNumber, p.peekToken.Literal)
+	}
+	rawText := p.curToken.Literal
+	if err := p.expectPeek(token.RPAREN); err != nil {
+		return "", fmt.Errorf("line %d: missing closing parenthesis ')' for format()", p.peekToken.LineNumber)
+	}
+	return FormatText(rawText), nil
 }
 
 func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, error) {

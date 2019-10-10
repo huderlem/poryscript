@@ -515,6 +515,34 @@ script MyScript1 {
 	}
 }
 
+func TestFormatOperator(t *testing.T) {
+	input := `
+script MyScript1 {
+	msgbox(format("Test$"))
+}
+
+text MyText {
+	format("FooBar")
+}
+`
+	l := lexer.New(input)
+	p := New(l)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if len(program.Texts) != 2 {
+		t.Fatalf("len(program.Texts) != 2. Got '%d' instead.", len(program.Texts))
+	}
+	if program.Texts[0].Value != "Test$" {
+		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[0].Value, "Test$")
+	}
+	if program.Texts[1].Value != "FooBar" {
+		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[0].Value, "FooBar")
+	}
+}
+
 func TestErrors(t *testing.T) {
 	tests := []struct {
 		input         string
@@ -957,7 +985,7 @@ text Text1 {
 	nottext
 	"MyText$"
 }`,
-			expectedError: "line 3: body of text statement must be a string. Got 'nottext' instead",
+			expectedError: "line 3: body of text statement must be a string or formatted string. Got 'nottext' instead",
 		},
 		{
 			input: `

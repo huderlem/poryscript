@@ -34,6 +34,7 @@ func TestNextToken(t *testing.T) {
 		while
 		defeated
 		text
+		format
 		("Hello\n"
 		"I'm glad to see$")
 		raw RawTest ` + "`" + `
@@ -113,6 +114,7 @@ func TestNextToken(t *testing.T) {
 		{token.WHILE, "while"},
 		{token.DEFEATED, "defeated"},
 		{token.TEXT, "text"},
+		{token.FORMAT, "format"},
 		{token.LPAREN, "("},
 		{token.STRING, "Hello\\n\nI'm glad to see$"},
 		{token.RPAREN, ")"},

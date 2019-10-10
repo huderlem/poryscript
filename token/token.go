@@ -45,6 +45,7 @@ const (
 	SCRIPT   = "SCRIPT"
 	RAW      = "RAW"
 	TEXT     = "TEXT"
+	FORMAT   = "FORMAT"
 	VAR      = "VAR"
 	FLAG     = "FLAG"
 	DEFEATED = "DEFEATED"
@@ -72,6 +73,7 @@ var keywords = map[string]Type{
 	"script":   SCRIPT,
 	"raw":      RAW,
 	"text":     TEXT,
+	"format":   FORMAT,
 	"var":      VAR,
 	"flag":     FLAG,
 	"defeated": DEFEATED,
