@@ -471,6 +471,38 @@ script Script2 {
 	}
 }
 
+func TestTextStatements(t *testing.T) {
+	input := `
+script MyScript1 {
+	msgbox("Test$")
+	msgbox("Hello$")
+}
+
+text MyText1 {
+	"Hello$"
+}
+
+text MyText2 {
+	"Foo"
+	"Bar$"
+}
+
+script MyScript1 {
+	foo()
+}
+`
+	l := lexer.New(input)
+	p := New(l)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if len(program.Texts) != 4 {
+		t.Fatalf("len(program.Texts) != 4. Got '%d' instead.", len(program.Texts))
+	}
+}
+
 func TestErrors(t *testing.T) {
 	tests := []struct {
 		input         string
@@ -924,6 +956,51 @@ script MyScript {
 }
 `,
 			expectedError: "line 3: missing value for condition operator 'FLAG'",
+		},
+		{
+			input: `
+text {
+	"MyText$"
+}
+`,
+			expectedError: "line 2: missing name for text statement",
+		},
+		{
+			input: `
+text Text1
+	"MyText$"
+}
+`,
+			expectedError: "line 3: missing opening curly brace for text 'Text1'",
+		},
+		{
+			input: `
+text Text1 {
+	nottext
+	"MyText$"
+}
+`,
+			expectedError: "line 3: body of text statement must be a string. Got 'nottext' instead",
+		},
+		{
+			input: `
+text Text1 {
+	"MyText$"
+	notcurlybrace
+}
+`,
+			expectedError: "line 4: expected closing curly brace for text. Got 'notcurlybrace' instead",
+		},
+		{
+			input: `
+script Script1 {
+	msgbox("Hello")
+}
+text Script1_Text_0 {
+	"MyText$"
+}
+`,
+			expectedError: "Duplicate text label 'Script1_Text_0'. Choose a unique label that won't clash with the auto-generated text labels",
 		},
 	}
 

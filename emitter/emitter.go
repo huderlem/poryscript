@@ -30,6 +30,13 @@ func (e *Emitter) Emit() (string, error) {
 	var sb strings.Builder
 	i := 0
 	for _, stmt := range e.program.TopLevelStatements {
+		_, ok := stmt.(*ast.TextStatement)
+		if ok {
+			// Text is rendered separately after the other statements are rendered.
+			continue
+		}
+
+		// Separate statements with newline.
 		if i > 0 {
 			sb.WriteString("\n")
 		}

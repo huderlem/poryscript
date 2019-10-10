@@ -98,6 +98,19 @@ func (rs *RawStatement) statementNode() {}
 // TokenLiteral returns a string representation of the raw statement.
 func (rs *RawStatement) TokenLiteral() string { return rs.Token.Literal }
 
+// TextStatement is a Poryscript text statement. Text statements are included
+// into the target bytecode script as native text, and can be auto-formatted.
+type TextStatement struct {
+	Token token.Token
+	Name  *Identifier
+	Value string
+}
+
+func (ts *TextStatement) statementNode() {}
+
+// TokenLiteral returns a string representation of the text statement.
+func (ts *TextStatement) TokenLiteral() string { return ts.Token.Literal }
+
 // BooleanExpression is a part of a boolean expression.
 type BooleanExpression interface {
 	booleanExpressionNode()

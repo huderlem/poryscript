@@ -44,6 +44,7 @@ const (
 	// Keywords
 	SCRIPT   = "SCRIPT"
 	RAW      = "RAW"
+	TEXT     = "TEXT"
 	VAR      = "VAR"
 	FLAG     = "FLAG"
 	TRUE     = "TRUE"
@@ -69,6 +70,7 @@ const (
 var keywords = map[string]Type{
 	"script":   SCRIPT,
 	"raw":      RAW,
+	"text":     TEXT,
 	"var":      VAR,
 	"flag":     FLAG,
 	"TRUE":     TRUE,

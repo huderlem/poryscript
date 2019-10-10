@@ -17,6 +17,7 @@ type Parser struct {
 	inlineTexts      []ast.Text
 	inlineTextsSet   map[string]string
 	inlineTextCounts map[string]int
+	textStatements   []*ast.TextStatement
 	breakStack       []ast.Statement
 	continueStack    []ast.Statement
 }
@@ -28,6 +29,7 @@ func New(l *lexer.Lexer) *Parser {
 		inlineTexts:      make([]ast.Text, 0),
 		inlineTextsSet:   make(map[string]string),
 		inlineTextCounts: make(map[string]int),
+		textStatements:   make([]*ast.TextStatement, 0),
 	}
 	// Read two tokens, so curToken and peekToken are both set.
 	p.nextToken()
@@ -91,6 +93,7 @@ func getImplicitTextLabel(scriptName string, i int) string {
 func (p *Parser) ParseProgram() (*ast.Program, error) {
 	p.inlineTexts = make([]ast.Text, 0)
 	p.inlineTextsSet = make(map[string]string)
+	p.textStatements = make([]*ast.TextStatement, 0)
 	program := &ast.Program{
 		TopLevelStatements: []ast.Statement{},
 		Texts:              []ast.Text{},
@@ -107,8 +110,23 @@ func (p *Parser) ParseProgram() (*ast.Program, error) {
 		p.nextToken()
 	}
 
+	// Build list of Texts from both inline and explicit texts.
+	// Generate error if there are any name clashes.
 	for _, text := range p.inlineTexts {
 		program.Texts = append(program.Texts, text)
+	}
+	for _, textStmt := range p.textStatements {
+		program.Texts = append(program.Texts, ast.Text{
+			Value: textStmt.Value,
+			Name:  textStmt.Name.Value,
+		})
+	}
+	names := make(map[string]struct{}, 0)
+	for _, text := range program.Texts {
+		if _, ok := names[text.Name]; ok {
+			return nil, fmt.Errorf("Duplicate text label '%s'. Choose a unique label that won't clash with the auto-generated text labels", text.Name)
+		}
+		names[text.Name] = struct{}{}
 	}
 
 	return program, nil
@@ -124,6 +142,12 @@ func (p *Parser) parseTopLevelStatement() (ast.Statement, error) {
 		return statement, nil
 	case token.RAW:
 		statement, err := p.parseRawStatement()
+		if err != nil {
+			return nil, err
+		}
+		return statement, nil
+	case token.TEXT:
+		statement, err := p.parseTextStatement()
 		if err != nil {
 			return nil, err
 		}
@@ -303,6 +327,34 @@ func (p *Parser) parseRawStatement() (*ast.RawStatement, error) {
 	}
 
 	statement.Value = p.curToken.Literal
+	return statement, nil
+}
+
+func (p *Parser) parseTextStatement() (*ast.TextStatement, error) {
+	statement := &ast.TextStatement{
+		Token: p.curToken,
+	}
+	if err := p.expectPeek(token.IDENT); err != nil {
+		return nil, fmt.Errorf("line %d: missing name for text statement", p.curToken.LineNumber)
+	}
+
+	statement.Name = &ast.Identifier{
+		Token: p.curToken,
+		Value: p.curToken.Literal,
+	}
+
+	if err := p.expectPeek(token.LBRACE); err != nil {
+		return nil, fmt.Errorf("line %d: missing opening curly brace for text '%s'", p.peekToken.LineNumber, statement.Name.Value)
+	}
+	if err := p.expectPeek(token.STRING); err != nil {
+		return nil, fmt.Errorf("line %d: body of text statement must be a string. Got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+	}
+
+	statement.Value = p.curToken.Literal
+	p.textStatements = append(p.textStatements, statement)
+	if err := p.expectPeek(token.RBRACE); err != nil {
+		return nil, fmt.Errorf("line %d: expected closing curly brace for text. Got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+	}
 	return statement, nil
 }
 

@@ -832,6 +832,68 @@ MyScript_18:
 	}
 }
 
+func TestEmitTextStatements(t *testing.T) {
+	input := `
+script MyScript {
+	msgbox("Hello")
+}
+
+text MyText {
+	"Hi, I'm first"
+}
+
+text MyText2 { "Bye!" }
+`
+
+	expectedUnoptimized := `MyScript::
+	msgbox MyScript_Text_0
+	return
+
+
+MyScript_Text_0:
+	.string "Hello"
+
+MyText:
+	.string "Hi, I'm first"
+
+MyText2:
+	.string "Bye!"
+`
+
+	expectedOptimized := `MyScript::
+	msgbox MyScript_Text_0
+	return
+
+
+MyScript_Text_0:
+	.string "Hello"
+
+MyText:
+	.string "Hi, I'm first"
+
+MyText2:
+	.string "Bye!"
+`
+	l := lexer.New(input)
+	p := parser.New(l)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	e := New(program, false)
+	result, _ := e.Emit()
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result, _ = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+	}
+}
+
 // Helper benchmark var to prevent compiler/runtime optimizations.
 // https://dave.cheney.net/2013/06/30/how-to-write-benchmarks-in-go
 var benchResult string

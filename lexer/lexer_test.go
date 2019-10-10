@@ -32,6 +32,7 @@ func TestNextToken(t *testing.T) {
 		0435
 		case: default
 		while
+		text
 		("Hello\n"
 		"I'm glad to see$")
 		raw RawTest ` + "`" + `
@@ -109,6 +110,7 @@ func TestNextToken(t *testing.T) {
 		{token.COLON, ":"},
 		{token.DEFAULT, "default"},
 		{token.WHILE, "while"},
+		{token.TEXT, "text"},
 		{token.LPAREN, "("},
 		{token.STRING, "Hello\\n\nI'm glad to see$"},
 		{token.RPAREN, ")"},
