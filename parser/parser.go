@@ -392,7 +392,7 @@ func (p *Parser) parseFormatStringOperator() (string, error) {
 	if err := p.expectPeek(token.RPAREN); err != nil {
 		return "", fmt.Errorf("line %d: missing closing parenthesis ')' for format()", p.peekToken.LineNumber)
 	}
-	return FormatText(rawText), nil
+	return FormatText(rawText, 200, "TEST"), nil
 }
 
 func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, error) {
