@@ -117,8 +117,9 @@ func (p *Parser) ParseProgram() (*ast.Program, error) {
 	}
 	for _, textStmt := range p.textStatements {
 		program.Texts = append(program.Texts, ast.Text{
-			Value: textStmt.Value,
-			Name:  textStmt.Name.Value,
+			Value:    textStmt.Value,
+			Name:     textStmt.Name.Value,
+			IsGlobal: true,
 		})
 	}
 	names := make(map[string]struct{}, 0)
@@ -313,7 +314,11 @@ func (p *Parser) addText(scriptName string, text string) string {
 	textLabel := getImplicitTextLabel(scriptName, p.inlineTextCounts[scriptName])
 	p.inlineTextCounts[scriptName]++
 	p.inlineTextsSet[text] = textLabel
-	p.inlineTexts = append(p.inlineTexts, ast.Text{Name: textLabel, Value: text})
+	p.inlineTexts = append(p.inlineTexts, ast.Text{
+		Name:     textLabel,
+		Value:    text,
+		IsGlobal: false,
+	})
 	return textLabel
 }
 

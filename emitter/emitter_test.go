@@ -898,10 +898,10 @@ text MyText2 { "Bye!" }
 MyScript_Text_0:
 	.string "Hello"
 
-MyText:
+MyText::
 	.string "Hi, I'm first"
 
-MyText2:
+MyText2::
 	.string "Bye!"
 `
 
@@ -913,10 +913,10 @@ MyText2:
 MyScript_Text_0:
 	.string "Hello"
 
-MyText:
+MyText::
 	.string "Hi, I'm first"
 
-MyText2:
+MyText2::
 	.string "Bye!"
 `
 	l := lexer.New(input)

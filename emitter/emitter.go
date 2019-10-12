@@ -564,7 +564,11 @@ func optimizeChunkOrder(chunks map[int]*chunk) []int {
 
 func emitText(text ast.Text) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s:\n", text.Name))
+	if text.IsGlobal {
+		sb.WriteString(fmt.Sprintf("%s::\n", text.Name))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s:\n", text.Name))
+	}
 	lines := strings.Split(text.Value, "\n")
 	for _, line := range lines {
 		sb.WriteString(fmt.Sprintf("\t.string \"%s\"\n", line))

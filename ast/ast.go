@@ -19,8 +19,9 @@ type Statement interface {
 
 // Text holds a label and value for some script text.
 type Text struct {
-	Name  string
-	Value string
+	Name     string
+	Value    string
+	IsGlobal bool
 }
 
 // Program represents the root-level Node in any Poryscript AST.
