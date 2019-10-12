@@ -522,9 +522,12 @@ script MyScript {
 		if (!flag(FLAG_3) || (var(VAR_44) > 3 && var(VAR_55) <= 5)) {
 			hey
 		}
+		if (defeated(TRAINER_BLUE) || !defeated(TRAINER_RED) && (defeated(TRAINER_FOO) == true)) {
+			baz
+		}
 	} while ((flag(FLAG_1) == true || flag(FLAG_2)) && (var(VAR_1) == 2 || var(VAR_2) == 3))
 	blah
-}	
+}
 `
 
 	expectedUnoptimized := `MyScript::
@@ -539,7 +542,7 @@ MyScript_2:
 
 MyScript_3:
 	message
-	goto MyScript_13
+	goto MyScript_14
 
 MyScript_4:
 	goto MyScript_9
@@ -569,27 +572,55 @@ MyScript_10:
 	goto MyScript_1
 
 MyScript_11:
-	hey
-	goto MyScript_2
+	goto MyScript_20
 
 MyScript_12:
-	goto MyScript_15
+	hey
+	goto MyScript_11
 
 MyScript_13:
-	goto_if_unset FLAG_3, MyScript_11
-	goto MyScript_12
-
-MyScript_14:
 	goto MyScript_16
 
+MyScript_14:
+	goto_if_unset FLAG_3, MyScript_12
+	goto MyScript_13
+
 MyScript_15:
-	compare VAR_44, 3
-	goto_if_gt MyScript_14
-	goto MyScript_2
+	goto MyScript_17
 
 MyScript_16:
+	compare VAR_44, 3
+	goto_if_gt MyScript_15
+	goto MyScript_11
+
+MyScript_17:
 	compare VAR_55, 5
-	goto_if_le MyScript_11
+	goto_if_le MyScript_12
+	goto MyScript_11
+
+MyScript_18:
+	baz
+	goto MyScript_2
+
+MyScript_19:
+	goto MyScript_22
+
+MyScript_20:
+	checktrainerflag TRAINER_BLUE
+	goto_if 1, MyScript_18
+	goto MyScript_19
+
+MyScript_21:
+	goto MyScript_23
+
+MyScript_22:
+	checktrainerflag TRAINER_RED
+	goto_if 0, MyScript_21
+	goto MyScript_2
+
+MyScript_23:
+	checktrainerflag TRAINER_FOO
+	goto_if 1, MyScript_18
 	goto MyScript_2
 
 `
@@ -597,9 +628,14 @@ MyScript_16:
 	expectedOptimized := `MyScript::
 MyScript_3:
 	message
-	goto_if_unset FLAG_3, MyScript_11
+	goto_if_unset FLAG_3, MyScript_12
 	compare VAR_44, 3
-	goto_if_gt MyScript_14
+	goto_if_gt MyScript_15
+MyScript_11:
+	checktrainerflag TRAINER_BLUE
+	goto_if 1, MyScript_18
+	checktrainerflag TRAINER_RED
+	goto_if 0, MyScript_21
 MyScript_2:
 	goto_if_set FLAG_1, MyScript_4
 	goto_if_set FLAG_2, MyScript_4
@@ -614,13 +650,22 @@ MyScript_4:
 	goto_if_eq MyScript_3
 	goto MyScript_1
 
-MyScript_11:
+MyScript_12:
 	hey
+	goto MyScript_11
+
+MyScript_15:
+	compare VAR_55, 5
+	goto_if_le MyScript_12
+	goto MyScript_11
+
+MyScript_18:
+	baz
 	goto MyScript_2
 
-MyScript_14:
-	compare VAR_55, 5
-	goto_if_le MyScript_11
+MyScript_21:
+	checktrainerflag TRAINER_FOO
+	goto_if 1, MyScript_18
 	goto MyScript_2
 
 `

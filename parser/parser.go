@@ -670,8 +670,8 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 		usedNotOperator = true
 	}
 
-	if !p.peekTokenIs(token.VAR) && !p.peekTokenIs(token.FLAG) {
-		return nil, fmt.Errorf("line %d: left side of binary expression must be var() or flag() operator. Instead, found '%s'", p.curToken.LineNumber, p.peekToken.Literal)
+	if !p.peekTokenIs(token.VAR) && !p.peekTokenIs(token.FLAG) && !p.peekTokenIs(token.DEFEATED) {
+		return nil, fmt.Errorf("line %d: left side of binary expression must be var(), flag(), or defeated() operator. Instead, found '%s'", p.curToken.LineNumber, p.peekToken.Literal)
 	}
 	p.nextToken()
 	operatorExpression.Type = p.curToken.Type
@@ -698,7 +698,7 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 	if usedNotOperator {
 		if operatorExpression.Type == token.VAR {
 			operatorExpression.ComparisonValue = "0"
-		} else if operatorExpression.Type == token.FLAG {
+		} else if operatorExpression.Type == token.FLAG || operatorExpression.Type == token.DEFEATED {
 			operatorExpression.ComparisonValue = token.FALSE
 		}
 	} else {
@@ -708,7 +708,12 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 				return nil, err
 			}
 		} else if operatorExpression.Type == token.FLAG {
-			err := p.parseConditionFlagOperator(operatorExpression)
+			err := p.parseConditionFlagLikeOperator(operatorExpression, "flag")
+			if err != nil {
+				return nil, err
+			}
+		} else if operatorExpression.Type == token.DEFEATED {
+			err := p.parseConditionFlagLikeOperator(operatorExpression, "defeated")
 			if err != nil {
 				return nil, err
 			}
@@ -746,7 +751,7 @@ func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) e
 	return nil
 }
 
-func (p *Parser) parseConditionFlagOperator(expression *ast.OperatorExpression) error {
+func (p *Parser) parseConditionFlagLikeOperator(expression *ast.OperatorExpression, operatorName string) error {
 	if p.curToken.Type != token.EQ {
 		// Missing '==' means test for implicit truthiness.
 		expression.Operator = token.EQ
@@ -758,11 +763,11 @@ func (p *Parser) parseConditionFlagOperator(expression *ast.OperatorExpression) 
 	p.nextToken()
 
 	if p.curToken.Type == token.RPAREN {
-		return fmt.Errorf("line %d: missing comparison value for flag operator", p.curToken.LineNumber)
+		return fmt.Errorf("line %d: missing comparison value for %s operator", p.curToken.LineNumber, operatorName)
 	}
 
 	if p.curToken.Type != token.TRUE && p.curToken.Type != token.FALSE {
-		return fmt.Errorf("line %d: invalid flag comparison value '%s'. Only 'TRUE' and 'FALSE' are allowed", p.curToken.LineNumber, p.curToken.Literal)
+		return fmt.Errorf("line %d: invalid %s comparison value '%s'. Only 'TRUE' and 'FALSE' are allowed", p.curToken.LineNumber, operatorName, p.curToken.Literal)
 	}
 	expression.ComparisonValue = string(p.curToken.Type)
 	p.nextToken()

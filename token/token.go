@@ -47,6 +47,7 @@ const (
 	TEXT     = "TEXT"
 	VAR      = "VAR"
 	FLAG     = "FLAG"
+	DEFEATED = "DEFEATED"
 	TRUE     = "TRUE"
 	FALSE    = "FALSE"
 	IF       = "IF"
@@ -73,6 +74,7 @@ var keywords = map[string]Type{
 	"text":     TEXT,
 	"var":      VAR,
 	"flag":     FLAG,
+	"defeated": DEFEATED,
 	"TRUE":     TRUE,
 	"FALSE":    FALSE,
 	"true":     TRUE,

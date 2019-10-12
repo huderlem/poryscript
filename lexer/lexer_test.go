@@ -32,6 +32,7 @@ func TestNextToken(t *testing.T) {
 		0435
 		case: default
 		while
+		defeated
 		text
 		("Hello\n"
 		"I'm glad to see$")
@@ -110,6 +111,7 @@ func TestNextToken(t *testing.T) {
 		{token.COLON, ":"},
 		{token.DEFAULT, "default"},
 		{token.WHILE, "while"},
+		{token.DEFEATED, "defeated"},
 		{token.TEXT, "text"},
 		{token.LPAREN, "("},
 		{token.STRING, "Hello\\n\nI'm glad to see$"},

@@ -138,10 +138,13 @@ func (s *switchBranch) getTailChunkID() int {
 }
 
 func renderBranchComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
-	if dest.operatorExpression.Type == token.FLAG {
+	switch dest.operatorExpression.Type {
+	case token.FLAG:
 		renderFlagComparison(sb, dest, scriptName)
-	} else if dest.operatorExpression.Type == token.VAR {
+	case token.VAR:
 		renderVarComparison(sb, dest, scriptName)
+	case token.DEFEATED:
+		renderDefeatedComparison(sb, dest, scriptName)
 	}
 }
 
@@ -168,5 +171,14 @@ func renderVarComparison(sb *strings.Builder, dest *conditionDestination, script
 		sb.WriteString(fmt.Sprintf("\tgoto_if_gt %s_%d\n", scriptName, dest.id))
 	case token.GTE:
 		sb.WriteString(fmt.Sprintf("\tgoto_if_ge %s_%d\n", scriptName, dest.id))
+	}
+}
+
+func renderDefeatedComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
+	sb.WriteString(fmt.Sprintf("\tchecktrainerflag %s\n", dest.operatorExpression.Operand))
+	if dest.operatorExpression.ComparisonValue == token.TRUE {
+		sb.WriteString(fmt.Sprintf("\tgoto_if 1, %s_%d\n", scriptName, dest.id))
+	} else {
+		sb.WriteString(fmt.Sprintf("\tgoto_if 0, %s_%d\n", scriptName, dest.id))
 	}
 }

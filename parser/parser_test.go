@@ -209,7 +209,15 @@ script Test {
 	} elif (var(VAR_1)) {
 		blah()	
 	} elif (!var(VAR_2)) {
-		blah()	
+		blah()
+	} elif (defeated(TRAINER_GARY)) {
+		blah()
+	} elif (!defeated(TRAINER_BLUE)) {
+		blah()
+	} elif (defeated(TRAINER_GERALD) == TRUE) {
+		blah()
+	} elif (defeated(TRAINER_AXLE) == false) {
+		blah()
 	} else {
 		message()
 		lock
@@ -240,26 +248,30 @@ script Test {
 	testConditionExpression(t, ifStmt.ElifConsequences[8].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_4", token.EQ, token.FALSE)
 	testConditionExpression(t, ifStmt.ElifConsequences[9].Expression.(*ast.OperatorExpression), token.VAR, "VAR_1", token.NEQ, "0")
 	testConditionExpression(t, ifStmt.ElifConsequences[10].Expression.(*ast.OperatorExpression), token.VAR, "VAR_2", token.EQ, "0")
+	testConditionExpression(t, ifStmt.ElifConsequences[11].Expression.(*ast.OperatorExpression), token.DEFEATED, "TRAINER_GARY", token.EQ, token.TRUE)
+	testConditionExpression(t, ifStmt.ElifConsequences[12].Expression.(*ast.OperatorExpression), token.DEFEATED, "TRAINER_BLUE", token.EQ, token.FALSE)
+	testConditionExpression(t, ifStmt.ElifConsequences[13].Expression.(*ast.OperatorExpression), token.DEFEATED, "TRAINER_GERALD", token.EQ, token.TRUE)
+	testConditionExpression(t, ifStmt.ElifConsequences[14].Expression.(*ast.OperatorExpression), token.DEFEATED, "TRAINER_AXLE", token.EQ, token.FALSE)
 	nested := ifStmt.Consequence.Body.Statements[0].(*ast.IfStatement)
 	testConditionExpression(t, nested.Consequence.Expression.(*ast.OperatorExpression), token.VAR, "VAR_7", token.NEQ, "1")
 
 	if len(ifStmt.ElseConsequence.Statements) != 5 {
-		t.Fatalf("len(ifStmt.ElseConsequences) should be '%d'. got=%d", 5, len(ifStmt.ElseConsequence.Statements))
+		t.Errorf("len(ifStmt.ElseConsequences) should be '%d'. got=%d", 5, len(ifStmt.ElseConsequence.Statements))
 	}
 }
 
 func testConditionExpression(t *testing.T, expression *ast.OperatorExpression, expectedType token.Type, expectedOperand string, expectedOperator token.Type, expectedComparisonValue string) {
 	if expression.Type != expectedType {
-		t.Fatalf("expression.Type not '%s'. got=%s", expectedType, expression.Type)
+		t.Errorf("expression.Type not '%s'. got=%s", expectedType, expression.Type)
 	}
 	if expression.Operand != expectedOperand {
-		t.Fatalf("expression.Operand not '%s'. got=%s", expectedOperand, expression.Operand)
+		t.Errorf("expression.Operand not '%s'. got=%s", expectedOperand, expression.Operand)
 	}
 	if expression.Operator != expectedOperator {
-		t.Fatalf("expression.Operator not '%s'. got=%s", expectedOperator, expression.Operator)
+		t.Errorf("expression.Operator not '%s'. got=%s", expectedOperator, expression.Operator)
 	}
 	if expression.ComparisonValue != expectedComparisonValue {
-		t.Fatalf("expression.ComparisonValue not '%s'. got=%s", expectedComparisonValue, expression.ComparisonValue)
+		t.Errorf("expression.ComparisonValue not '%s'. got=%s", expectedComparisonValue, expression.ComparisonValue)
 	}
 }
 
@@ -512,8 +524,7 @@ func TestErrors(t *testing.T) {
 			input: `
 script Script1 {
 	break
-}
-`,
+}`,
 			expectedError: "line 3: 'break' statement outside of any break-able scope",
 		},
 		{
@@ -524,8 +535,7 @@ script Script1 {
 		break
 	}
 	break
-}
-`,
+}`,
 			expectedError: "line 7: 'break' statement outside of any break-able scope",
 		},
 		{
@@ -536,8 +546,7 @@ script Script1 {
 		continue
 	}
 	continue
-}
-`,
+}`,
 			expectedError: "line 7: 'continue' statement outside of any continue-able scope",
 		},
 		{
@@ -550,8 +559,7 @@ script Script1 {
 	case 2:
 		continue
 	}
-}
-`,
+}`,
 			expectedError: "line 8: 'continue' statement outside of any continue-able scope",
 		},
 		{
@@ -572,16 +580,14 @@ raw "stuff"
 			input: `
 script {
 	foo
-}
-`,
+}`,
 			expectedError: "line 2: missing name for script",
 		},
 		{
 			input: `
 script MyScript
 	foo
-}
-`,
+}`,
 			expectedError: "line 2: missing opening curly brace for script 'MyScript'",
 		},
 		{
@@ -589,8 +595,7 @@ script MyScript
 script MyScript {
 	if (var(VAR_1)) {
 	foo
-}
-`,
+}`,
 			expectedError: "line 3: missing closing curly brace for block statement",
 		},
 		{
@@ -606,8 +611,7 @@ script MyScript {
 script MyScript {
 	foo
 	<
-}
-`,
+}`,
 			expectedError: "line 4: could not parse statement for '<'",
 		},
 		{
@@ -618,8 +622,7 @@ script MyScript {
 	} else 
 		bar
 	}
-}
-`,
+}`,
 			expectedError: "line 5: missing opening curly brace of else statement",
 		},
 		{
@@ -628,8 +631,7 @@ script MyScript {
 	do 
 		foo
 	while (flag(FLAG_1))
-}
-`,
+}`,
 			expectedError: "line 3: missing opening curly brace of do...while statement",
 		},
 		{
@@ -638,8 +640,7 @@ script MyScript {
 	do {
 		foo
 	} (flag(FLAG_1))
-}
-`,
+}`,
 			expectedError: "line 5: missing 'while' after body of do...while statement",
 		},
 		{
@@ -648,8 +649,7 @@ script MyScript {
 	do {
 		foo
 	} while flag(FLAG_1)
-}
-`,
+}`,
 			expectedError: "line 5: missing '(' to start condition for do...while statement",
 		},
 		{
@@ -659,8 +659,7 @@ script MyScript {
 		continue
 		foo
 	}
-}
-`,
+}`,
 			expectedError: "line 5: 'continue' must be the last statement in block scope",
 		},
 		{
@@ -670,8 +669,7 @@ script MyScript {
 	case 1:
 		foo
 	}
-}
-`,
+}`,
 			expectedError: "line 3: missing opening parenthesis of switch statement operand",
 		},
 		{
@@ -681,8 +679,7 @@ script MyScript {
 	case 1:
 		foo
 	}
-}
-`,
+}`,
 			expectedError: "line 3: invalid switch statement operand 'flag'. Must be 'var`",
 		},
 		{
@@ -692,8 +689,7 @@ script MyScript {
 	case 1:
 		foo
 	}
-}
-`,
+}`,
 			expectedError: "line 3: missing '(' after var operator. Got 'FLAG_1` instead",
 		},
 		{
@@ -703,8 +699,7 @@ script MyScript {
 	case 1:
 		foo
 	}
-}
-`,
+}`,
 			expectedError: "line 3: missing opening curly brace of switch statement",
 		},
 		{
@@ -717,8 +712,7 @@ script MyScript {
 	case 1:
 		bar
 	}
-}
-`,
+}`,
 			expectedError: "line 7: duplicate switch cases detected for case '1'",
 		},
 		{
@@ -730,8 +724,7 @@ script MyScript {
 	default
 		baz
 	}
-}
-`,
+}`,
 			expectedError: "line 6: missing `:` after default",
 		},
 		{
@@ -742,8 +735,7 @@ script MyScript {
 	case 7
 		foo
 	}
-}
-`,
+}`,
 			expectedError: "line 5: missing `:` after 'case'",
 		},
 		{
@@ -751,41 +743,36 @@ script MyScript {
 script MyScript {
 	switch (var(FLAG_1)) {
 		foo
-	}
-`,
+	}`,
 			expectedError: "line 4: invalid start of switch case 'foo'. Expected 'case' or 'default'",
 		},
 		{
 			input: `
 script MyScript {
 	switch (var(FLAG_1)) {
-	}
-`,
+	}`,
 			expectedError: "line 3: switch statement has no cases or default case",
 		},
 		{
 			input: `
 script MyScript {
 	if var(FLAG_1)) {
-	}
-`,
+	}`,
 			expectedError: "line 3: missing '(' to start boolean expression",
 		},
 		{
 			input: `
 script MyScript {
 	if (var(FLAG_1) ||) {
-	}
-`,
-			expectedError: "line 3: left side of binary expression must be var() or flag() operator. Instead, found ')'",
+	}`,
+			expectedError: "line 3: left side of binary expression must be var(), flag(), or defeated() operator. Instead, found ')'",
 		},
 		{
 			input: `
 script MyScript {
 	if (var(FLAG_1)) 
 		foo
-	}
-`,
+	}`,
 			expectedError: "line 4: expected next token to be '{', got 'foo' instead",
 		},
 		{
@@ -793,8 +780,7 @@ script MyScript {
 script MyScript {
 	if (var(FLAG_1) && (var(VAR_1) == 1 {
 		foo
-	}
-`,
+	}`,
 			expectedError: "line 3: missing ')', '&&' or '||' when evaluating 'var' operator",
 		},
 		{
@@ -802,8 +788,7 @@ script MyScript {
 script MyScript {
 	if (var{FLAG_1) {
 		foo
-	}
-`,
+	}`,
 			expectedError: "line 3: missing opening parenthesis for condition operator 'VAR'",
 		},
 		{
@@ -811,8 +796,7 @@ script MyScript {
 script MyScript {
 	if (flag{FLAG_1) {
 		foo
-	}
-`,
+	}`,
 			expectedError: "line 3: missing opening parenthesis for condition operator 'FLAG'",
 		},
 		{
@@ -820,8 +804,7 @@ script MyScript {
 script MyScript {
 	if (flag()) {
 		foo
-	}
-`,
+	}`,
 			expectedError: "line 3: missing value for condition operator 'FLAG'",
 		},
 		{
@@ -829,8 +812,7 @@ script MyScript {
 script MyScript {
 	foo(sdfa
 	bar()
-}
-`,
+}`,
 			expectedError: "line 3: missing closing parenthesis for command 'foo'",
 		},
 		{
@@ -841,9 +823,8 @@ script MyScript {
 	} elif (fla(FLAG_2)) {
 		bar
 	}
-}
-`,
-			expectedError: "line 5: left side of binary expression must be var() or flag() operator. Instead, found 'fla'",
+}`,
+			expectedError: "line 5: left side of binary expression must be var(), flag(), or defeated() operator. Instead, found 'fla'",
 		},
 		{
 			input: `
@@ -853,8 +834,7 @@ script MyScript {
 	} else {
 		else
 	}
-}
-`,
+}`,
 			expectedError: "line 6: could not parse statement for 'else'",
 		},
 		{
@@ -864,8 +844,7 @@ script MyScript {
 		continue
 		break
 	} while (flag(FLAG_1))
-}
-`,
+}`,
 			expectedError: "line 5: 'continue' must be the last statement in block scope",
 		},
 		{
@@ -874,8 +853,7 @@ script MyScript {
 	do {
 		continue
 	} while (flag(FLAG_1) == 45)
-}
-`,
+}`,
 			expectedError: "line 5: invalid flag comparison value '45'. Only 'TRUE' and 'FALSE' are allowed",
 		},
 		{
@@ -889,8 +867,7 @@ script MyScript {
 	default:
 		baz
 	}
-}
-`,
+}`,
 			expectedError: "line 8: multiple `default` cases found in switch statement. Only one `default` case is allowed",
 		},
 		{
@@ -903,8 +880,7 @@ script MyScript {
 		baz
 		continue
 	}
-}
-`,
+}`,
 			expectedError: "line 8: 'continue' statement outside of any continue-able scope",
 		},
 		{
@@ -913,8 +889,7 @@ script MyScript {
 	while ((flag(FLAG_1) {
 		foo
 	}
-}
-`,
+}`,
 			expectedError: "line 3: missing closing ')' for nested boolean expression",
 		},
 		{
@@ -923,8 +898,7 @@ script MyScript {
 	while (flag(FLAG_1 {
 		foo
 	}
-}
-`,
+}`,
 			expectedError: "line 3: missing closing ')' for condition operator value",
 		},
 		{
@@ -933,8 +907,7 @@ script MyScript {
 	while (flag(FLAG_1) == ) {
 		foo
 	}
-}
-`,
+}`,
 			expectedError: "line 3: missing comparison value for flag operator",
 		},
 		{
@@ -943,9 +916,17 @@ script MyScript {
 	while (var(VAR_1) == ) {
 		foo
 	}
-}
-`,
+}`,
 			expectedError: "line 3: missing comparison value for var operator",
+		},
+		{
+			input: `
+script MyScript {
+	if (defeated(TRAINER_FOO) == ) {
+		foo
+	}
+}`,
+			expectedError: "line 3: missing comparison value for defeated operator",
 		},
 		{
 			input: `
@@ -953,24 +934,21 @@ script MyScript {
 	while (var(VAR_1) == 1 && flag(FLAG_1) == true && flag()) {
 		foo
 	}
-}
-`,
+}`,
 			expectedError: "line 3: missing value for condition operator 'FLAG'",
 		},
 		{
 			input: `
 text {
 	"MyText$"
-}
-`,
+}`,
 			expectedError: "line 2: missing name for text statement",
 		},
 		{
 			input: `
 text Text1
 	"MyText$"
-}
-`,
+}`,
 			expectedError: "line 3: missing opening curly brace for text 'Text1'",
 		},
 		{
@@ -978,8 +956,7 @@ text Text1
 text Text1 {
 	nottext
 	"MyText$"
-}
-`,
+}`,
 			expectedError: "line 3: body of text statement must be a string. Got 'nottext' instead",
 		},
 		{
@@ -987,8 +964,7 @@ text Text1 {
 text Text1 {
 	"MyText$"
 	notcurlybrace
-}
-`,
+}`,
 			expectedError: "line 4: expected closing curly brace for text. Got 'notcurlybrace' instead",
 		},
 		{
@@ -998,8 +974,7 @@ script Script1 {
 }
 text Script1_Text_0 {
 	"MyText$"
-}
-`,
+}`,
 			expectedError: "Duplicate text label 'Script1_Text_0'. Choose a unique label that won't clash with the auto-generated text labels",
 		},
 	}
