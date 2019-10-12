@@ -13,7 +13,7 @@ import (
 	"github.com/huderlem/poryscript/parser"
 )
 
-const version = "2.1.1"
+const version = "2.3.0"
 
 type options struct {
 	inputFilepath  string
