@@ -74,12 +74,12 @@ script MyScript {
 
 text MyText {
     "Hi, I'm some text.\n"
-    "I'm global and can be accessed in C code.$"
+    "I'm global and can be accessed in C code."
 }
 
 raw `
 MyLocalText:
-    .string "I'm directly included."
+    .string "I'm directly included.$"
 `
 ```
 
@@ -90,11 +90,11 @@ script MyScript {
     lock
     faceplayer
     if (flag(FLAG_RECEIVED_TOP_PRIZE)) {
-        msgbox("You received the best prize!$")
+        msgbox("You received the best prize!")
     } elif (flag(FLAG_RECEIVED_WORST_PRIZE)) {
-        msgbox("Ouch, you received the worst prize.$")
+        msgbox("Ouch, you received the worst prize.")
     } else {
-        msgbox("Hmm, you didn't receive anything.$")
+        msgbox("Hmm, you didn't receive anything.")
     }
     release
     end
@@ -121,21 +121,21 @@ Compound boolean expressions are also supported. This means you can use the AND 
     # Basic AND of two conditions.
     if (!defeated(TRAINER_MISTY) && var(VAR_TIME) != DAY) {
         msgbox("The Cerulean Gym's doors don't\n"
-               "open until morning.$")
+               "open until morning.")
     }
     ...
     # Group nested conditions together with another set of parentheses.
     if (flag(FLAG_IS_CHAMPION) && (flag(FLAG_SYS_TOWER_GOLD) || flag(FLAG_SYS_DOME_GOLD))) {
-        msgbox("Wow, you're a Battle Frontier pro!$)
+        msgbox("Wow, you're a Battle Frontier pro!)
     }
 ```
 
 `while` statements are used to do loops.  They can be nested inside each or inside `if` statements, as one would expect.
 ```
     # Force player to answer "Yes" to NPC question.
-    msgbox("Do you agree to the quest?$", MSGBOX_YESNO)
+    msgbox("Do you agree to the quest?", MSGBOX_YESNO)
     while (var(VAR_RESULT) != 1) {
-        msgbox("...How about now?$", MSGBOX_YESNO)
+        msgbox("...How about now?", MSGBOX_YESNO)
     }
     setvar(VAR_QUEST_ACCEPTED, 1)
 ```
@@ -144,7 +144,7 @@ Compound boolean expressions are also supported. This means you can use the AND 
 ```
     # Force player to answer "Yes" to NPC question.
     do {
-        msgbox("Can you help me solve the puzzle?$", MSGBOX_YESNO)
+        msgbox("Can you help me solve the puzzle?", MSGBOX_YESNO)
     } while (var(VAR_RESULT) == 0)
 ```
 
@@ -204,7 +204,7 @@ Regular non-branching commands that take arguments, such as `msgbox`, must wrap 
     lock
     faceplayer
     addvar(VAR_TALKED_COUNT, 1)
-    msgbox("Hello.$")
+    msgbox("Hello.")
     release
     end
 ```
@@ -224,12 +224,12 @@ A `switch` statement is an easy way to separate different logic for a set of con
 ```
     switch (var(VAR_NUM_THINGS)) {
         case 0:
-            msgbox("You have 0 things.$")
+            msgbox("You have 0 things.")
         case 1:
         case 2:
-            msgbox("You have 1 or 2 things.$")
+            msgbox("You have 1 or 2 things.")
         default:
-            msgbox("You have at least 3 things.$")
+            msgbox("You have at least 3 things.")
     }
 ```
 
@@ -241,13 +241,14 @@ script MyScript {
 
 text MyText {
     "Hello, there.\p"
-    "You can refer to me in scripts or C code.$"
+    "You can refer to me in scripts or C code."
 }
 ```
+A small quality-of-life feature is that Poryscript automatically adds the `$` terminator character to all text, so the user doesn't need to manually type it all the time.
 
 Text auto-formatting is also supported by Poryscript. The `format()` function can be wrapped around any text, either inline or `text`, and Poryscript will automatically fit the text to the size of the in-game text window by inserting automatic line breaks. You can manually add your own line breaks (`\p`, `\n`, `\l`), and it will still work as expected. A simple example:
 ```
-msgbox(format("Hello, this is some long text that I want Poryscript to automatically format for me.$"))
+msgbox(format("Hello, this is some long text that I want Poryscript to automatically format for me."))
 ```
 Becomes:
 ```
@@ -259,7 +260,7 @@ Becomes:
 The font id can optionally be specified as the second parameter to `format()`.
 ```
 text MyText {
-    format("Hello, are you the real-live legendary {PLAYER} that everyone talks about?\pAmazing!\pSo glad to meet you!$", "1_latin")
+    format("Hello, are you the real-live legendary {PLAYER} that everyone talks about?\pAmazing!\pSo glad to meet you!", "1_latin")
 }
 ```
 Becomes:
@@ -284,7 +285,7 @@ script MyScript {
     # Text can span multiple lines. Use a new set of quotes for each line.
     msgbox("This is shorter text,\n"
            "but we can still put it\l"
-           "on multiple lines.\p$")
+           "on multiple lines.")
     applymovement(EVENT_OBJ_ID_PLAYER, MyScript_Movement)
     waitmovement(0)
     msgbox(MyScript_LongText)
