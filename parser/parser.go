@@ -371,6 +371,7 @@ func (p *Parser) parseTextStatement() (*ast.TextStatement, error) {
 		if err != nil {
 			return nil, err
 		}
+		strValue = p.formatTextTerminator(strValue)
 	} else if p.curToken.Type == token.STRING {
 		strValue = p.formatTextTerminator(p.curToken.Literal)
 	} else {

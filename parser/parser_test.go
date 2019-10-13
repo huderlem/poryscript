@@ -538,8 +538,8 @@ text MyText {
 	if program.Texts[0].Value != "Test$" {
 		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[0].Value, "Test$")
 	}
-	if program.Texts[1].Value != "FooBar" {
-		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[0].Value, "FooBar")
+	if program.Texts[1].Value != "FooBar$" {
+		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[1].Value, "FooBar$")
 	}
 }
 
