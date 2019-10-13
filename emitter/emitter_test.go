@@ -266,7 +266,7 @@ Route29_EventScript_Dude_Text_1:
 	.string "are easier to catch.$"
 `
 	l := lexer.New(input)
-	p := parser.New(l)
+	p := parser.New(l, "")
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -368,7 +368,7 @@ Route29_EventScript_WaitingMan_Text_1:
 	.string "...How about now?$"
 `
 	l := lexer.New(input)
-	p := parser.New(l)
+	p := parser.New(l, "")
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -495,7 +495,7 @@ MyScript_13:
 `
 
 	l := lexer.New(input)
-	p := parser.New(l)
+	p := parser.New(l, "")
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -670,7 +670,7 @@ MyScript_21:
 
 `
 	l := lexer.New(input)
-	p := parser.New(l)
+	p := parser.New(l, "")
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -858,7 +858,7 @@ MyScript_18:
 
 `
 	l := lexer.New(input)
-	p := parser.New(l)
+	p := parser.New(l, "")
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -920,7 +920,7 @@ MyText2::
 	.string "Bye!"
 `
 	l := lexer.New(input)
-	p := parser.New(l)
+	p := parser.New(l, "")
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1013,7 +1013,7 @@ Route29_Text_Dude_CatchingTutRejected:
 	b.Run("unoptimized", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			l := lexer.New(input)
-			p := parser.New(l)
+			p := parser.New(l, "")
 			program, _ := p.ParseProgram()
 			e := New(program, false)
 			result, _ = e.Emit()
@@ -1024,7 +1024,7 @@ Route29_Text_Dude_CatchingTutRejected:
 	b.Run("optimized", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			l := lexer.New(input)
-			p := parser.New(l)
+			p := parser.New(l, "")
 			program, _ := p.ParseProgram()
 			e := New(program, true)
 			result, _ = e.Emit()

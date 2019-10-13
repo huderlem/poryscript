@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/huderlem/poryscript/ast"
@@ -11,25 +12,28 @@ import (
 
 // Parser is a Poryscript AST parser.
 type Parser struct {
-	l                *lexer.Lexer
-	curToken         token.Token
-	peekToken        token.Token
-	inlineTexts      []ast.Text
-	inlineTextsSet   map[string]string
-	inlineTextCounts map[string]int
-	textStatements   []*ast.TextStatement
-	breakStack       []ast.Statement
-	continueStack    []ast.Statement
+	l                  *lexer.Lexer
+	curToken           token.Token
+	peekToken          token.Token
+	inlineTexts        []ast.Text
+	inlineTextsSet     map[string]string
+	inlineTextCounts   map[string]int
+	textStatements     []*ast.TextStatement
+	breakStack         []ast.Statement
+	continueStack      []ast.Statement
+	fontConfigFilepath string
+	fonts              *FontWidthsConfig
 }
 
 // New creates a new Poryscript AST Parser.
-func New(l *lexer.Lexer) *Parser {
+func New(l *lexer.Lexer, fontConfigFilepath string) *Parser {
 	p := &Parser{
-		l:                l,
-		inlineTexts:      make([]ast.Text, 0),
-		inlineTextsSet:   make(map[string]string),
-		inlineTextCounts: make(map[string]int),
-		textStatements:   make([]*ast.TextStatement, 0),
+		l:                  l,
+		inlineTexts:        make([]ast.Text, 0),
+		inlineTextsSet:     make(map[string]string),
+		inlineTextCounts:   make(map[string]int),
+		textStatements:     make([]*ast.TextStatement, 0),
+		fontConfigFilepath: fontConfigFilepath,
 	}
 	// Read two tokens, so curToken and peekToken are both set.
 	p.nextToken()
@@ -389,10 +393,30 @@ func (p *Parser) parseFormatStringOperator() (string, error) {
 		return "", fmt.Errorf("line %d: invalid format() argument '%s'. Expected a string literal", p.peekToken.LineNumber, p.peekToken.Literal)
 	}
 	rawText := p.curToken.Literal
+	var fontID string
+	setFontID := false
+	if p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		if err := p.expectPeek(token.STRING); err != nil {
+			return "", fmt.Errorf("line %d: invalid format() fontId '%s'. Expected string", p.peekToken.LineNumber, p.peekToken.Literal)
+		}
+		fontID = p.curToken.Literal
+		setFontID = true
+	}
 	if err := p.expectPeek(token.RPAREN); err != nil {
 		return "", fmt.Errorf("line %d: missing closing parenthesis ')' for format()", p.peekToken.LineNumber)
 	}
-	return FormatText(rawText, 200, "TEST"), nil
+	if p.fonts == nil {
+		fw, err := LoadFontWidths(p.fontConfigFilepath)
+		if err != nil {
+			log.Printf("PORYSCRIPT WARNING: Failed to load fonts JSON config file. Text auto-formatting will not work. Please specify a valid font config filepath with -fw option. '%s'\n", err.Error())
+		}
+		p.fonts = &fw
+	}
+	if !setFontID {
+		fontID = p.fonts.DefaultFontID
+	}
+	return p.fonts.FormatText(rawText, 208, fontID)
 }
 
 func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, error) {

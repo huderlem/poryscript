@@ -16,9 +16,10 @@ import (
 const version = "2.3.0"
 
 type options struct {
-	inputFilepath  string
-	outputFilepath string
-	optimize       bool
+	inputFilepath      string
+	outputFilepath     string
+	fontWidthsFilepath string
+	optimize           bool
 }
 
 func parseOptions() options {
@@ -26,6 +27,7 @@ func parseOptions() options {
 	versionPtr := flag.Bool("v", false, "show version of poryscript")
 	inputPtr := flag.String("i", "", "input poryscript file (leave empty to read from standard input)")
 	outputPtr := flag.String("o", "", "output script file (leave empty to write to standard output)")
+	fontsPtr := flag.String("fw", "font_widths.json", "font widths config JSON file")
 	optimizePtr := flag.Bool("optimize", true, "optimize compiled script size (To disable, use '-optimize=false')")
 	flag.Parse()
 
@@ -40,9 +42,10 @@ func parseOptions() options {
 	}
 
 	return options{
-		inputFilepath:  *inputPtr,
-		outputFilepath: *outputPtr,
-		optimize:       *optimizePtr,
+		inputFilepath:      *inputPtr,
+		outputFilepath:     *outputPtr,
+		fontWidthsFilepath: *fontsPtr,
+		optimize:           *optimizePtr,
 	}
 }
 
@@ -81,25 +84,21 @@ func main() {
 	input, err := getInput(options.inputFilepath)
 	if err != nil {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
-		os.Exit(1)
 	}
 
-	parser := parser.New(lexer.New(input))
+	parser := parser.New(lexer.New(input), options.fontWidthsFilepath)
 	program, err := parser.ParseProgram()
 	if err != nil {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
-		os.Exit(1)
 	}
 
 	emitter := emitter.New(program, options.optimize)
 	result, err := emitter.Emit()
 	if err != nil {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
-		os.Exit(1)
 	}
 	err = writeOutput(result, options.outputFilepath)
 	if err != nil {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
-		os.Exit(1)
 	}
 }

@@ -19,8 +19,10 @@ func TestFormatText(t *testing.T) {
 		{100, `Hello.\nI am writing a longer \l“test.”`, "Hello.\\n\nI am\\l\nwriting a\\l\nlonger\\l\n“test.”"},
 	}
 
+	fw := FontWidthsConfig{}
+
 	for i, tt := range tests {
-		result := FormatText(tt.inputText, tt.maxWidth, "TEST")
+		result, _ := fw.FormatText(tt.inputText, tt.maxWidth, testFontID)
 		if result != tt.expected {
 			t.Errorf("FormatText Test %d: Expected '%s', but Got '%s'", i, tt.expected, result)
 		}
@@ -52,8 +54,10 @@ func TestGetNextWord(t *testing.T) {
 		{` \ \p  Bar`, 2, `\`},
 	}
 
+	fw := FontWidthsConfig{}
+
 	for i, tt := range tests {
-		resultPos, resultValue := getNextWord(tt.inputText)
+		resultPos, resultValue := fw.getNextWord(tt.inputText)
 		if resultPos != tt.expectedPos {
 			t.Errorf("TestGetNextWord Test %d: Expected Pos '%d', but Got '%d'", i, tt.expectedPos, resultPos)
 		}
@@ -76,8 +80,10 @@ func TestProcessControlCodes(t *testing.T) {
 		{"Has{FOO}{PLAYE{R}}Codes", "Has}Codes", 200},
 	}
 
+	fw := FontWidthsConfig{}
+
 	for i, tt := range tests {
-		resultValue, resultWidth := processControlCodes(tt.inputText, "TEST")
+		resultValue, resultWidth := fw.processControlCodes(tt.inputText, testFontID)
 		if resultValue != tt.expectedValue {
 			t.Errorf("TestProcessControlCodes Test %d: Expected Value '%s', but Got '%s'", i, tt.expectedValue, resultValue)
 		}
