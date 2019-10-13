@@ -72,7 +72,7 @@ script MyScript {
 }
 
 text MyText {
-	"Hi, I'm some text.$"
+    "Hi, I'm some text.\n"
     "I'm global and can be accessed in C code.$"
 }
 
