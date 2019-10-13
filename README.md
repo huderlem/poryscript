@@ -34,10 +34,11 @@ Convert a `.pory` script to a compiled `.inc` script, which can be directly incl
 ```
 
 To automatically convert your Poryscript scripts when compiling a decomp project, perform these two steps:
-1. Add the `poryscript` command-line executable tool to the `tools` directory:
+1. Add the `poryscript` command-line executable tool to the `tools` directory. Also copy `font_widths.json` to the same location.
 ```
 # For example, on Windows, place the file here.
 pokeemerald/tools/poryscript/poryscript.exe
+pokeemerald/tools/poryscript/font_widths.json
 ```
 2. Update the Makefile with these changes (Note, don't add the `+` symbol at the start of the lines. That's just to show the line is being added.):
 ```diff

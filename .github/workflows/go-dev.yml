@@ -39,6 +39,7 @@ jobs:
       run: |
         mkdir poryscript-linux
         cp poryscript poryscript-linux
+        cp font_widths.json poryscript-linux
         cp CHANGELOG.md poryscript-linux
         cp README.md poryscript-linux
 
@@ -82,6 +83,7 @@ jobs:
       run: |
         mkdir poryscript-mac
         cp poryscript poryscript-mac
+        cp font_widths.json poryscript-mac
         cp CHANGELOG.md poryscript-mac
         cp README.md poryscript-mac
 
@@ -123,6 +125,7 @@ jobs:
       run: |
         mkdir poryscript-windows
         cp poryscript.exe poryscript-windows
+        cp font_widths.json poryscript-windows
         cp CHANGELOG.md poryscript-windows
         cp README.md poryscript-windows
 
