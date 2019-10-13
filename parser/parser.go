@@ -297,7 +297,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, error)
 				if err != nil {
 					return nil, err
 				}
-				textLabel := p.addText(scriptName, strValue)
+				textLabel := p.addText(scriptName, p.formatTextTerminator(strValue))
 				argParts = append(argParts, textLabel)
 			} else if p.curToken.Type == token.STRING {
 				textLabel := p.addText(scriptName, p.formatTextTerminator(p.curToken.Literal))
