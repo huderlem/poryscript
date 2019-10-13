@@ -244,6 +244,32 @@ text MyText {
 }
 ```
 
+Text auto-formatting is also supported by Poryscript. The `format()` function can be wrapped around any text, either inline or `text`, and Poryscript will automatically fit the text to the size of the in-game text window by inserting automatic line breaks. You can manually add your own line breaks (`\p`, `\n`, `\l`), and it will still work as expected. A simple example:
+```
+msgbox(format("Hello, this is some long text that I want Poryscript to automatically format for me.$"))
+```
+Becomes:
+```
+.string "Hello, this is some long text that I\n"
+.string "want Poryscript to automatically\l"
+.string "format for me.$"
+```
+
+The font id can optionally be specified as the second parameter to `format()`.
+```
+text MyText {
+    format("Hello, are you the real-live legendary {PLAYER} that everyone talks about?\pAmazing!\pSo glad to meet you!$", "1_latin")
+}
+```
+Becomes:
+```
+.string "Hello, are you the legendary {PLAYER}\n"
+.string "that everyone talks about?\p"
+.string "Amazing!\p"
+.string "So glad to meet you!$"
+```
+The font widths configuration JSON file informs Poryscript how many pixels wide each character in the message is. Different fonts have different character widths. For convenience, Poryscript comes with `font_widths.json`, which contains the configuration for pokeemerald's `1_latin` font. More fonts can easily be added to this file by the user by creating anothing font id node under the `fonts` key in `font_widths.json`.
+
 Use `raw` to include raw bytecode script. Anything in a `raw` statement will be directly included into the compiled script. This is useful for defining data or long text.
 ```
 raw `

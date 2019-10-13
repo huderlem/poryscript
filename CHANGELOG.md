@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-Nothing, yet.
+- Add support for text auto-formatting with the `format()` operator. Font widths are loaded from a config JSON file. Specify config file with `-fw <config filepath>`. If `-fw` is omitted, Poryscript will try to load `font_widths.json` by default.
 
 ## [2.3.0] - 2019-10-12
 ## Added
