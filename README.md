@@ -18,6 +18,8 @@ Poryscript is a command-line program.  It reads an input script and outputs the 
 ```
 > ./poryscript -h
 Usage of poryscript:
+  -fw string
+        font widths config JSON file (default "font_widths.json")
   -h    show poryscript help information
   -i string
         input poryscript file (leave empty to read from standard input)
