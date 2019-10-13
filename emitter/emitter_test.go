@@ -16,10 +16,10 @@ script Route29_EventScript_WaitingMan {
 	gettime
 	if (var(VAR_0x8002) == TIME_NIGHT) {
 		msgbox("I'm waiting for POKéMON that appear\n"
-				"only in the morning.$")
+				"only in the morning.")
 	} else {
 		msgbox("I'm waiting for POKéMON that appear\n"
-				"only at night.$")
+				"only at night.")
 	}
 	# Wait for morning.
 	while (var(VAR_0x8002) == TIME_NIGHT) {
@@ -291,10 +291,10 @@ script Route29_EventScript_WaitingMan {
 	lock
 	faceplayer
 	# Force player to answer "Yes" to NPC question.
-	msgbox("Do you agree to the quest?$", MSGBOX_YESNO)
+	msgbox("Do you agree to the quest?", MSGBOX_YESNO)
 	do {
 		if (!flag(FLAG_1)) {
-			msgbox("...How about now?$", MSGBOX_YESNO)
+			msgbox("...How about now?", MSGBOX_YESNO)
 		} else {
 			special(OtherThing)
 		}
@@ -884,7 +884,7 @@ script MyScript {
 }
 
 text MyText {
-	"Hi, I'm first"
+	"Hi, I'm first$"
 }
 
 text MyText2 { "Bye!" }
@@ -896,13 +896,13 @@ text MyText2 { "Bye!" }
 
 
 MyScript_Text_0:
-	.string "Hello"
+	.string "Hello$"
 
 MyText::
-	.string "Hi, I'm first"
+	.string "Hi, I'm first$"
 
 MyText2::
-	.string "Bye!"
+	.string "Bye!$"
 `
 
 	expectedOptimized := `MyScript::
@@ -911,13 +911,13 @@ MyText2::
 
 
 MyScript_Text_0:
-	.string "Hello"
+	.string "Hello$"
 
 MyText::
-	.string "Hi, I'm first"
+	.string "Hi, I'm first$"
 
 MyText2::
-	.string "Bye!"
+	.string "Bye!$"
 `
 	l := lexer.New(input)
 	p := parser.New(l, "")
@@ -952,10 +952,10 @@ script Route29_EventScript_WaitingMan {
 	gettime
 	if (var(VAR_0x8002) == TIME_NIGHT) {
 		msgbox("I'm waiting for POKéMON that appear\n"
-				"only in the morning.$")
+				"only in the morning.")
 	} else {
 		msgbox("I'm waiting for POKéMON that appear\n"
-				"only at night.$")
+				"only at night.")
 	}
 	# Wait for morning.
 	while (var(VAR_0x8002) == TIME_NIGHT) {

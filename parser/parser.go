@@ -300,7 +300,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, error)
 				textLabel := p.addText(scriptName, strValue)
 				argParts = append(argParts, textLabel)
 			} else if p.curToken.Type == token.STRING {
-				textLabel := p.addText(scriptName, p.curToken.Literal)
+				textLabel := p.addText(scriptName, p.formatTextTerminator(p.curToken.Literal))
 				argParts = append(argParts, textLabel)
 			} else {
 				argParts = append(argParts, p.curToken.Literal)
@@ -372,7 +372,7 @@ func (p *Parser) parseTextStatement() (*ast.TextStatement, error) {
 			return nil, err
 		}
 	} else if p.curToken.Type == token.STRING {
-		strValue = p.curToken.Literal
+		strValue = p.formatTextTerminator(p.curToken.Literal)
 	} else {
 		return nil, fmt.Errorf("line %d: body of text statement must be a string or formatted string. Got '%s' instead", p.curToken.LineNumber, p.curToken.Literal)
 	}
@@ -833,4 +833,12 @@ func (p *Parser) parseConditionFlagLikeOperator(expression *ast.OperatorExpressi
 	expression.ComparisonValue = string(p.curToken.Type)
 	p.nextToken()
 	return nil
+}
+
+// Automatically adds a terminator character to the text, if it doesn't already have one.
+func (p *Parser) formatTextTerminator(text string) string {
+	if !strings.HasSuffix(text, "$") {
+		text += "$"
+	}
+	return text
 }
