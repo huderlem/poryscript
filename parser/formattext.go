@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"regexp"
 	"strings"
 )
 
@@ -36,9 +37,7 @@ func FormatText(text string, maxWidth int, fontID string) string {
 			if !isFirstWord {
 				wordWidth += getRunePixelWidth(' ', fontID)
 			}
-			for _, r := range word {
-				wordWidth += getRunePixelWidth(r, fontID)
-			}
+			wordWidth += getWordPixelWidth(word, fontID)
 			if curWidth+wordWidth > maxWidth && curLineSb.Len() > 0 {
 				formattedSb.WriteString(curLineSb.String())
 				if isFirstLine {
@@ -122,9 +121,36 @@ func isParagraphBreak(word string) bool {
 	return word == `\p`
 }
 
+func getWordPixelWidth(word string, fontID string) int {
+	word, wordWidth := processControlCodes(word, fontID)
+	for _, r := range word {
+		wordWidth += getRunePixelWidth(r, fontID)
+	}
+	return wordWidth
+}
+
+func processControlCodes(word string, fontID string) (string, int) {
+	width := 0
+	re := regexp.MustCompile(`{[^}]*}`)
+	positions := re.FindAllStringIndex(word, -1)
+	for _, pos := range positions {
+		code := word[pos[0]:pos[1]]
+		width += getControlCodePixelWidth(code, fontID)
+	}
+	strippedWord := re.ReplaceAllString(word, "")
+	return strippedWord, width
+}
+
 func getRunePixelWidth(r rune, fontID string) int {
 	if fontID == "TEST" {
 		return 10
 	}
-	return 8
+	return 7
+}
+
+func getControlCodePixelWidth(code string, fontID string) int {
+	if fontID == "TEST" {
+		return 100
+	}
+	return 70
 }
