@@ -311,11 +311,11 @@ MyScript_LongText:
 `
 ```
 
-Use single-line comments with `#`. Everything after the `#` will be ignored. Comments cannot be placed in a `raw` statement.
+Use single-line comments with `#` or `//`. Everything after the `#` or `//` will be ignored. Comments cannot be placed in a `raw` statement. (Users who wish to run the C preprocessor on Poryscript files should use `//` comments to avoid conflict with C preprocessor directives that use the `#` character.)
 ```
 # This script does some cool things.
 script MyScript {
-    # I'm a comment
+    // This is also a valid comment.
     ...
 }
 ```
