@@ -16,9 +16,10 @@ func TestNextToken(t *testing.T) {
 		} elif (var(VAR_TEST) <= 5) {
 		} else { ##
 		#}
-		<
-		>
-		>=
+// >
+		< // >=
+		> //#
+		>= #
 		=
 		!
 		/

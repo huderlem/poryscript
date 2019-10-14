@@ -50,8 +50,9 @@ func (l *Lexer) NextToken() token.Token {
 
 	l.skipWhitespace()
 
-	//  Check for single-line comment.
-	for l.ch == '#' {
+	// Check for single-line comment.
+	// Both '#' and '//' are valid comment styles.
+	for l.ch == '#' || (l.ch == '/' && l.peekChar() == '/') {
 		l.skipToNextLine()
 		l.skipWhitespace()
 	}
