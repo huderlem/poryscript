@@ -879,6 +879,12 @@ MyScript_18:
 
 func TestEmitTextStatements(t *testing.T) {
 	input := `
+script TextFormatLineBreaks {
+    msgbox(format("Long cat is loooong once again\p"
+                  "Very very loooong and we need to have"
+                  "multiple lines to fit its loooongness"))
+}
+
 script MyScript {
 	msgbox("Hello")
 }
@@ -890,10 +896,20 @@ text MyText {
 text MyText2 { "Bye!" }
 `
 
-	expectedUnoptimized := `MyScript::
+	expectedUnoptimized := `TextFormatLineBreaks::
+	msgbox TextFormatLineBreaks_Text_0
+	return
+
+
+MyScript::
 	msgbox MyScript_Text_0
 	return
 
+
+TextFormatLineBreaks_Text_0:
+	.string "Long cat is loooong once again\p"
+	.string "Very very loooong and we need to have\n"
+	.string "multiple lines to fit its loooongness$"
 
 MyScript_Text_0:
 	.string "Hello$"
@@ -905,10 +921,20 @@ MyText2::
 	.string "Bye!$"
 `
 
-	expectedOptimized := `MyScript::
+	expectedOptimized := `TextFormatLineBreaks::
+	msgbox TextFormatLineBreaks_Text_0
+	return
+
+
+MyScript::
 	msgbox MyScript_Text_0
 	return
 
+
+TextFormatLineBreaks_Text_0:
+	.string "Long cat is loooong once again\p"
+	.string "Very very loooong and we need to have\n"
+	.string "multiple lines to fit its loooongness$"
 
 MyScript_Text_0:
 	.string "Hello$"
@@ -920,7 +946,7 @@ MyText2::
 	.string "Bye!$"
 `
 	l := lexer.New(input)
-	p := parser.New(l, "")
+	p := parser.New(l, "../font_widths.json")
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())

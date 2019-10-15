@@ -44,6 +44,8 @@ func (fw *FontWidthsConfig) FormatText(text string, maxWidth int, fontID string)
 		return "", fmt.Errorf("Unknown fontID '%s' used in format(). List of valid fontIDs are '%s'", fontID, validFontIDs)
 	}
 
+	text = strings.ReplaceAll(text, "\n", " ")
+
 	var formattedSb strings.Builder
 	var curLineSb strings.Builder
 	curWidth := 0
