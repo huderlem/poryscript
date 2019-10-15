@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Comments can now be used with `//`, in addition to the existing '#' style. This is to support users who want to process Poryscript with the C preprocessor.
 
+### Fixed
+- Fix harmless bug where `format()` could result in empty `.string ""` lines in the compiled out.
+
 ## [2.4.0] - 2019-10-13
 ### Added
 - Add support for text auto-formatting with the `format()` operator. Font widths are loaded from a config JSON file. Specify config file with `-fw <config filepath>`. If `-fw` is omitted, Poryscript will try to load `font_widths.json` by default.
