@@ -523,7 +523,7 @@ script MyScript {
 			hey
 		}
 		if (defeated(TRAINER_BLUE) || !defeated(TRAINER_RED) && (defeated(TRAINER_FOO) == true)) {
-			baz
+			baz(-24, 17)
 		}
 	} while ((flag(FLAG_1) == true || flag(FLAG_2)) && (var(VAR_1) == 2 || var(VAR_2) == 3))
 	blah
@@ -599,7 +599,7 @@ MyScript_17:
 	goto MyScript_11
 
 MyScript_18:
-	baz
+	baz -24, 17
 	goto MyScript_2
 
 MyScript_19:
@@ -660,7 +660,7 @@ MyScript_15:
 	goto MyScript_11
 
 MyScript_18:
-	baz
+	baz -24, 17
 	goto MyScript_2
 
 MyScript_21:

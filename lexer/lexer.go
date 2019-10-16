@@ -154,10 +154,15 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Type = token.GetIdentType(tok.Literal)
 			tok.LineNumber = l.lineNumber
 			return tok
-		} else if isDigit(l.ch) {
+		} else if isDigit(l.ch) || (l.ch == '-' && isDigit(l.peekChar())) {
 			tok.Type = token.INT
-			tok.Literal = l.readNumber()
 			tok.LineNumber = l.lineNumber
+			if l.ch == '-' {
+				l.readChar()
+				tok.Literal = "-" + l.readNumber()
+			} else {
+				tok.Literal = l.readNumber()
+			}
 			return tok
 		}
 		tok = newToken(token.ILLEGAL, l.ch, l.lineNumber)

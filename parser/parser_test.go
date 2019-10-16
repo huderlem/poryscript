@@ -1103,6 +1103,13 @@ movement Foo {
 		},
 		{
 			input: `
+movement Foo {
+	walk_up * -2
+}`,
+			expectedError: "line 3: movement mulplier must be a positive integer, but got '-2' instead",
+		},
+		{
+			input: `
 text Foo {
 	format asdf
 }`,

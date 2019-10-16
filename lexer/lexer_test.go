@@ -31,6 +31,7 @@ func TestNextToken(t *testing.T) {
 		switch
 		0x5ABCDEF
 		0435
+		-23
 		case: default
 		while
 		defeated
@@ -111,6 +112,7 @@ func TestNextToken(t *testing.T) {
 		{token.SWITCH, "switch"},
 		{token.INT, "0x5ABCDEF"},
 		{token.INT, "0435"},
+		{token.INT, "-23"},
 		{token.CASE, "case"},
 		{token.COLON, ":"},
 		{token.DEFAULT, "default"},
