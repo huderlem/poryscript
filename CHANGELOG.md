@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+Nothing, yet.
+
+## [2.5.0] - 2019-10-16
 ### Added
 - Comments can now be used with `//`, in addition to the existing '#' style. This is to support users who want to process Poryscript with the C preprocessor.
 - Add `movement` statement, which is used to define movement data. Use `*` as a shortcut for repeating a movement command many times. `step_end` terminator is automatically added to the end of the data.
@@ -71,7 +74,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/poryscript/compare/2.4.0...HEAD
+[Unreleased]: https://github.com/huderlem/poryscript/compare/2.5.0...HEAD
+[2.5.0]: https://github.com/huderlem/poryscript/compare/2.4.0...2.5.0
 [2.4.0]: https://github.com/huderlem/poryscript/compare/2.3.0...2.4.0
 [2.3.0]: https://github.com/huderlem/poryscript/compare/2.2.0...2.3.0
 [2.2.0]: https://github.com/huderlem/poryscript/compare/2.1.1...2.2.0
