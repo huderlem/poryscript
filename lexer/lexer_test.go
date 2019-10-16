@@ -28,6 +28,7 @@ func TestNextToken(t *testing.T) {
 		do
 		break
 		continue
+		[]
 		switch
 		0x5ABCDEF
 		0435
@@ -37,6 +38,7 @@ func TestNextToken(t *testing.T) {
 		defeated
 		text
 		movement
+		mapscripts
 		*
 		format
 		("Hello\n"
@@ -109,6 +111,8 @@ func TestNextToken(t *testing.T) {
 		{token.DO, "do"},
 		{token.BREAK, "break"},
 		{token.CONTINUE, "continue"},
+		{token.LBRACKET, "["},
+		{token.RBRACKET, "]"},
 		{token.SWITCH, "switch"},
 		{token.INT, "0x5ABCDEF"},
 		{token.INT, "0435"},
@@ -120,6 +124,7 @@ func TestNextToken(t *testing.T) {
 		{token.DEFEATED, "defeated"},
 		{token.TEXT, "text"},
 		{token.MOVEMENT, "movement"},
+		{token.MAPSCRIPTS, "mapscripts"},
 		{token.MUL, "*"},
 		{token.FORMAT, "format"},
 		{token.LPAREN, "("},

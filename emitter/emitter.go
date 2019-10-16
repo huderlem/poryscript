@@ -41,6 +41,17 @@ func (e *Emitter) Emit() (string, error) {
 			sb.WriteString("\n")
 		}
 
+		mapScriptsStmt, ok := stmt.(*ast.MapScriptsStatement)
+		if ok {
+			output, err := e.emitMapScriptStatement(mapScriptsStmt)
+			if err != nil {
+				return "", err
+			}
+			sb.WriteString(output)
+			i++
+			continue
+		}
+
 		scriptStmt, ok := stmt.(*ast.ScriptStatement)
 		if ok {
 			output, err := e.emitScriptStatement(scriptStmt)
@@ -77,6 +88,46 @@ func (e *Emitter) Emit() (string, error) {
 		emitted := emitText(text)
 		sb.WriteString(emitted)
 	}
+	return sb.String(), nil
+}
+
+func (e *Emitter) emitMapScriptStatement(mapScriptStmt *ast.MapScriptsStatement) (string, error) {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s::\n", mapScriptStmt.Name.Value))
+	for _, mapScript := range mapScriptStmt.MapScripts {
+		sb.WriteString(fmt.Sprintf("\tmap_script %s, %s\n", mapScript.Type, mapScript.Name))
+	}
+	for _, tableMapScript := range mapScriptStmt.TableMapScripts {
+		sb.WriteString(fmt.Sprintf("\tmap_script %s, %s\n", tableMapScript.Type, tableMapScript.Name))
+	}
+	sb.WriteString("\t.byte 0\n\n")
+
+	for _, mapScript := range mapScriptStmt.MapScripts {
+		if mapScript.Script != nil {
+			scriptOutput, err := e.emitScriptStatement(mapScript.Script)
+			if err != nil {
+				return "", err
+			}
+			sb.WriteString(scriptOutput)
+		}
+	}
+	for _, tableMapScript := range mapScriptStmt.TableMapScripts {
+		sb.WriteString(fmt.Sprintf("%s:\n", tableMapScript.Name))
+		for _, scriptEntry := range tableMapScript.Entries {
+			sb.WriteString(fmt.Sprintf("\tmap_script_2 %s, %s, %s\n", scriptEntry.Condition, scriptEntry.Comparison, scriptEntry.Name))
+		}
+		sb.WriteString("\t.2byte 0\n\n")
+		for _, scriptEntry := range tableMapScript.Entries {
+			if scriptEntry.Script != nil {
+				scriptOutput, err := e.emitScriptStatement(scriptEntry.Script)
+				if err != nil {
+					return "", err
+				}
+				sb.WriteString(scriptOutput)
+			}
+		}
+	}
+
 	return sb.String(), nil
 }
 

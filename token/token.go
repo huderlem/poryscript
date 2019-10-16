@@ -37,32 +37,35 @@ const (
 	COMMA = ","
 	COLON = ":"
 
-	LPAREN = "("
-	RPAREN = ")"
-	LBRACE = "{"
-	RBRACE = "}"
+	LPAREN   = "("
+	RPAREN   = ")"
+	LBRACE   = "{"
+	RBRACE   = "}"
+	LBRACKET = "["
+	RBRACKET = "]"
 
 	// Keywords
-	SCRIPT   = "SCRIPT"
-	RAW      = "RAW"
-	TEXT     = "TEXT"
-	MOVEMENT = "MOVEMENT"
-	FORMAT   = "FORMAT"
-	VAR      = "VAR"
-	FLAG     = "FLAG"
-	DEFEATED = "DEFEATED"
-	TRUE     = "TRUE"
-	FALSE    = "FALSE"
-	IF       = "IF"
-	ELSE     = "ELSE"
-	ELSEIF   = "ELSEIF"
-	DO       = "DO"
-	WHILE    = "WHILE"
-	BREAK    = "BREAK"
-	CONTINUE = "CONTINUE"
-	SWITCH   = "SWITCH"
-	CASE     = "CASE"
-	DEFAULT  = "DEFAULT"
+	SCRIPT     = "SCRIPT"
+	RAW        = "RAW"
+	TEXT       = "TEXT"
+	MOVEMENT   = "MOVEMENT"
+	MAPSCRIPTS = "MAPSCRIPTS"
+	FORMAT     = "FORMAT"
+	VAR        = "VAR"
+	FLAG       = "FLAG"
+	DEFEATED   = "DEFEATED"
+	TRUE       = "TRUE"
+	FALSE      = "FALSE"
+	IF         = "IF"
+	ELSE       = "ELSE"
+	ELSEIF     = "ELSEIF"
+	DO         = "DO"
+	WHILE      = "WHILE"
+	BREAK      = "BREAK"
+	CONTINUE   = "CONTINUE"
+	SWITCH     = "SWITCH"
+	CASE       = "CASE"
+	DEFAULT    = "DEFAULT"
 )
 
 // If statement comparison types
@@ -72,28 +75,29 @@ const (
 )
 
 var keywords = map[string]Type{
-	"script":   SCRIPT,
-	"raw":      RAW,
-	"text":     TEXT,
-	"movement": MOVEMENT,
-	"format":   FORMAT,
-	"var":      VAR,
-	"flag":     FLAG,
-	"defeated": DEFEATED,
-	"TRUE":     TRUE,
-	"FALSE":    FALSE,
-	"true":     TRUE,
-	"false":    FALSE,
-	"if":       IF,
-	"else":     ELSE,
-	"elif":     ELSEIF,
-	"do":       DO,
-	"while":    WHILE,
-	"break":    BREAK,
-	"continue": CONTINUE,
-	"switch":   SWITCH,
-	"case":     CASE,
-	"default":  DEFAULT,
+	"script":     SCRIPT,
+	"raw":        RAW,
+	"text":       TEXT,
+	"movement":   MOVEMENT,
+	"mapscripts": MAPSCRIPTS,
+	"format":     FORMAT,
+	"var":        VAR,
+	"flag":       FLAG,
+	"defeated":   DEFEATED,
+	"TRUE":       TRUE,
+	"FALSE":      FALSE,
+	"true":       TRUE,
+	"false":      FALSE,
+	"if":         IF,
+	"else":       ELSE,
+	"elif":       ELSEIF,
+	"do":         DO,
+	"while":      WHILE,
+	"break":      BREAK,
+	"continue":   CONTINUE,
+	"switch":     SWITCH,
+	"case":       CASE,
+	"default":    DEFAULT,
 }
 
 // GetIdentType looks up the token type for the given identifier

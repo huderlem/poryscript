@@ -1025,6 +1025,231 @@ ScripText_2:
 	}
 }
 
+func TestEmitMapScripts(t *testing.T) {
+	input := `
+mapscripts PetalburgCity_MapScripts {
+    MAP_SCRIPT_ON_RESUME: PetalburgCity_MapScripts_OnResume
+    MAP_SCRIPT_ON_TRANSITION {
+        random(4)
+        switch (var(VAR_RESULT)) {
+            case 0: setweather(WEATHER_ASH)
+            case 1: setweather(WEATHER_RAIN_HEAVY)
+            case 2: setweather(WEATHER_DROUGHT)
+            case 3: setweather(WEATHER_SANDSTORM)
+        }
+    }
+    MAP_SCRIPT_ON_FRAME_TABLE [
+        VAR_TEMP_0, 0 {
+            lockall
+            applymovement(EVENT_OBJ_ID_PLAYER, MyMovement0)
+	        waitmovement(0)
+            setvar(VAR_TEMP_0, 1)
+            releaseall
+        }
+        VAR_TEMP_0, 1 {
+            lock
+            msgbox(format("Haha it worked! This should make writing map scripts much easier."))
+            setvar(VAR_TEMP_0, 2)
+            release
+        }
+        VAR_TEMP_0, 2: PetalburgCity_MapScripts_OnResume
+    ]
+}
+
+movement MyMovement0 {
+    walk_left
+    walk_right
+    walk_left
+    walk_right
+}
+
+script PetalburgCity_MapScripts_OnResume {
+    lock
+    if (flag(FLAG_1)) {
+        setvar(VAR_TEMP_1, 1)
+    }
+    release
+}
+`
+
+	expectedUnoptimized := `PetalburgCity_MapScripts::
+	map_script MAP_SCRIPT_ON_RESUME, PetalburgCity_MapScripts_OnResume
+	map_script MAP_SCRIPT_ON_TRANSITION, PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION
+	map_script MAP_SCRIPT_ON_FRAME_TABLE, PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE
+	.byte 0
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION::
+	random 4
+	switch VAR_RESULT
+	case 0, PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_2
+	case 1, PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_3
+	case 2, PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_4
+	case 3, PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_5
+	return
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_2:
+	setweather WEATHER_ASH
+	return
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_3:
+	setweather WEATHER_RAIN_HEAVY
+	return
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_4:
+	setweather WEATHER_DROUGHT
+	return
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_5:
+	setweather WEATHER_SANDSTORM
+	return
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE:
+	map_script_2 VAR_TEMP_0, 0, PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0
+	map_script_2 VAR_TEMP_0, 1, PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1
+	map_script_2 VAR_TEMP_0, 2, PetalburgCity_MapScripts_OnResume
+	.2byte 0
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0::
+	lockall
+	applymovement EVENT_OBJ_ID_PLAYER, MyMovement0
+	waitmovement 0
+	setvar VAR_TEMP_0, 1
+	releaseall
+	return
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1::
+	lock
+	msgbox PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0
+	setvar VAR_TEMP_0, 2
+	release
+	return
+
+
+MyMovement0:
+	walk_left
+	walk_right
+	walk_left
+	walk_right
+	step_end
+
+PetalburgCity_MapScripts_OnResume::
+	lock
+	goto PetalburgCity_MapScripts_OnResume_3
+
+PetalburgCity_MapScripts_OnResume_1:
+	release
+	return
+
+PetalburgCity_MapScripts_OnResume_2:
+	setvar VAR_TEMP_1, 1
+	goto PetalburgCity_MapScripts_OnResume_1
+
+PetalburgCity_MapScripts_OnResume_3:
+	goto_if_set FLAG_1, PetalburgCity_MapScripts_OnResume_2
+	goto PetalburgCity_MapScripts_OnResume_1
+
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
+	.string "Haha it worked! This should make writing\n"
+	.string "map scripts much easier.$"
+`
+
+	expectedOptimized := `PetalburgCity_MapScripts::
+	map_script MAP_SCRIPT_ON_RESUME, PetalburgCity_MapScripts_OnResume
+	map_script MAP_SCRIPT_ON_TRANSITION, PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION
+	map_script MAP_SCRIPT_ON_FRAME_TABLE, PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE
+	.byte 0
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION::
+	random 4
+	switch VAR_RESULT
+	case 0, PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_2
+	case 1, PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_3
+	case 2, PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_4
+	case 3, PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_5
+	return
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_2:
+	setweather WEATHER_ASH
+	return
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_3:
+	setweather WEATHER_RAIN_HEAVY
+	return
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_4:
+	setweather WEATHER_DROUGHT
+	return
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_5:
+	setweather WEATHER_SANDSTORM
+	return
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE:
+	map_script_2 VAR_TEMP_0, 0, PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0
+	map_script_2 VAR_TEMP_0, 1, PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1
+	map_script_2 VAR_TEMP_0, 2, PetalburgCity_MapScripts_OnResume
+	.2byte 0
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0::
+	lockall
+	applymovement EVENT_OBJ_ID_PLAYER, MyMovement0
+	waitmovement 0
+	setvar VAR_TEMP_0, 1
+	releaseall
+	return
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1::
+	lock
+	msgbox PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0
+	setvar VAR_TEMP_0, 2
+	release
+	return
+
+
+MyMovement0:
+	walk_left
+	walk_right
+	walk_left
+	walk_right
+	step_end
+
+PetalburgCity_MapScripts_OnResume::
+	lock
+	goto_if_set FLAG_1, PetalburgCity_MapScripts_OnResume_2
+PetalburgCity_MapScripts_OnResume_1:
+	release
+	return
+
+PetalburgCity_MapScripts_OnResume_2:
+	setvar VAR_TEMP_1, 1
+	goto PetalburgCity_MapScripts_OnResume_1
+
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
+	.string "Haha it worked! This should make writing\n"
+	.string "map scripts much easier.$"
+`
+	l := lexer.New(input)
+	p := parser.New(l, "../font_widths.json")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	e := New(program, false)
+	result, _ := e.Emit()
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result, _ = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+	}
+}
+
 func TestEmitMovementStatements(t *testing.T) {
 	input := `
 script ScriptWithMovement {

@@ -240,3 +240,39 @@ func (cs *SwitchStatement) statementNode() {}
 
 // TokenLiteral returns a string representation of the switch statement.
 func (cs *SwitchStatement) TokenLiteral() string { return cs.Token.Literal }
+
+// MapScript is a single map script with either an inline script implementation or a symbol.
+type MapScript struct {
+	Type   string
+	Name   string
+	Script *ScriptStatement
+}
+
+// TableMapScriptEntry is a single map script entry in a table-based map script.
+type TableMapScriptEntry struct {
+	Condition  string
+	Comparison string
+	Name       string
+	Script     *ScriptStatement
+}
+
+// TableMapScript is a table of map scripts that correspond to variable states.
+type TableMapScript struct {
+	Type    string
+	Name    string
+	Entries []TableMapScriptEntry
+}
+
+// MapScriptsStatement is a Poryscript mapscripts statement. It facilitates
+// various map scripts.
+type MapScriptsStatement struct {
+	Token           token.Token
+	Name            *Identifier
+	MapScripts      []MapScript
+	TableMapScripts []TableMapScript
+}
+
+func (ms *MapScriptsStatement) statementNode() {}
+
+// TokenLiteral returns a string representation of the mapscripts statement.
+func (ms *MapScriptsStatement) TokenLiteral() string { return ms.Token.Literal }

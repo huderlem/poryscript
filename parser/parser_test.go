@@ -590,6 +590,135 @@ func testMovement(t *testing.T, stmt ast.Statement, expectedName string, expecte
 	}
 }
 
+func TestMapScriptStatements(t *testing.T) {
+	input := `
+mapscripts MyMap_MapScripts {
+	MAP_SCRIPT_ON_TRANSITION: MyMap_OnTransition
+	MAP_SCRIPT_ON_RESUME: MyMap_OnResume
+	MAP_SCRIPT_ON_TRANSITION {
+		lock
+		release
+	}
+	MAP_SCRIPT_ON_FRAME_TABLE [
+		VAR_LITTLEROOT_INTRO_STATE, 1: MyMap_OnFrame_FirstThing
+		VAR_LITTLEROOT_INTRO_STATE    + 2, 1+ BASE_THING: MyMap_OnFrame_2
+		VAR_OTHER, 3 {
+			lock
+			foo(1, 2)
+			release
+		}
+	]
+	MAP_SCRIPT_ON_WARP_INTO_MAP_TABLE [
+		VAR_TEMP_1, 0 { foo }
+		VAR_TEMP_1, 1 { some more commands }
+	]
+}
+`
+	l := lexer.New(input)
+	p := New(l, "")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if len(program.TopLevelStatements) != 1 {
+		t.Fatalf("len(program.TopLevelStatements) != 1. Got '%d' instead.", len(program.TopLevelStatements))
+	}
+	stmt := program.TopLevelStatements[0].(*ast.MapScriptsStatement)
+	if stmt.Name.Value != "MyMap_MapScripts" {
+		t.Errorf("Incorrect mapscripts name. Got '%s' instead of '%s'", stmt.Name.Value, "MyMap_MapScripts")
+	}
+	if len(stmt.MapScripts) != 3 {
+		t.Fatalf("Incorrect length of MapScripts. Got '%d' instead of '%d'", len(stmt.MapScripts), 3)
+	}
+	testNamedMapScript(t, stmt.MapScripts[0], "MyMap_OnTransition", "MAP_SCRIPT_ON_TRANSITION")
+	testNamedMapScript(t, stmt.MapScripts[1], "MyMap_OnResume", "MAP_SCRIPT_ON_RESUME")
+	testScriptedMapScript(t, stmt.MapScripts[2], "MyMap_MapScripts_MAP_SCRIPT_ON_TRANSITION", "MAP_SCRIPT_ON_TRANSITION", 2)
+
+	if len(stmt.TableMapScripts) != 2 {
+		t.Fatalf("Incorrect length of TableMapScripts. Got '%d' instead of '%d'", len(stmt.TableMapScripts), 1)
+	}
+	testTableMapScript(t, stmt.TableMapScripts[0], "MyMap_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE", "MAP_SCRIPT_ON_FRAME_TABLE", 3)
+	testTableMapScriptEntry(t, stmt.TableMapScripts[0].Entries[0], "VAR_LITTLEROOT_INTRO_STATE", "1", "MyMap_OnFrame_FirstThing")
+	testTableMapScriptEntry(t, stmt.TableMapScripts[0].Entries[1], "VAR_LITTLEROOT_INTRO_STATE + 2", "1 + BASE_THING", "MyMap_OnFrame_2")
+	testScriptedTableMapScriptEntry(t, stmt.TableMapScripts[0].Entries[2], "VAR_OTHER", "3", "MyMap_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_2", 3)
+	testTableMapScript(t, stmt.TableMapScripts[1], "MyMap_MapScripts_MAP_SCRIPT_ON_WARP_INTO_MAP_TABLE", "MAP_SCRIPT_ON_WARP_INTO_MAP_TABLE", 2)
+	testScriptedTableMapScriptEntry(t, stmt.TableMapScripts[1].Entries[0], "VAR_TEMP_1", "0", "MyMap_MapScripts_MAP_SCRIPT_ON_WARP_INTO_MAP_TABLE_0", 1)
+	testScriptedTableMapScriptEntry(t, stmt.TableMapScripts[1].Entries[1], "VAR_TEMP_1", "1", "MyMap_MapScripts_MAP_SCRIPT_ON_WARP_INTO_MAP_TABLE_1", 3)
+}
+
+func testNamedMapScript(t *testing.T, mapScript ast.MapScript, expectedName string, expectedType string) {
+	if mapScript.Name != expectedName {
+		t.Errorf("Incorrect mapScript name. Got '%s' instead of '%s'", mapScript.Name, expectedName)
+	}
+	if mapScript.Type != expectedType {
+		t.Errorf("Incorrect mapScript type. Got '%s' instead of '%s'", mapScript.Type, expectedType)
+	}
+	if mapScript.Script != nil {
+		t.Errorf("mapScript is supposed to be nil")
+	}
+}
+
+func testScriptedMapScript(t *testing.T, mapScript ast.MapScript, expectedName string, expectedType string, expectedNumStatements int) {
+	if mapScript.Name != expectedName {
+		t.Errorf("Incorrect scripted mapScript name. Got '%s' instead of '%s'", mapScript.Name, expectedName)
+	}
+	if mapScript.Type != expectedType {
+		t.Errorf("Incorrect scripted mapScript type. Got '%s' instead of '%s'", mapScript.Type, expectedType)
+	}
+	if mapScript.Script == nil {
+		t.Errorf("mapScript.Script is not supposed to be nil")
+	}
+	if len(mapScript.Script.Body.Statements) != expectedNumStatements {
+		t.Errorf("Incorrect scripted mapScript number of statements. Got '%d' instead of '%d'", len(mapScript.Script.Body.Statements), expectedNumStatements)
+	}
+}
+
+func testTableMapScript(t *testing.T, mapScript ast.TableMapScript, expectedName string, expectedType string, expectedNumEntries int) {
+	if mapScript.Name != expectedName {
+		t.Errorf("Incorrect table mapScript name. Got '%s' instead of '%s'", mapScript.Name, expectedName)
+	}
+	if mapScript.Type != expectedType {
+		t.Errorf("Incorrect table mapScript type. Got '%s' instead of '%s'", mapScript.Type, expectedType)
+	}
+	if len(mapScript.Entries) != expectedNumEntries {
+		t.Errorf("Incorrect table mapScript number of entries. Got '%d' instead of '%d'", len(mapScript.Entries), expectedNumEntries)
+	}
+}
+
+func testTableMapScriptEntry(t *testing.T, mapScriptEntry ast.TableMapScriptEntry, expectedCondition, expectedComparison, expectedName string) {
+	if mapScriptEntry.Condition != expectedCondition {
+		t.Errorf("Incorrect table mapScript entry condition. Got '%s' instead of '%s'", mapScriptEntry.Condition, expectedCondition)
+	}
+	if mapScriptEntry.Comparison != expectedComparison {
+		t.Errorf("Incorrect table mapScript entry comparison. Got '%s' instead of '%s'", mapScriptEntry.Comparison, expectedComparison)
+	}
+	if mapScriptEntry.Name != expectedName {
+		t.Errorf("Incorrect table mapScript entry name. Got '%s' instead of '%s'", mapScriptEntry.Name, expectedName)
+	}
+	if mapScriptEntry.Script != nil {
+		t.Errorf("mapScriptEntry.Script is supposed to be nil")
+	}
+}
+
+func testScriptedTableMapScriptEntry(t *testing.T, mapScriptEntry ast.TableMapScriptEntry, expectedCondition, expectedComparison, expectedName string, expectedNumStatements int) {
+	if mapScriptEntry.Condition != expectedCondition {
+		t.Errorf("Incorrect table mapScript entry condition. Got '%s' instead of '%s'", mapScriptEntry.Condition, expectedCondition)
+	}
+	if mapScriptEntry.Comparison != expectedComparison {
+		t.Errorf("Incorrect table mapScript entry comparison. Got '%s' instead of '%s'", mapScriptEntry.Comparison, expectedComparison)
+	}
+	if mapScriptEntry.Name != expectedName {
+		t.Errorf("Incorrect table mapScript entry name. Got '%s' instead of '%s'", mapScriptEntry.Name, expectedName)
+	}
+	if mapScriptEntry.Script == nil {
+		t.Errorf("mapScriptEntry.Script is supposed to be nil")
+	}
+	if len(mapScriptEntry.Script.Body.Statements) != expectedNumStatements {
+		t.Errorf("Incorrect scripted mapScriptEntry number of statements. Got '%d' instead of '%d'", len(mapScriptEntry.Script.Body.Statements), expectedNumStatements)
+	}
+}
+
 func TestErrors(t *testing.T) {
 	tests := []struct {
 		input         string
@@ -1149,6 +1278,97 @@ text Foo {
 	format("Hi", "invalidFontID")
 }`,
 			expectedError: "Unknown fontID 'invalidFontID' used in format(). List of valid fontIDs are '[1_latin]'",
+		},
+		{
+			input: `
+mapscripts {
+}`,
+			expectedError: "line 2: missing name for mapscripts statement",
+		},
+		{
+			input: `
+mapscripts MyMapScripts
+}`,
+			expectedError: "line 3: missing opening curly brace for mapscripts 'MyMapScripts'",
+		},
+		{
+			input: `
+mapscripts MyMapScripts {
+	+
+}`,
+			expectedError: "line 3: expected map script type, but got '+' instead",
+		},
+		{
+			input: `
+mapscripts MyMapScripts {
+	SOME_TYPE: 5
+}`,
+			expectedError: "line 3: expected map script label after ':', but got '5' instead",
+		},
+		{
+			input: `
+mapscripts MyMapScripts {
+	SOME_TYPE {
+		if (sdf)
+	}
+}`,
+			expectedError: "line 4: left side of binary expression must be var(), flag(), or defeated() operator. Instead, found 'sdf'",
+		},
+		{
+			input: `
+mapscripts MyMapScripts {
+	SOME_TYPE [
+		VAR_TEMP
+	]
+}`,
+			expectedError: "line 4: missing ',' to specify map script table entry comparison value",
+		},
+		{
+			input: `
+mapscripts MyMapScripts {
+	SOME_TYPE [
+		VAR_TEMP, : Foo
+	]
+}`,
+			expectedError: "line 4: expected comparison value for map script table entry, but it was empty",
+		},
+		{
+			input: `
+mapscripts MyMapScripts {
+	SOME_TYPE [
+		VAR_TEMP, FOO
+	]
+}`,
+			expectedError: "line 4: missing ':' or '{' to specify map script table entry",
+		},
+		{
+			input: `
+mapscripts MyMapScripts {
+	SOME_TYPE [
+		, FOO: Foo Script
+	]
+}`,
+			expectedError: "line 4: expected condition for map script table entry, but it was empty",
+		},
+		{
+			input: `
+mapscripts MyMapScripts {
+	SOME_TYPE [
+		VAR_TEMP, 1: 5
+	]
+}`,
+			expectedError: "line 4: expected map script label after ':', but got '5' instead",
+		},
+		{
+			input: `
+mapscripts MyMapScripts {
+	SOME_TYPE [
+		VAR_TEMP, 1 {
+			msgbox(
+		}
+	]
+}`,
+			expectedError: "line 5: missing closing parenthesis for command 'msgbox'",
 		},
 	}
 
