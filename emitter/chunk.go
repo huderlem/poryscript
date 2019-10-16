@@ -10,10 +10,11 @@ import (
 // Represents a single chunk of script output. Each chunk has an associated label in
 // the emitted bytecode output.
 type chunk struct {
-	id             int
-	returnID       int
-	statements     []ast.Statement
-	branchBehavior brancher
+	id               int
+	returnID         int
+	useEndTerminator bool
+	statements       []ast.Statement
+	branchBehavior   brancher
 }
 
 func (c *chunk) renderLabel(scriptName string, sb *strings.Builder) {
@@ -46,7 +47,7 @@ func (c *chunk) renderBranching(scriptName string, sb *strings.Builder, nextChun
 
 	// Handle natural return logic that wasn't covered by a branch behavior.
 	if c.returnID == -1 {
-		sb.WriteString("\treturn\n")
+		sb.WriteString(fmt.Sprintf("\t%s\n", c.getTerminatorCommand()))
 		return false
 	} else if c.returnID != nextChunkID {
 		registerJumpChunk(c.returnID)
@@ -56,6 +57,13 @@ func (c *chunk) renderBranching(scriptName string, sb *strings.Builder, nextChun
 
 	// Fallthrough to next chunk.
 	return true
+}
+
+func (c *chunk) getTerminatorCommand() string {
+	if c.useEndTerminator {
+		return "end"
+	}
+	return "return"
 }
 
 func (c *chunk) splitChunkForBranch(statementIndex int, chunkCounter *int, remainingChunks []*chunk) ([]*chunk, int) {

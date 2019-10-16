@@ -965,6 +965,66 @@ MyText2::
 	}
 }
 
+func TestEmitEndTerminators(t *testing.T) {
+	input := `
+script ScripText {
+    lock
+    if (var(VAR_FOO)) {
+    	end
+    }
+    release
+    end
+}`
+
+	expectedUnoptimized := `ScripText::
+	lock
+	goto ScripText_3
+
+ScripText_1:
+	release
+	end
+
+ScripText_2:
+	end
+
+ScripText_3:
+	compare VAR_FOO, 0
+	goto_if_ne ScripText_2
+	goto ScripText_1
+
+`
+
+	expectedOptimized := `ScripText::
+	lock
+	compare VAR_FOO, 0
+	goto_if_ne ScripText_2
+	release
+	end
+
+ScripText_2:
+	end
+
+`
+	l := lexer.New(input)
+	p := parser.New(l, "../font_widths.json")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	e := New(program, false)
+	result, _ := e.Emit()
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result, _ = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+	}
+}
+
 // Helper benchmark var to prevent compiler/runtime optimizations.
 // https://dave.cheney.net/2013/06/30/how-to-write-benchmarks-in-go
 var benchResult string

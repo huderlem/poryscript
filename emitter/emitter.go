@@ -108,7 +108,12 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, 
 			// the current logic scope. Therefore, we should not process any further into the
 			// current chunk, and mark it as finalized.
 			if commandStmt.Name.Value == "end" || commandStmt.Name.Value == "return" {
-				completeChunk := &chunk{id: curChunk.id, returnID: -1, statements: curChunk.statements[:i]}
+				completeChunk := &chunk{
+					id:               curChunk.id,
+					returnID:         -1,
+					useEndTerminator: commandStmt.Name.Value == "end",
+					statements:       curChunk.statements[:i],
+				}
 				finalChunks[completeChunk.id] = completeChunk
 				shouldContinue = true
 				break
