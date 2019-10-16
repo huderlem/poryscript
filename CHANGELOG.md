@@ -11,7 +11,7 @@ Nothing, yet.
 ### Added
 - Comments can now be used with `//`, in addition to the existing '#' style. This is to support users who want to process Poryscript with the C preprocessor.
 - Add `movement` statement, which is used to define movement data. Use `*` as a shortcut for repeating a movement command many times. `step_end` terminator is automatically added to the end of the data.
-- Add 'mapscripts` statement, which is used to define map scripts. Scripts can be inlined, or simply specified with a label.
+- Add `mapscripts` statement, which is used to define map scripts. Scripts can be inlined, or simply specified with a label.
 
 ### Fixed
 - Fix harmless bug where `format()` could result in empty `.string ""` lines in the compiled out.
