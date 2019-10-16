@@ -1025,6 +1025,138 @@ ScripText_2:
 	}
 }
 
+func TestEmitMovementStatements(t *testing.T) {
+	input := `
+script ScriptWithMovement {
+	lock
+	msgbox("Let's go for a walk.")
+	applymovement(2, MovementWalk)
+	waitmovement(0)
+	applymovement(2, MovementWalk2)
+	waitmovement(0)
+	applymovement(2, MovementWalk3)
+	waitmovement(0)
+	release
+}
+
+movement MovementWalk {
+	walk_left * 2
+	walk_up * 3
+	walk_down
+	run_down
+	face_left
+	step_end
+}
+
+movement MovementWalk2 {
+	run_left
+	run_right * 2
+}
+
+movement MovementWalk3 {
+	run_left * 2
+	step_end
+	run_right * 5
+}
+`
+
+	expectedUnoptimized := `ScriptWithMovement::
+	lock
+	msgbox ScriptWithMovement_Text_0
+	applymovement 2, MovementWalk
+	waitmovement 0
+	applymovement 2, MovementWalk2
+	waitmovement 0
+	applymovement 2, MovementWalk3
+	waitmovement 0
+	release
+	return
+
+
+MovementWalk:
+	walk_left
+	walk_left
+	walk_up
+	walk_up
+	walk_up
+	walk_down
+	run_down
+	face_left
+	step_end
+
+MovementWalk2:
+	run_left
+	run_right
+	run_right
+	step_end
+
+MovementWalk3:
+	run_left
+	run_left
+	step_end
+
+ScriptWithMovement_Text_0:
+	.string "Let's go for a walk.$"
+`
+
+	expectedOptimized := `ScriptWithMovement::
+	lock
+	msgbox ScriptWithMovement_Text_0
+	applymovement 2, MovementWalk
+	waitmovement 0
+	applymovement 2, MovementWalk2
+	waitmovement 0
+	applymovement 2, MovementWalk3
+	waitmovement 0
+	release
+	return
+
+
+MovementWalk:
+	walk_left
+	walk_left
+	walk_up
+	walk_up
+	walk_up
+	walk_down
+	run_down
+	face_left
+	step_end
+
+MovementWalk2:
+	run_left
+	run_right
+	run_right
+	step_end
+
+MovementWalk3:
+	run_left
+	run_left
+	step_end
+
+ScriptWithMovement_Text_0:
+	.string "Let's go for a walk.$"
+`
+	l := lexer.New(input)
+	p := parser.New(l, "")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	e := New(program, false)
+	result, _ := e.Emit()
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result, _ = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+	}
+}
+
 // Helper benchmark var to prevent compiler/runtime optimizations.
 // https://dave.cheney.net/2013/06/30/how-to-write-benchmarks-in-go
 var benchResult string

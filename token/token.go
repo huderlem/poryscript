@@ -31,6 +31,7 @@ const (
 	AND = "&&"
 	OR  = "||"
 	NOT = "!"
+	MUL = "*"
 
 	// Delimeters
 	COMMA = ","
@@ -45,6 +46,7 @@ const (
 	SCRIPT   = "SCRIPT"
 	RAW      = "RAW"
 	TEXT     = "TEXT"
+	MOVEMENT = "MOVEMENT"
 	FORMAT   = "FORMAT"
 	VAR      = "VAR"
 	FLAG     = "FLAG"
@@ -73,6 +75,7 @@ var keywords = map[string]Type{
 	"script":   SCRIPT,
 	"raw":      RAW,
 	"text":     TEXT,
+	"movement": MOVEMENT,
 	"format":   FORMAT,
 	"var":      VAR,
 	"flag":     FLAG,

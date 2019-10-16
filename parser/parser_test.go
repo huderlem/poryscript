@@ -518,11 +518,11 @@ script MyScript1 {
 func TestFormatOperator(t *testing.T) {
 	input := `
 script MyScript1 {
-	msgbox(format("Test$"))
+	msgbox(format("Test»{BLAH}$"))
 }
 
 text MyText {
-	format("FooBar")
+	format("FooBar", "TEST")
 }
 `
 	l := lexer.New(input)
@@ -535,11 +535,58 @@ text MyText {
 	if len(program.Texts) != 2 {
 		t.Fatalf("len(program.Texts) != 2. Got '%d' instead.", len(program.Texts))
 	}
-	if program.Texts[0].Value != "Test$" {
-		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[0].Value, "Test$")
+	if program.Texts[0].Value != "Test»{BLAH}$" {
+		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[0].Value, "Test»{BLAH}$")
 	}
 	if program.Texts[1].Value != "FooBar$" {
 		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[1].Value, "FooBar$")
+	}
+}
+
+func TestMovementStatements(t *testing.T) {
+	input := `
+movement MyMovement {
+	walk_up
+	walk_down walk_left
+	step_end
+}
+
+movement MyMovement2 {
+}
+
+movement MyMovement3 {
+	run_up * 3
+	face_down
+	delay_16*2
+}
+`
+	l := lexer.New(input)
+	p := New(l, "")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if len(program.TopLevelStatements) != 3 {
+		t.Fatalf("len(program.TopLevelStatements) != 3. Got '%d' instead.", len(program.TopLevelStatements))
+	}
+	testMovement(t, program.TopLevelStatements[0], "MyMovement", []string{"walk_up", "walk_down", "walk_left", "step_end"})
+	testMovement(t, program.TopLevelStatements[1], "MyMovement2", []string{})
+	testMovement(t, program.TopLevelStatements[2], "MyMovement3", []string{"run_up", "run_up", "run_up", "face_down", "delay_16", "delay_16"})
+}
+
+func testMovement(t *testing.T, stmt ast.Statement, expectedName string, expectedCommands []string) {
+	movementStmt := stmt.(*ast.MovementStatement)
+	if movementStmt.Name.Value != expectedName {
+		t.Errorf("Incorrect movement name. Got '%s' instead of '%s'", movementStmt.Name.Value, expectedName)
+	}
+	if len(movementStmt.MovementCommands) != len(expectedCommands) {
+		t.Fatalf("Incorrect number of movement commands. Got %d commands instead of %d", len(movementStmt.MovementCommands), len(expectedCommands))
+	}
+	for i, cmd := range expectedCommands {
+		if movementStmt.MovementCommands[i] != cmd {
+			t.Errorf("Incorrect movement command at index %d. Got '%s' instead of '%s'", i, movementStmt.MovementCommands[i], cmd)
+		}
 	}
 }
 
@@ -1005,6 +1052,97 @@ text Script1_Text_0 {
 }`,
 			expectedError: "Duplicate text label 'Script1_Text_0'. Choose a unique label that won't clash with the auto-generated text labels",
 		},
+		{
+			input: `
+movement {
+	
+}`,
+			expectedError: "line 2: missing name for movement statement",
+		},
+		{
+			input: `
+movement Foo
+	walk_up
+}`,
+			expectedError: "line 3: missing opening curly brace for movement 'Foo'",
+		},
+		{
+			input: `
+movement Foo {
+	+
+}`,
+			expectedError: "line 3: expected movement command, but got '+' instead",
+		},
+		{
+			input: `
+movement Foo {
+	walk_up * walk_down
+}`,
+			expectedError: "line 3: expected mulplier number for movement command, but got 'walk_down' instead",
+		},
+		{
+			input: `
+movement Foo {
+	walk_up * 999999999999999999999999999999999
+}`,
+			expectedError: "line 3: invalid movement mulplier integer '999999999999999999999999999999999': strconv.ParseInt: parsing \"999999999999999999999999999999999\": value out of range",
+		},
+		{
+			input: `
+movement Foo {
+	walk_up * 10000
+}`,
+			expectedError: "line 3: movement mulplier '10000' is too large. Maximum is 9999",
+		},
+		{
+			input: `
+movement Foo {
+	walk_up * 0
+}`,
+			expectedError: "line 3: movement mulplier must be a positive integer, but got '0' instead",
+		},
+		{
+			input: `
+text Foo {
+	format asdf
+}`,
+			expectedError: "line 3: format operator must begin with an open parenthesis '('",
+		},
+		{
+			input: `
+text Foo {
+	format()
+}`,
+			expectedError: "line 3: invalid format() argument ')'. Expected a string literal",
+		},
+		{
+			input: `
+text Foo {
+	format("Hi", )
+}`,
+			expectedError: "line 3: invalid format() fontId ')'. Expected string",
+		},
+		{
+			input: `
+text Foo {
+	format("Hi"
+}`,
+			expectedError: "line 4: missing closing parenthesis ')' for format()",
+		},
+		{
+			input: `
+script Foo {
+	msgbox(format("Hi", ))
+}`,
+			expectedError: "line 3: invalid format() fontId ')'. Expected string",
+		},
+		{
+			input: `
+text Foo {
+	format("Hi", "invalidFontID")
+}`,
+			expectedError: "Unknown fontID 'invalidFontID' used in format(). List of valid fontIDs are '[1_latin]'",
+		},
 	}
 
 	for _, test := range tests {
@@ -1014,7 +1152,7 @@ text Script1_Text_0 {
 
 func testForParseError(t *testing.T, input string, expectedErrorText string) {
 	l := lexer.New(input)
-	p := New(l, "")
+	p := New(l, "../font_widths.json")
 	_, err := p.ParseProgram()
 	if err == nil {
 		t.Fatalf("Expected error '%s', but no error occurred", expectedErrorText)

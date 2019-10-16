@@ -112,6 +112,19 @@ func (ts *TextStatement) statementNode() {}
 // TokenLiteral returns a string representation of the text statement.
 func (ts *TextStatement) TokenLiteral() string { return ts.Token.Literal }
 
+// MovementStatement is a Poryscript movement statement. Movement statements represent
+// data for the applymovement command.
+type MovementStatement struct {
+	Token            token.Token
+	Name             *Identifier
+	MovementCommands []string
+}
+
+func (ms *MovementStatement) statementNode() {}
+
+// TokenLiteral returns a string representation of the movement statement.
+func (ms *MovementStatement) TokenLiteral() string { return ms.Token.Literal }
+
 // BooleanExpression is a part of a boolean expression.
 type BooleanExpression interface {
 	booleanExpressionNode()

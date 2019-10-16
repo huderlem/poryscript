@@ -58,6 +58,8 @@ func (l *Lexer) NextToken() token.Token {
 	}
 
 	switch l.ch {
+	case '*':
+		tok = newToken(token.MUL, l.ch, l.lineNumber)
 	case '=':
 		if l.peekChar() == '=' {
 			ch := l.ch

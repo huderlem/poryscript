@@ -35,6 +35,8 @@ func TestNextToken(t *testing.T) {
 		while
 		defeated
 		text
+		movement
+		*
 		format
 		("Hello\n"
 		"I'm glad to see$")
@@ -115,6 +117,8 @@ func TestNextToken(t *testing.T) {
 		{token.WHILE, "while"},
 		{token.DEFEATED, "defeated"},
 		{token.TEXT, "text"},
+		{token.MOVEMENT, "movement"},
+		{token.MUL, "*"},
 		{token.FORMAT, "format"},
 		{token.LPAREN, "("},
 		{token.STRING, "Hello\\n\nI'm glad to see$"},

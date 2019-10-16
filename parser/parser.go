@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/huderlem/poryscript/ast"
@@ -153,6 +154,12 @@ func (p *Parser) parseTopLevelStatement() (ast.Statement, error) {
 		return statement, nil
 	case token.TEXT:
 		statement, err := p.parseTextStatement()
+		if err != nil {
+			return nil, err
+		}
+		return statement, nil
+	case token.MOVEMENT:
+		statement, err := p.parseMovementStatement()
 		if err != nil {
 			return nil, err
 		}
@@ -383,6 +390,60 @@ func (p *Parser) parseTextStatement() (*ast.TextStatement, error) {
 	if err := p.expectPeek(token.RBRACE); err != nil {
 		return nil, fmt.Errorf("line %d: expected closing curly brace for text. Got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
 	}
+	return statement, nil
+}
+
+func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
+	statement := &ast.MovementStatement{
+		Token:            p.curToken,
+		MovementCommands: []string{},
+	}
+	if err := p.expectPeek(token.IDENT); err != nil {
+		return nil, fmt.Errorf("line %d: missing name for movement statement", p.curToken.LineNumber)
+	}
+
+	statement.Name = &ast.Identifier{
+		Token: p.curToken,
+		Value: p.curToken.Literal,
+	}
+
+	if err := p.expectPeek(token.LBRACE); err != nil {
+		return nil, fmt.Errorf("line %d: missing opening curly brace for movement '%s'", p.peekToken.LineNumber, statement.Name.Value)
+	}
+	p.nextToken()
+
+	for p.curToken.Type != token.RBRACE {
+		if p.curToken.Type != token.IDENT {
+			return nil, fmt.Errorf("line %d: expected movement command, but got '%s' instead", p.curToken.LineNumber, p.curToken.Literal)
+		}
+		moveCommand := p.curToken.Literal
+		p.nextToken()
+		if p.curToken.Type == token.MUL {
+			p.nextToken()
+			if p.curToken.Type != token.INT {
+				return nil, fmt.Errorf("line %d: expected mulplier number for movement command, but got '%s' instead", p.curToken.LineNumber, p.curToken.Literal)
+			}
+			num, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+			if err != nil {
+				return nil, fmt.Errorf("line %d: invalid movement mulplier integer '%s': %s", p.curToken.LineNumber, p.curToken.Literal, err.Error())
+			}
+			if num <= 0 {
+				return nil, fmt.Errorf("line %d: movement mulplier must be a positive integer, but got '%s' instead", p.curToken.LineNumber, p.curToken.Literal)
+			}
+			if num > 9999 {
+				return nil, fmt.Errorf("line %d: movement mulplier '%s' is too large. Maximum is 9999", p.curToken.LineNumber, p.curToken.Literal)
+			}
+			var i int64
+			for i = 0; i < num; i++ {
+				statement.MovementCommands = append(statement.MovementCommands, moveCommand)
+			}
+
+			p.nextToken()
+		} else {
+			statement.MovementCommands = append(statement.MovementCommands, moveCommand)
+		}
+	}
+
 	return statement, nil
 }
 

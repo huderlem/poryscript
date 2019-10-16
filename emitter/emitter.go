@@ -59,7 +59,14 @@ func (e *Emitter) Emit() (string, error) {
 			continue
 		}
 
-		return "", fmt.Errorf("could not emit top-level statement '%q' because it is not recognized", stmt.TokenLiteral())
+		movementStmt, ok := stmt.(*ast.MovementStatement)
+		if ok {
+			sb.WriteString(emitMovementStatement(movementStmt))
+			i++
+			continue
+		}
+
+		return "", fmt.Errorf("could not emit unrecognized top-level statement '%s'", stmt.TokenLiteral())
 	}
 
 	for j, text := range e.program.Texts {
@@ -584,5 +591,19 @@ func emitText(text ast.Text) string {
 func emitRawStatement(rawStmt *ast.RawStatement) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s\n", rawStmt.Value))
+	return sb.String()
+}
+
+func emitMovementStatement(movementStmt *ast.MovementStatement) string {
+	terminator := "step_end"
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s:\n", movementStmt.Name.Value))
+	for _, cmd := range movementStmt.MovementCommands {
+		sb.WriteString(fmt.Sprintf("\t%s\n", cmd))
+		if cmd == terminator {
+			return sb.String()
+		}
+	}
+	sb.WriteString(fmt.Sprintf("\t%s\n", terminator))
 	return sb.String()
 }
