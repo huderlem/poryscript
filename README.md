@@ -274,7 +274,41 @@ Becomes:
 ```
 The font widths configuration JSON file informs Poryscript how many pixels wide each character in the message is. Different fonts have different character widths. For convenience, Poryscript comes with `font_widths.json`, which contains the configuration for pokeemerald's `1_latin` font. More fonts can easily be added to this file by the user by creating anothing font id node under the `fonts` key in `font_widths.json`.
 
-Use `raw` to include raw bytecode script. Anything in a `raw` statement will be directly included into the compiled script. This is useful for defining data or long text.
+Use `movement` statements to conveniently define movement data that is typically used with the `applymovement` command. `*` can be used as a shortcut to repeat a single command many times. Data defined with `movement` is created with local scope, not global.
+```
+script MyScript {
+    lock
+    applymovement(2, MyMovement)
+    waitmovement(0)
+    release
+}
+movement MyMovement {
+    walk_left
+    walk_up * 5
+    face_down
+}
+```
+Becomes:
+```
+MyScript::
+	lock
+	applymovement 2, MyMovement
+	waitmovement 0
+	release
+	return
+
+MyMovement:
+	walk_left
+	walk_up
+	walk_up
+	walk_up
+	walk_up
+	walk_up
+	face_down
+	step_end
+```
+
+Use `raw` to include raw bytecode script. Anything in a `raw` statement will be directly included into the compiled script. This is useful for defining custom data, or data types not supported in regular Poryscript.
 ```
 raw `
 TestMap_MapScripts::
