@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fix harmless bug where `format()` could result in empty `.string ""` lines in the compiled out.
 - Fix bug where `end` command was incorrectly being replaced with a `return`.
+- Fix bug where negative numbers were not parsed correctly.
 
 ## [2.4.0] - 2019-10-13
 ### Added
