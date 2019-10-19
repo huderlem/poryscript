@@ -29,6 +29,7 @@ View the [Changelog](https://github.com/huderlem/poryscript/blob/master/CHANGELO
   * [`mapscripts` Statement](#mapscripts-statement)
   * [`raw` Statement](#raw-statement)
   * [Comments](#comments)
+  * [Scope Modifiers](#scope-modifiers)
   * [Optimization](#optimization)
 - [Local Development](#local-development)
   * [Building from Source](#building-from-source)
@@ -437,6 +438,34 @@ script MyScript {
     ...
 }
 ```
+
+## Scope Modifiers
+To control whether a script should be global or local, a scope modifier can be specified. This is supported for `script`, `text`, `movement`, and `mapscripts`. In this context, "global" means that the label will be defined with two colons `::`.  Local scopes means one colon `:`.
+```
+script(global) MyGlobalScript {
+    ...
+}
+script(local) MyLocalScript {
+    ...
+}
+```
+Becomes:
+```
+MyGlobalScript::
+    ...
+
+MyLocalScript:
+    ...
+```
+
+The top-level statements have different default scopes. They are as follows:
+
+| Type | Default Scope |
+| ---- | --------------- |
+| `script` | Global |
+| `text` | Global |
+| `movement` | Local |
+| `mapscripts` | Global |
 
 ## Optimization
 By default, Poryscript produces optimized output. It attempts to minimize the number of `goto` commands and unnecessary script labels. To disable optimizations, pass the `-optimize=false` option to `poryscript`.
