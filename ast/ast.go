@@ -44,6 +44,7 @@ type ScriptStatement struct {
 	Token token.Token
 	Name  *Identifier
 	Body  *BlockStatement
+	Scope token.Type
 }
 
 func (ss *ScriptStatement) statementNode() {}
@@ -105,6 +106,7 @@ type TextStatement struct {
 	Token token.Token
 	Name  *Identifier
 	Value string
+	Scope token.Type
 }
 
 func (ts *TextStatement) statementNode() {}
@@ -118,6 +120,7 @@ type MovementStatement struct {
 	Token            token.Token
 	Name             *Identifier
 	MovementCommands []string
+	Scope            token.Type
 }
 
 func (ms *MovementStatement) statementNode() {}
@@ -270,6 +273,7 @@ type MapScriptsStatement struct {
 	Name            *Identifier
 	MapScripts      []MapScript
 	TableMapScripts []TableMapScript
+	Scope           token.Type
 }
 
 func (ms *MapScriptsStatement) statementNode() {}

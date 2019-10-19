@@ -93,7 +93,11 @@ func (e *Emitter) Emit() (string, error) {
 
 func (e *Emitter) emitMapScriptStatement(mapScriptStmt *ast.MapScriptsStatement) (string, error) {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s::\n", mapScriptStmt.Name.Value))
+	if mapScriptStmt.Scope == token.GLOBAL {
+		sb.WriteString(fmt.Sprintf("%s::\n", mapScriptStmt.Name.Value))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s:\n", mapScriptStmt.Name.Value))
+	}
 	for _, mapScript := range mapScriptStmt.MapScripts {
 		sb.WriteString(fmt.Sprintf("\tmap_script %s, %s\n", mapScript.Type, mapScript.Name))
 	}
@@ -269,7 +273,7 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, 
 		}
 	}
 
-	return e.renderChunks(finalChunks, scriptStmt.Name.Value)
+	return e.renderChunks(finalChunks, scriptStmt.Name.Value, scriptStmt.Scope == token.GLOBAL)
 }
 
 func createConditionDestination(destinationChunk int, operatorExpression *ast.OperatorExpression) *conditionDestination {
@@ -522,7 +526,7 @@ func createSwitchStatementChunks(stmt *ast.SwitchStatement, statementIndex int, 
 	return remainingChunks, &jump{destChunkID: switchChunk.id}, returnID
 }
 
-func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string) (string, error) {
+func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string, isGlobal bool) (string, error) {
 	// Get sorted list of final chunk ids.
 	var chunkIDs []int
 	if e.optimize {
@@ -570,7 +574,7 @@ func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string) (string
 	for _, chunkID := range chunkIDs {
 		chunk := chunks[chunkID]
 		if chunkID == 0 || jumpChunks[chunkID] {
-			chunk.renderLabel(scriptName, &sb)
+			chunk.renderLabel(scriptName, isGlobal, &sb)
 		}
 		sb.WriteString(chunkBodies[chunkID].String())
 	}
@@ -648,7 +652,11 @@ func emitRawStatement(rawStmt *ast.RawStatement) string {
 func emitMovementStatement(movementStmt *ast.MovementStatement) string {
 	terminator := "step_end"
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s:\n", movementStmt.Name.Value))
+	if movementStmt.Scope == token.GLOBAL {
+		sb.WriteString(fmt.Sprintf("%s::\n", movementStmt.Name.Value))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s:\n", movementStmt.Name.Value))
+	}
 	for _, cmd := range movementStmt.MovementCommands {
 		sb.WriteString(fmt.Sprintf("\t%s\n", cmd))
 		if cmd == terminator {

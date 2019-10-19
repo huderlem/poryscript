@@ -719,6 +719,70 @@ func testScriptedTableMapScriptEntry(t *testing.T, mapScriptEntry ast.TableMapSc
 	}
 }
 
+func TestScopeModifiers(t *testing.T) {
+	input := `
+script Script1 {}
+script(local) Script2 {}
+script(global) Script3 {}
+text Text1 {"test"}
+text(local) Text2 {"test"}
+text(global) Text3 {"test"}
+movement Movement1 {}
+movement(local) Movement2 {}
+movement(global) Movement3 {}
+mapscripts MapScripts1 {}
+mapscripts(local) MapScripts2 {}
+mapscripts(global) MapScripts3 {}
+`
+	l := lexer.New(input)
+	p := New(l, "")
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if len(program.TopLevelStatements) != 12 {
+		t.Fatalf("len(program.TopLevelStatements) != 12. Got '%d' instead.", len(program.TopLevelStatements))
+	}
+	expectedScopes := []token.Type{
+		token.GLOBAL,
+		token.LOCAL,
+		token.GLOBAL,
+		token.GLOBAL,
+		token.LOCAL,
+		token.GLOBAL,
+		token.LOCAL,
+		token.LOCAL,
+		token.GLOBAL,
+		token.GLOBAL,
+		token.LOCAL,
+		token.GLOBAL,
+	}
+	for i, expectedScope := range expectedScopes {
+		testScope(t, i, program.TopLevelStatements[i], expectedScope)
+	}
+}
+
+func testScope(t *testing.T, i int, statement ast.Statement, expectedScope token.Type) {
+	if script, ok := statement.(*ast.ScriptStatement); ok {
+		if script.Scope != expectedScope {
+			t.Errorf("%d: Expected script scope %s, but got %s", i, expectedScope, script.Scope)
+		}
+	} else if text, ok := statement.(*ast.TextStatement); ok {
+		if text.Scope != expectedScope {
+			t.Errorf("%d: Expected text scope %s, but got %s", i, expectedScope, text.Scope)
+		}
+	} else if movement, ok := statement.(*ast.MovementStatement); ok {
+		if movement.Scope != expectedScope {
+			t.Errorf("%d: Expected movement scope %s, but got %s", i, expectedScope, movement.Scope)
+		}
+	} else if mapscripts, ok := statement.(*ast.MapScriptsStatement); ok {
+		if mapscripts.Scope != expectedScope {
+			t.Errorf("%d: Expected mapscripts scope %s, but got %s", i, expectedScope, mapscripts.Scope)
+		}
+	}
+}
+
 func TestErrors(t *testing.T) {
 	tests := []struct {
 		input         string
@@ -1369,6 +1433,31 @@ mapscripts MyMapScripts {
 	]
 }`,
 			expectedError: "line 5: missing closing parenthesis for command 'msgbox'",
+		},
+		{
+			input: `
+script(asdf) MyScript {}`,
+			expectedError: "line 2: scope modifier must be 'global' or 'local', but got 'asdf' instead",
+		},
+		{
+			input: `
+script(local MyScript {}`,
+			expectedError: "line 2: missing ')' after scope modifier. Got 'MyScript' instead",
+		},
+		{
+			input: `
+text(local MyText {"test"}`,
+			expectedError: "line 2: missing ')' after scope modifier. Got 'MyText' instead",
+		},
+		{
+			input: `
+movement() MyMovement {walk_left}`,
+			expectedError: "line 2: scope modifier must be 'global' or 'local', but got ')' instead",
+		},
+		{
+			input: `
+mapscripts() MyMapScripts {}`,
+			expectedError: "line 2: scope modifier must be 'global' or 'local', but got ')' instead",
 		},
 	}
 

@@ -17,10 +17,14 @@ type chunk struct {
 	branchBehavior   brancher
 }
 
-func (c *chunk) renderLabel(scriptName string, sb *strings.Builder) {
+func (c *chunk) renderLabel(scriptName string, isGlobal bool, sb *strings.Builder) {
 	if c.id == 0 {
-		// Main script entrypoint, so it gets a global label.
-		sb.WriteString(fmt.Sprintf("%s::\n", scriptName))
+		// Main script entrypoint label.
+		if isGlobal {
+			sb.WriteString(fmt.Sprintf("%s::\n", scriptName))
+		} else {
+			sb.WriteString(fmt.Sprintf("%s:\n", scriptName))
+		}
 	} else {
 		sb.WriteString(fmt.Sprintf("%s_%d:\n", scriptName, c.id))
 	}

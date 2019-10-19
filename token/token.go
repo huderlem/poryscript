@@ -66,6 +66,8 @@ const (
 	SWITCH     = "SWITCH"
 	CASE       = "CASE"
 	DEFAULT    = "DEFAULT"
+	GLOBAL     = "GLOBAL"
+	LOCAL      = "LOCAL"
 )
 
 // If statement comparison types
@@ -98,6 +100,8 @@ var keywords = map[string]Type{
 	"switch":     SWITCH,
 	"case":       CASE,
 	"default":    DEFAULT,
+	"global":     GLOBAL,
+	"local":      LOCAL,
 }
 
 // GetIdentType looks up the token type for the given identifier

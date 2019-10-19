@@ -29,7 +29,7 @@ script Route29_EventScript_WaitingMan {
 	release
 }
 
-script Route29_EventScript_Dude {
+script(local) Route29_EventScript_Dude {
 	lock
 	faceplayer
 	if (flag(FLAG_LEARNED_TO_CATCH_POKEMON)) {
@@ -109,7 +109,7 @@ Route29_EventScript_WaitingMan_8:
 	goto Route29_EventScript_WaitingMan_5
 
 
-Route29_EventScript_Dude::
+Route29_EventScript_Dude:
 	lock
 	faceplayer
 	goto Route29_EventScript_Dude_6
@@ -208,7 +208,7 @@ Route29_EventScript_WaitingMan_7:
 	goto Route29_EventScript_WaitingMan_6
 
 
-Route29_EventScript_Dude::
+Route29_EventScript_Dude:
 	lock
 	faceplayer
 	goto_if_set FLAG_LEARNED_TO_CATCH_POKEMON, Route29_EventScript_Dude_2
@@ -287,7 +287,7 @@ Route29_EventScript_Dude_Text_1:
 
 func TestEmitDoWhile(t *testing.T) {
 	input := `
-script Route29_EventScript_WaitingMan {
+script(global) Route29_EventScript_WaitingMan {
 	lock
 	faceplayer
 	# Force player to answer "Yes" to NPC question.
@@ -893,7 +893,7 @@ text MyText {
 	"Hi, I'm first$"
 }
 
-text MyText2 { "Bye!" }
+text(local) MyText2 { "Bye!" }
 `
 
 	expectedUnoptimized := `TextFormatLineBreaks::
@@ -917,7 +917,7 @@ MyScript_Text_0:
 MyText::
 	.string "Hi, I'm first$"
 
-MyText2::
+MyText2:
 	.string "Bye!$"
 `
 
@@ -942,7 +942,7 @@ MyScript_Text_0:
 MyText::
 	.string "Hi, I'm first$"
 
-MyText2::
+MyText2:
 	.string "Bye!$"
 `
 	l := lexer.New(input)
@@ -1078,7 +1078,7 @@ script PetalburgCity_MapScripts_OnResume {
 	map_script MAP_SCRIPT_ON_FRAME_TABLE, PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE
 	.byte 0
 
-PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION::
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION:
 	random 4
 	switch VAR_RESULT
 	case 0, PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_2
@@ -1109,7 +1109,7 @@ PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE:
 	map_script_2 VAR_TEMP_0, 2, PetalburgCity_MapScripts_OnResume
 	.2byte 0
 
-PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0::
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0:
 	lockall
 	applymovement EVENT_OBJ_ID_PLAYER, MyMovement0
 	waitmovement 0
@@ -1117,7 +1117,7 @@ PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0::
 	releaseall
 	return
 
-PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1::
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1:
 	lock
 	msgbox PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0
 	setvar VAR_TEMP_0, 2
@@ -1160,7 +1160,7 @@ PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	map_script MAP_SCRIPT_ON_FRAME_TABLE, PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE
 	.byte 0
 
-PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION::
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION:
 	random 4
 	switch VAR_RESULT
 	case 0, PetalburgCity_MapScripts_MAP_SCRIPT_ON_TRANSITION_2
@@ -1191,7 +1191,7 @@ PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE:
 	map_script_2 VAR_TEMP_0, 2, PetalburgCity_MapScripts_OnResume
 	.2byte 0
 
-PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0::
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0:
 	lockall
 	applymovement EVENT_OBJ_ID_PLAYER, MyMovement0
 	waitmovement 0
@@ -1199,7 +1199,7 @@ PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0::
 	releaseall
 	return
 
-PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1::
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1:
 	lock
 	msgbox PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0
 	setvar VAR_TEMP_0, 2
@@ -1273,12 +1273,12 @@ movement MovementWalk {
 	step_end
 }
 
-movement MovementWalk2 {
+movement(local) MovementWalk2 {
 	run_left
 	run_right * 2
 }
 
-movement MovementWalk3 {
+movement(global) MovementWalk3 {
 	run_left * 2
 	step_end
 	run_right * 5
@@ -1315,7 +1315,7 @@ MovementWalk2:
 	run_right
 	step_end
 
-MovementWalk3:
+MovementWalk3::
 	run_left
 	run_left
 	step_end
@@ -1354,7 +1354,7 @@ MovementWalk2:
 	run_right
 	step_end
 
-MovementWalk3:
+MovementWalk3::
 	run_left
 	run_left
 	step_end

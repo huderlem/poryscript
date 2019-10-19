@@ -124,7 +124,7 @@ func (p *Parser) ParseProgram() (*ast.Program, error) {
 		program.Texts = append(program.Texts, ast.Text{
 			Value:    textStmt.Value,
 			Name:     textStmt.Name.Value,
-			IsGlobal: true,
+			IsGlobal: textStmt.Scope == token.GLOBAL,
 		})
 	}
 	names := make(map[string]struct{}, 0)
@@ -175,8 +175,31 @@ func (p *Parser) parseTopLevelStatement() (ast.Statement, error) {
 	return nil, fmt.Errorf("line %d: could not parse top-level statement for '%s'", p.curToken.LineNumber, p.curToken.Literal)
 }
 
+func (p *Parser) parseScopeModifier(defaultScope token.Type) (token.Type, error) {
+	var scope = defaultScope
+	if !p.peekTokenIs(token.LPAREN) {
+		return scope, nil
+	}
+	p.nextToken()
+	if !p.peekTokenIs(token.GLOBAL) && !p.peekTokenIs(token.LOCAL) {
+		return scope, fmt.Errorf("line %d: scope modifier must be 'global' or 'local', but got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+	}
+	p.nextToken()
+	if !p.peekTokenIs(token.RPAREN) {
+		return scope, fmt.Errorf("line %d: missing ')' after scope modifier. Got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+	}
+	scope = p.curToken.Type
+	p.nextToken()
+	return scope, nil
+}
+
 func (p *Parser) parseScriptStatement() (*ast.ScriptStatement, error) {
 	statement := &ast.ScriptStatement{Token: p.curToken}
+	scope, err := p.parseScopeModifier(token.GLOBAL)
+	if err != nil {
+		return nil, err
+	}
+	statement.Scope = scope
 	if err := p.expectPeek(token.IDENT); err != nil {
 		return nil, fmt.Errorf("line %d: missing name for script", p.curToken.LineNumber)
 	}
@@ -363,6 +386,11 @@ func (p *Parser) parseTextStatement() (*ast.TextStatement, error) {
 	statement := &ast.TextStatement{
 		Token: p.curToken,
 	}
+	scope, err := p.parseScopeModifier(token.GLOBAL)
+	if err != nil {
+		return nil, err
+	}
+	statement.Scope = scope
 	if err := p.expectPeek(token.IDENT); err != nil {
 		return nil, fmt.Errorf("line %d: missing name for text statement", p.curToken.LineNumber)
 	}
@@ -404,6 +432,11 @@ func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
 		Token:            p.curToken,
 		MovementCommands: []string{},
 	}
+	scope, err := p.parseScopeModifier(token.LOCAL)
+	if err != nil {
+		return nil, err
+	}
+	statement.Scope = scope
 	if err := p.expectPeek(token.IDENT); err != nil {
 		return nil, fmt.Errorf("line %d: missing name for movement statement", p.curToken.LineNumber)
 	}
@@ -454,6 +487,10 @@ func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
 }
 
 func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, error) {
+	scope, err := p.parseScopeModifier(token.GLOBAL)
+	if err != nil {
+		return nil, err
+	}
 	if err := p.expectPeek(token.IDENT); err != nil {
 		return nil, fmt.Errorf("line %d: missing name for mapscripts statement", p.curToken.LineNumber)
 	}
@@ -466,6 +503,7 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, error) {
 		},
 		MapScripts:      []ast.MapScript{},
 		TableMapScripts: []ast.TableMapScript{},
+		Scope:           scope,
 	}
 
 	if err := p.expectPeek(token.LBRACE); err != nil {
@@ -503,7 +541,8 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, error) {
 					Name: &ast.Identifier{
 						Value: scriptName,
 					},
-					Body: blockStmt,
+					Body:  blockStmt,
+					Scope: token.LOCAL,
 				},
 			})
 			p.nextToken()
@@ -572,7 +611,8 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, error) {
 							Name: &ast.Identifier{
 								Value: scriptName,
 							},
-							Body: blockStmt,
+							Body:  blockStmt,
+							Scope: token.LOCAL,
 						},
 					})
 					p.nextToken()

@@ -7,7 +7,7 @@ import (
 )
 
 func TestNextToken(t *testing.T) {
-	input := `script BugContestOfficer_EnterContest_23
+	input := `script(local) BugContestOfficer_EnterContest_23
 {
 	if (var(VAR_BUG_CONTEST_PRIZE) != ITEM_NONE) {
 		giveitem_std(VAR_BUG_CONTEST_PRIZE)
@@ -27,6 +27,7 @@ func TestNextToken(t *testing.T) {
 		|||
 		do
 		break
+		global
 		continue
 		[]
 		switch
@@ -52,6 +53,9 @@ func TestNextToken(t *testing.T) {
 		expectedLiteral string
 	}{
 		{token.SCRIPT, "script"},
+		{token.LPAREN, "("},
+		{token.LOCAL, "local"},
+		{token.RPAREN, ")"},
 		{token.IDENT, "BugContestOfficer_EnterContest_23"},
 		{token.LBRACE, "{"},
 		{token.IF, "if"},
@@ -110,6 +114,7 @@ func TestNextToken(t *testing.T) {
 		{token.ILLEGAL, "|"},
 		{token.DO, "do"},
 		{token.BREAK, "break"},
+		{token.GLOBAL, "global"},
 		{token.CONTINUE, "continue"},
 		{token.LBRACKET, "["},
 		{token.RBRACKET, "]"},
