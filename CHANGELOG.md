@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+Nothing, yet.
+
+## [2.6.0] - 2019-10-26
 ### Added
 - Add support for scope modifiers `global` and `local` for `script`, `text`, `movement`, and `mapscripts` statements. This will force labels for be generated with `::` (global) or `:` (local) in the compiled output script.
 
@@ -75,7 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/poryscript/compare/2.5.0...HEAD
+[Unreleased]: https://github.com/huderlem/poryscript/compare/2.6.0...HEAD
+[2.6.0]: https://github.com/huderlem/poryscript/compare/2.5.0...2.6.0
 [2.5.0]: https://github.com/huderlem/poryscript/compare/2.4.0...2.5.0
 [2.4.0]: https://github.com/huderlem/poryscript/compare/2.3.0...2.4.0
 [2.3.0]: https://github.com/huderlem/poryscript/compare/2.2.0...2.3.0
