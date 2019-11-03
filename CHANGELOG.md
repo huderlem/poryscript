@@ -5,7 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-Nothing, yet.
+### Added
+- Add support for compile-time switches using the `poryswitch` statement. This help with language difference or game version differences, for example.
 
 ## [2.6.0] - 2019-10-26
 ### Added
