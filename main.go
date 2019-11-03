@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/huderlem/poryscript/emitter"
 	"github.com/huderlem/poryscript/lexer"
@@ -15,11 +16,27 @@ import (
 
 const version = "2.6.0"
 
+type mapOption map[string]string
+
+func (opt mapOption) String() string {
+	return ""
+}
+
+func (opt mapOption) Set(value string) error {
+	result := strings.SplitN(value, "=", 2)
+	if len(result) != 2 {
+		return fmt.Errorf("expected key-value option to be separate by '=', but got '%s' instead", value)
+	}
+	opt[result[0]] = result[1]
+	return nil
+}
+
 type options struct {
 	inputFilepath      string
 	outputFilepath     string
 	fontWidthsFilepath string
 	optimize           bool
+	compileSwitches    map[string]string
 }
 
 func parseOptions() options {
@@ -29,6 +46,8 @@ func parseOptions() options {
 	outputPtr := flag.String("o", "", "output script file (leave empty to write to standard output)")
 	fontsPtr := flag.String("fw", "font_widths.json", "font widths config JSON file")
 	optimizePtr := flag.Bool("optimize", true, "optimize compiled script size (To disable, use '-optimize=false')")
+	compileSwitches := make(mapOption)
+	flag.Var(compileSwitches, "s", "set a compile-time switch. Multiple -s options can be set. Example: -s VERSION=RUBY -s LANGUAGE=GERMAN")
 	flag.Parse()
 
 	if *helpPtr == true {
@@ -46,6 +65,7 @@ func parseOptions() options {
 		outputFilepath:     *outputPtr,
 		fontWidthsFilepath: *fontsPtr,
 		optimize:           *optimizePtr,
+		compileSwitches:    compileSwitches,
 	}
 }
 
@@ -86,7 +106,7 @@ func main() {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
 	}
 
-	parser := parser.New(lexer.New(input), options.fontWidthsFilepath)
+	parser := parser.New(lexer.New(input), options.fontWidthsFilepath, options.compileSwitches)
 	program, err := parser.ParseProgram()
 	if err != nil {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())

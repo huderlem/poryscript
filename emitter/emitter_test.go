@@ -266,7 +266,7 @@ Route29_EventScript_Dude_Text_1:
 	.string "are easier to catch.$"
 `
 	l := lexer.New(input)
-	p := parser.New(l, "")
+	p := parser.New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -368,7 +368,7 @@ Route29_EventScript_WaitingMan_Text_1:
 	.string "...How about now?$"
 `
 	l := lexer.New(input)
-	p := parser.New(l, "")
+	p := parser.New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -495,7 +495,7 @@ MyScript_13:
 `
 
 	l := lexer.New(input)
-	p := parser.New(l, "")
+	p := parser.New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -670,7 +670,7 @@ MyScript_21:
 
 `
 	l := lexer.New(input)
-	p := parser.New(l, "")
+	p := parser.New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -858,7 +858,7 @@ MyScript_18:
 
 `
 	l := lexer.New(input)
-	p := parser.New(l, "")
+	p := parser.New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -946,7 +946,7 @@ MyText2:
 	.string "Bye!$"
 `
 	l := lexer.New(input)
-	p := parser.New(l, "../font_widths.json")
+	p := parser.New(l, "../font_widths.json", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1006,7 +1006,7 @@ ScripText_2:
 
 `
 	l := lexer.New(input)
-	p := parser.New(l, "../font_widths.json")
+	p := parser.New(l, "../font_widths.json", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1231,7 +1231,7 @@ PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	.string "map scripts much easier.$"
 `
 	l := lexer.New(input)
-	p := parser.New(l, "../font_widths.json")
+	p := parser.New(l, "../font_widths.json", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1363,7 +1363,7 @@ ScriptWithMovement_Text_0:
 	.string "Let's go for a walk.$"
 `
 	l := lexer.New(input)
-	p := parser.New(l, "")
+	p := parser.New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1379,6 +1379,336 @@ ScriptWithMovement_Text_0:
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+	}
+}
+
+func TestEmitPoryswitchStatements(t *testing.T) {
+	input := `
+mapscripts MapScripts {
+	MAP_SCRIPT_ON_FRAME_TABLE [
+		VAR_TEMP_0, 0: MyNewCity_OnFrame_0
+		VAR_TEMP_0, 1 {
+			lock
+			msgbox("This script is inlined.")
+			poryswitch(GAME_VERSION) {
+				RUBY {
+					setvar(VAR_TEMP_0, 2)
+					msgbox("ruby")
+					msgbox("ruby 2")
+				}
+				SAPPHIRE {
+					setvar(VAR_TEMP_0, 5)
+					msgbox("sapphire")
+				}
+				_:
+			}
+			release
+		}
+	]
+}
+
+script MyScript {
+	lock
+	poryswitch(GAME_VERSION) {
+		RUBY: msgbox("This is Ruby")
+		SAPPHIRE {
+			if (flag(FLAG_TEST)) {
+				poryswitch(LANG) {
+					DE: msgbox("Das ist Sapphire")
+					EN {
+						msgbox(format("This is Sapphire"))
+					}
+				}
+			}
+			msgbox("Another sapphire message")
+		}
+		_:
+	}
+	release
+}
+
+text MyText {
+	poryswitch(LANG) {
+		DE: "Deutsch"
+		EN { "English" }
+		_: "fallback"
+	}
+}
+
+movement MyMovement {
+	face_up
+	poryswitch(GAME_VERSION) {
+		RUBY: face_ruby
+		SAPPHIRE: face_sapphire * 2
+		_: face_fallback
+	}
+	face_down
+}
+`
+
+	expectedRubyDe := `MapScripts::
+	map_script MAP_SCRIPT_ON_FRAME_TABLE, MapScripts_MAP_SCRIPT_ON_FRAME_TABLE
+	.byte 0
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE:
+	map_script_2 VAR_TEMP_0, 0, MyNewCity_OnFrame_0
+	map_script_2 VAR_TEMP_0, 1, MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1
+	.2byte 0
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1:
+	lock
+	msgbox MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0
+	setvar VAR_TEMP_0, 2
+	msgbox MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_1
+	msgbox MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_2
+	release
+	return
+
+
+MyScript::
+	lock
+	msgbox MyScript_Text_0
+	release
+	return
+
+
+MyMovement:
+	face_up
+	face_ruby
+	face_down
+	step_end
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
+	.string "This script is inlined.$"
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_1:
+	.string "ruby$"
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_2:
+	.string "ruby 2$"
+
+MyScript_Text_0:
+	.string "This is Ruby$"
+
+MyText::
+	.string "Deutsch$"
+`
+
+	expectedRubyEn := `MapScripts::
+	map_script MAP_SCRIPT_ON_FRAME_TABLE, MapScripts_MAP_SCRIPT_ON_FRAME_TABLE
+	.byte 0
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE:
+	map_script_2 VAR_TEMP_0, 0, MyNewCity_OnFrame_0
+	map_script_2 VAR_TEMP_0, 1, MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1
+	.2byte 0
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1:
+	lock
+	msgbox MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0
+	setvar VAR_TEMP_0, 2
+	msgbox MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_1
+	msgbox MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_2
+	release
+	return
+
+
+MyScript::
+	lock
+	msgbox MyScript_Text_0
+	release
+	return
+
+
+MyMovement:
+	face_up
+	face_ruby
+	face_down
+	step_end
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
+	.string "This script is inlined.$"
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_1:
+	.string "ruby$"
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_2:
+	.string "ruby 2$"
+
+MyScript_Text_0:
+	.string "This is Ruby$"
+
+MyText::
+	.string "English$"
+`
+
+	expectedSapphireDe := `MapScripts::
+	map_script MAP_SCRIPT_ON_FRAME_TABLE, MapScripts_MAP_SCRIPT_ON_FRAME_TABLE
+	.byte 0
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE:
+	map_script_2 VAR_TEMP_0, 0, MyNewCity_OnFrame_0
+	map_script_2 VAR_TEMP_0, 1, MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1
+	.2byte 0
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1:
+	lock
+	msgbox MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0
+	setvar VAR_TEMP_0, 5
+	msgbox MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_1
+	release
+	return
+
+
+MyScript::
+	lock
+	goto_if_set FLAG_TEST, MyScript_2
+MyScript_1:
+	msgbox MyScript_Text_1
+	release
+	return
+
+MyScript_2:
+	msgbox MyScript_Text_0
+	goto MyScript_1
+
+
+MyMovement:
+	face_up
+	face_sapphire
+	face_sapphire
+	face_down
+	step_end
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
+	.string "This script is inlined.$"
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_1:
+	.string "sapphire$"
+
+MyScript_Text_0:
+	.string "Das ist Sapphire$"
+
+MyScript_Text_1:
+	.string "Another sapphire message$"
+
+MyText::
+	.string "Deutsch$"
+`
+
+	expectedSapphireEn := `MapScripts::
+	map_script MAP_SCRIPT_ON_FRAME_TABLE, MapScripts_MAP_SCRIPT_ON_FRAME_TABLE
+	.byte 0
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE:
+	map_script_2 VAR_TEMP_0, 0, MyNewCity_OnFrame_0
+	map_script_2 VAR_TEMP_0, 1, MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1
+	.2byte 0
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1:
+	lock
+	msgbox MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0
+	setvar VAR_TEMP_0, 5
+	msgbox MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_1
+	release
+	return
+
+
+MyScript::
+	lock
+	goto_if_set FLAG_TEST, MyScript_2
+MyScript_1:
+	msgbox MyScript_Text_1
+	release
+	return
+
+MyScript_2:
+	msgbox MyScript_Text_0
+	goto MyScript_1
+
+
+MyMovement:
+	face_up
+	face_sapphire
+	face_sapphire
+	face_down
+	step_end
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
+	.string "This script is inlined.$"
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_1:
+	.string "sapphire$"
+
+MyScript_Text_0:
+	.string "This is Sapphire$"
+
+MyScript_Text_1:
+	.string "Another sapphire message$"
+
+MyText::
+	.string "English$"
+`
+
+	expectedNoneEn := `MapScripts::
+	map_script MAP_SCRIPT_ON_FRAME_TABLE, MapScripts_MAP_SCRIPT_ON_FRAME_TABLE
+	.byte 0
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE:
+	map_script_2 VAR_TEMP_0, 0, MyNewCity_OnFrame_0
+	map_script_2 VAR_TEMP_0, 1, MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1
+	.2byte 0
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1:
+	lock
+	msgbox MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0
+	release
+	return
+
+
+MyScript::
+	lock
+	release
+	return
+
+
+MyMovement:
+	face_up
+	face_fallback
+	face_down
+	step_end
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
+	.string "This script is inlined.$"
+
+MyText::
+	.string "English$"
+`
+
+	tests := []struct {
+		switches map[string]string
+		text     string
+	}{
+		{map[string]string{"GAME_VERSION": "RUBY", "LANG": "DE"}, expectedRubyDe},
+		{map[string]string{"GAME_VERSION": "RUBY", "LANG": "EN"}, expectedRubyEn},
+		{map[string]string{"GAME_VERSION": "SAPPHIRE", "LANG": "DE"}, expectedSapphireDe},
+		{map[string]string{"GAME_VERSION": "SAPPHIRE", "LANG": "EN"}, expectedSapphireEn},
+		{map[string]string{"GAME_VERSION": "FOO", "LANG": "EN"}, expectedNoneEn},
+	}
+
+	for i, tt := range tests {
+		l := lexer.New(input)
+		p := parser.New(l, "../font_widths.json", tt.switches)
+		program, err := p.ParseProgram()
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+		e := New(program, true)
+		result, _ := e.Emit()
+		if result != tt.text {
+			t.Errorf("Mismatching poryswitch emit %d -- Expected=%q, Got=%q", i, tt.text, result)
+		}
+
 	}
 }
 
@@ -1456,7 +1786,7 @@ Route29_Text_Dude_CatchingTutRejected:
 	b.Run("unoptimized", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			l := lexer.New(input)
-			p := parser.New(l, "")
+			p := parser.New(l, "", nil)
 			program, _ := p.ParseProgram()
 			e := New(program, false)
 			result, _ = e.Emit()
@@ -1467,7 +1797,7 @@ Route29_Text_Dude_CatchingTutRejected:
 	b.Run("optimized", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			l := lexer.New(input)
-			p := parser.New(l, "")
+			p := parser.New(l, "", nil)
 			program, _ := p.ParseProgram()
 			e := New(program, true)
 			result, _ = e.Emit()

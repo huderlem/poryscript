@@ -68,6 +68,7 @@ const (
 	DEFAULT    = "DEFAULT"
 	GLOBAL     = "GLOBAL"
 	LOCAL      = "LOCAL"
+	PORYSWITCH = "PORYSWITCH"
 )
 
 // If statement comparison types
@@ -102,6 +103,7 @@ var keywords = map[string]Type{
 	"default":    DEFAULT,
 	"global":     GLOBAL,
 	"local":      LOCAL,
+	"poryswitch": PORYSWITCH,
 }
 
 // GetIdentType looks up the token type for the given identifier

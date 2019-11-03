@@ -31,7 +31,7 @@ script MyScript3 {
 		}
 `
 	l := lexer.New(input)
-	p := New(l, "")
+	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -124,6 +124,136 @@ func testScriptStatement(t *testing.T, s ast.Statement, expectedName string, exp
 	return true
 }
 
+func TestPoryswitchStatements(t *testing.T) {
+	input := `
+script MyScript {
+	lock
+	poryswitch(GAME_VERSION) {
+		RUBY: foo
+		SAPPHIRE {
+			bar
+			poryswitch(LANG) {
+				DE {
+					de_command
+					de_command2
+				}
+				EN: en_command
+				_: fallback
+			}
+			baz
+		}
+	}
+	release
+}
+
+text MyText {
+	poryswitch(LANG) {
+		DE: "Das ist MAY's Haus."
+		_: format("formatted")
+		EN {
+			"Two\n"
+			"Lines"
+		}
+	}
+}
+
+movement MyMovement {
+	walk_up
+	poryswitch(GAME_VERSION) {
+		_: walk_default
+		RUBY: walk_ruby * 2
+		SAPPHIRE {
+			face_up
+			poryswitch(LANG) {
+				DE: face_de
+				_ { face_default * 2  }
+			}
+			face_down
+		}
+	}
+	walk_down
+}
+`
+	scriptTests := []struct {
+		switches map[string]string
+		commands []string
+	}{
+		{map[string]string{"GAME_VERSION": "RUBY", "LANG": "FR"}, []string{"lock", "foo", "release"}},
+		{map[string]string{"GAME_VERSION": "SAPPHIRE", "LANG": "DE"}, []string{"lock", "bar", "de_command", "de_command2", "baz", "release"}},
+		{map[string]string{"GAME_VERSION": "SAPPHIRE", "LANG": "BLAH"}, []string{"lock", "bar", "fallback", "baz", "release"}},
+	}
+
+	for _, tt := range scriptTests {
+		l := lexer.New(input)
+		p := New(l, "../font_widths.json", tt.switches)
+		program, err := p.ParseProgram()
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+		stmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
+		if len(stmt.Body.Statements) != len(tt.commands) {
+			t.Fatalf("Incorrect number of statements. Expected %d, got %d", len(tt.commands), len(stmt.Body.Statements))
+		}
+		for i, expectedCommand := range tt.commands {
+			command := stmt.Body.Statements[i].TokenLiteral()
+			if expectedCommand != command {
+				t.Fatalf("Incorrect statement %d. Expected %s, got %s", i, expectedCommand, command)
+			}
+		}
+	}
+
+	textTests := []struct {
+		switches map[string]string
+		text     string
+	}{
+		{map[string]string{"GAME_VERSION": "RUBY", "LANG": "DE"}, "Das ist MAY's Haus.$"},
+		{map[string]string{"GAME_VERSION": "SAPPHIRE", "LANG": "EN"}, "Two\\n\nLines$"},
+		{map[string]string{"GAME_VERSION": "SAPPHIRE", "LANG": "BLAH"}, "formatted$"},
+	}
+
+	for i, tt := range textTests {
+		l := lexer.New(input)
+		p := New(l, "../font_widths.json", tt.switches)
+		program, err := p.ParseProgram()
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+		stmt := program.TopLevelStatements[1].(*ast.TextStatement)
+		text := stmt.Value
+		if tt.text != text {
+			t.Fatalf("Incorrect text %d. Expected %s, got %s", i, tt.text, text)
+		}
+	}
+
+	movementTests := []struct {
+		switches map[string]string
+		commands []string
+	}{
+		{map[string]string{"GAME_VERSION": "RUBY", "LANG": "DE"}, []string{"walk_up", "walk_ruby", "walk_ruby", "walk_down"}},
+		{map[string]string{"GAME_VERSION": "SAPPHIRE", "LANG": "DE"}, []string{"walk_up", "face_up", "face_de", "face_down", "walk_down"}},
+		{map[string]string{"GAME_VERSION": "SAPPHIRE", "LANG": "EN"}, []string{"walk_up", "face_up", "face_default", "face_default", "face_down", "walk_down"}},
+	}
+
+	for _, tt := range movementTests {
+		l := lexer.New(input)
+		p := New(l, "../font_widths.json", tt.switches)
+		program, err := p.ParseProgram()
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+		stmt := program.TopLevelStatements[2].(*ast.MovementStatement)
+		if len(stmt.MovementCommands) != len(tt.commands) {
+			t.Fatalf("Incorrect number of movement commands. Expected %d, got %d", len(tt.commands), len(stmt.MovementCommands))
+		}
+		for i, expectedCommand := range tt.commands {
+			command := stmt.MovementCommands[i]
+			if expectedCommand != command {
+				t.Fatalf("Incorrect movement command %d. Expected %s, got %s", i, expectedCommand, command)
+			}
+		}
+	}
+}
+
 func TestRawStatements(t *testing.T) {
 	input := `
 raw ` + "`" + `
@@ -135,7 +265,7 @@ raw ` + "`" + `
 	step_down
 ` + "`"
 	l := lexer.New(input)
-	p := New(l, "")
+	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -228,7 +358,7 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "")
+	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -295,7 +425,7 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "")
+	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -340,7 +470,7 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "")
+	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -417,7 +547,7 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "")
+	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -472,7 +602,7 @@ script Script2 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "")
+	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -504,7 +634,7 @@ script MyScript1 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "")
+	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -526,7 +656,7 @@ text MyText {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "../font_widths.json")
+	p := New(l, "../font_widths.json", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -561,7 +691,7 @@ movement MyMovement3 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "")
+	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -615,7 +745,7 @@ mapscripts MyMap_MapScripts {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "")
+	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -735,7 +865,7 @@ mapscripts(local) MapScripts2 {}
 mapscripts(global) MapScripts3 {}
 `
 	l := lexer.New(input)
-	p := New(l, "")
+	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1468,7 +1598,7 @@ mapscripts() MyMapScripts {}`,
 
 func testForParseError(t *testing.T, input string, expectedErrorText string) {
 	l := lexer.New(input)
-	p := New(l, "../font_widths.json")
+	p := New(l, "../font_widths.json", nil)
 	_, err := p.ParseProgram()
 	if err == nil {
 		t.Fatalf("Expected error '%s', but no error occurred", expectedErrorText)

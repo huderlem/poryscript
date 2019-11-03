@@ -38,6 +38,7 @@ func TestNextToken(t *testing.T) {
 		while
 		defeated
 		text
+		poryswitch
 		movement
 		mapscripts
 		*
@@ -128,6 +129,7 @@ func TestNextToken(t *testing.T) {
 		{token.WHILE, "while"},
 		{token.DEFEATED, "defeated"},
 		{token.TEXT, "text"},
+		{token.PORYSWITCH, "poryswitch"},
 		{token.MOVEMENT, "movement"},
 		{token.MAPSCRIPTS, "mapscripts"},
 		{token.MUL, "*"},
