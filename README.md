@@ -29,6 +29,7 @@ View the [Changelog](https://github.com/huderlem/poryscript/blob/master/CHANGELO
   * [`mapscripts` Statement](#mapscripts-statement)
   * [`raw` Statement](#raw-statement)
   * [Comments](#comments)
+  * [Constants](#constants)
   * [Scope Modifiers](#scope-modifiers)
   * [Compile-Time Switches](#compile-time-switches)
   * [Optimization](#optimization)
@@ -437,6 +438,48 @@ Use single-line comments with `#` or `//`. Everything after the `#` or `//` will
 script MyScript {
     // This is also a valid comment.
     ...
+}
+```
+
+## Constants
+Use `const` to define constants that can be used in the current script. This is especially useful for giving human-friendly names to event object ids, or temporary flags. Constants must be defined before they are used. Constants can also be composed of previously-defined constants.
+```
+const PROF_BIRCH_ID = 3
+const ASSISTANT_ID = PROF_BIRCH_ID + 1
+const FLAG_GREETED_BIRCH = FLAG_TEMP_2
+
+script ProfBirchScript {
+    applymovement(PROF_BIRCH_ID, BirchMovementData)
+    showobject(ASSISTANT_ID)
+    setflag(FLAG_GREETED_BIRCH)
+}
+```
+
+Note that these constants are **not** a general macro system. They can only be used in certain places in Poryscript syntax. Below is an example of all possible places where constants can be substituted into the script:
+```
+const CONSTANT = 1
+
+mapscripts MyMapScripts {
+    MAP_SCRIPT_ON_FRAME_TABLE [
+        // The operand and comparison values can both use constants in a
+        // table-based map script.
+        CONSTANT, CONSTANT: MyOnFrameScript_0
+    ]
+}
+
+script MyScript {
+    // Any parameter of any command can use constants.
+    somecommand(CONSTANT)
+
+    // Any comparison operator can use constants, as well as their comparison values.
+    if (flag(CONSTANT)) {}
+    if (var(CONSTANT) == CONSTANT) {}
+    if (defeated(CONSTANT)) {}
+
+    // A switch var value can be a constant, as well as the individual cases.
+    switch (var(CONSTANT)) {
+        case CONSTANT: break
+    }
 }
 ```
 

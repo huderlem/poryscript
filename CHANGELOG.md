@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Add support for compile-time switches using the `poryswitch` statement. This help with language difference or game version differences, for example.
+- Add support for compile-time switches using the `poryswitch` statement. This helps with language differences or game-version differences, for example.
+- Add support for user-defined constants with `const` keyword. This helps with things like defining event object ids to refer to throughout the script.
 
 ## [2.6.0] - 2019-10-26
 ### Added
