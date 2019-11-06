@@ -9,12 +9,15 @@ import (
 
 func TestEmit1(t *testing.T) {
 	input := `
+const VAR_TIME = VAR_0x8002
+const HOURS_TO_ADVANCE=5
+
 script Route29_EventScript_WaitingMan {
 	lock
 	faceplayer
 	# Display message based on time of day.
 	gettime
-	if (var(VAR_0x8002) == TIME_NIGHT) {
+	if (var(VAR_TIME) == TIME_NIGHT) {
 		msgbox("I'm waiting for POKéMON that appear\n"
 				"only in the morning.")
 	} else {
@@ -22,8 +25,8 @@ script Route29_EventScript_WaitingMan {
 				"only at night.")
 	}
 	# Wait for morning.
-	while (var(VAR_0x8002) == TIME_NIGHT) {
-		advancetime(5)
+	while (var(VAR_TIME) == TIME_NIGHT) {
+		advancetime(HOURS_TO_ADVANCE)
 		gettime
 	}
 	release
@@ -287,13 +290,14 @@ Route29_EventScript_Dude_Text_1:
 
 func TestEmitDoWhile(t *testing.T) {
 	input := `
+const QUESTION_FLAG = FLAG_1
 script(global) Route29_EventScript_WaitingMan {
 	lock
 	faceplayer
 	# Force player to answer "Yes" to NPC question.
 	msgbox("Do you agree to the quest?", MSGBOX_YESNO)
 	do {
-		if (!flag(FLAG_1)) {
+		if (!flag(QUESTION_FLAG)) {
 			msgbox("...How about now?", MSGBOX_YESNO)
 		} else {
 			special(OtherThing)
@@ -389,8 +393,9 @@ Route29_EventScript_WaitingMan_Text_1:
 
 func TestEmitBreak(t *testing.T) {
 	input := `
+const THRESHOLD = 5
 script MyScript {
-	while (var(VAR_1) < 5) {
+	while (var(VAR_1) < THRESHOLD) {
 		first
 		do {
 			if (flag(FLAG_1) == true) {
@@ -516,13 +521,14 @@ MyScript_13:
 
 func TestEmitCompoundBooleanExpressions(t *testing.T) {
 	input := `
+const OTHER_TRAINER = TRAINER_FOO
 script MyScript {
 	do {
 		message()
 		if (!flag(FLAG_3) || (var(VAR_44) > 3 && var(VAR_55) <= 5)) {
 			hey
 		}
-		if (defeated(TRAINER_BLUE) || !defeated(TRAINER_RED) && (defeated(TRAINER_FOO) == true)) {
+		if (defeated(TRAINER_BLUE) || !defeated(TRAINER_RED) && (defeated(OTHER_TRAINER) == true)) {
 			baz(-24, 17)
 		}
 	} while ((flag(FLAG_1) == true || flag(FLAG_2)) && (var(VAR_1) == 2 || var(VAR_2) == 3))
@@ -1027,6 +1033,9 @@ ScripText_2:
 
 func TestEmitMapScripts(t *testing.T) {
 	input := `
+const STATE = 1
+const SANDSTORM = 3
+const FOO_CASE = 1
 mapscripts PetalburgCity_MapScripts {
     MAP_SCRIPT_ON_RESUME: PetalburgCity_MapScripts_OnResume
     MAP_SCRIPT_ON_TRANSITION {
@@ -1035,7 +1044,7 @@ mapscripts PetalburgCity_MapScripts {
             case 0: setweather(WEATHER_ASH)
             case 1: setweather(WEATHER_RAIN_HEAVY)
             case 2: setweather(WEATHER_DROUGHT)
-            case 3: setweather(WEATHER_SANDSTORM)
+            case SANDSTORM: setweather(WEATHER_SANDSTORM)
         }
     }
     MAP_SCRIPT_ON_FRAME_TABLE [
@@ -1043,10 +1052,10 @@ mapscripts PetalburgCity_MapScripts {
             lockall
             applymovement(EVENT_OBJ_ID_PLAYER, MyMovement0)
 	        waitmovement(0)
-            setvar(VAR_TEMP_0, 1)
+            setvar(VAR_TEMP_0, STATE)
             releaseall
         }
-        VAR_TEMP_0, 1 {
+        VAR_TEMP_0, FOO_CASE {
             lock
             msgbox(format("Haha it worked! This should make writing map scripts much easier."))
             setvar(VAR_TEMP_0, 2)

@@ -11,6 +11,15 @@ import (
 	"github.com/huderlem/poryscript/token"
 )
 
+var topLevelTokens = map[token.Type]bool{
+	token.SCRIPT:     true,
+	token.RAW:        true,
+	token.TEXT:       true,
+	token.MOVEMENT:   true,
+	token.MAPSCRIPTS: true,
+	token.CONST:      true,
+}
+
 type impText struct {
 	command    *ast.CommandStatement
 	argPos     int
@@ -32,6 +41,7 @@ type Parser struct {
 	fontConfigFilepath string
 	fonts              *FontWidthsConfig
 	compileSwitches    map[string]string
+	constants          map[string]string
 }
 
 // New creates a new Poryscript AST Parser.
@@ -44,6 +54,7 @@ func New(l *lexer.Lexer, fontConfigFilepath string, compileSwitches map[string]s
 		textStatements:     make([]*ast.TextStatement, 0),
 		fontConfigFilepath: fontConfigFilepath,
 		compileSwitches:    compileSwitches,
+		constants:          make(map[string]string),
 	}
 	// Read two tokens, so curToken and peekToken are both set.
 	p.nextToken()
@@ -181,6 +192,9 @@ func (p *Parser) parseTopLevelStatement() (ast.Statement, error) {
 		}
 		p.addImplicitTexts(implicitTexts)
 		return statement, nil
+	case token.CONST:
+		err := p.parseConstant()
+		return nil, err
 	}
 
 	return nil, fmt.Errorf("line %d: could not parse top-level statement for '%s'", p.curToken.LineNumber, p.curToken.Literal)
@@ -398,7 +412,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, []impT
 				})
 				argParts = append(argParts, "")
 			} else {
-				argParts = append(argParts, p.curToken.Literal)
+				argParts = append(argParts, p.tryReplaceWithConstant(p.curToken.Literal))
 			}
 
 			p.nextToken()
@@ -770,7 +784,7 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 					if sb.Len() != 0 {
 						sb.WriteByte(' ')
 					}
-					sb.WriteString(p.curToken.Literal)
+					sb.WriteString(p.tryReplaceWithConstant(p.curToken.Literal))
 					p.nextToken()
 					if p.curToken.Type == token.EOF {
 						return nil, nil, fmt.Errorf("line %d: missing ',' to specify map script table entry comparison value", startLineNumber)
@@ -787,7 +801,7 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 					if sb.Len() != 0 {
 						sb.WriteByte(' ')
 					}
-					sb.WriteString(p.curToken.Literal)
+					sb.WriteString(p.tryReplaceWithConstant(p.curToken.Literal))
 					p.nextToken()
 					if p.curToken.Type == token.EOF {
 						return nil, nil, fmt.Errorf("line %d: missing ':' or '{' to specify map script table entry", startLineNumber)
@@ -1034,7 +1048,10 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	p.nextToken()
 	parts := []string{}
 	for p.curToken.Type != token.RPAREN {
-		parts = append(parts, p.curToken.Literal)
+		if p.curToken.Type == token.EOF {
+			return nil, nil, fmt.Errorf("line %d: missing closing parenthesis of switch statement value", originalLineNumber)
+		}
+		parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 		p.nextToken()
 	}
 	p.nextToken()
@@ -1053,7 +1070,7 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 			p.nextToken()
 			parts := []string{}
 			for p.curToken.Type != token.COLON {
-				parts = append(parts, p.curToken.Literal)
+				parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 				p.nextToken()
 				if p.curToken.Type == token.EOF {
 					return nil, nil, fmt.Errorf("line %d: missing `:` after 'case'", caseLineNum)
@@ -1221,7 +1238,7 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 	parts := []string{}
 	lineNum := p.curToken.LineNumber
 	for p.curToken.Type != token.RPAREN {
-		parts = append(parts, p.curToken.Literal)
+		parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 		p.nextToken()
 		if p.curToken.Type == token.EOF {
 			return nil, fmt.Errorf("line %d: missing closing ')' for condition operator value", lineNum)
@@ -1275,7 +1292,7 @@ func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) e
 	parts := []string{}
 	lineNum := p.curToken.LineNumber
 	for p.curToken.Type != token.RPAREN && p.curToken.Type != token.AND && p.curToken.Type != token.OR {
-		parts = append(parts, p.curToken.Literal)
+		parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 		p.nextToken()
 		if p.curToken.Type == token.EOF {
 			return fmt.Errorf("line %d: missing ')', '&&' or '||' when evaluating 'var' operator", lineNum)
@@ -1405,4 +1422,44 @@ func (p *Parser) parsePoryswitchStatements(scriptName string, allowMultiple bool
 		}
 	}
 	return statements, implicitTexts, nil
+}
+
+func (p *Parser) parseConstant() error {
+	initialLineNumber := p.curToken.LineNumber
+	if err := p.expectPeek(token.IDENT); err != nil {
+		return fmt.Errorf("line %d: expected identifier after const, but got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+	}
+	constName := p.curToken.Literal
+	if _, ok := p.constants[constName]; ok {
+		return fmt.Errorf("line %d: duplicate const '%s'. Must use unique const names", p.curToken.LineNumber, constName)
+	}
+	if err := p.expectPeek(token.ASSIGN); err != nil {
+		return fmt.Errorf("line %d: missing equals sign after const name '%s'", p.peekToken.LineNumber, constName)
+	}
+
+	var sb strings.Builder
+	for {
+		_, ok := topLevelTokens[p.peekToken.Type]
+		if ok || p.curToken.Type == token.EOF {
+			break
+		}
+		p.nextToken()
+		if sb.Len() > 0 {
+			sb.WriteRune(' ')
+		}
+		sb.WriteString(p.tryReplaceWithConstant(p.curToken.Literal))
+	}
+
+	if sb.Len() == 0 {
+		return fmt.Errorf("line %d: missing value for const '%s'", initialLineNumber, constName)
+	}
+	p.constants[constName] = sb.String()
+	return nil
+}
+
+func (p *Parser) tryReplaceWithConstant(value string) string {
+	if constValue, ok := p.constants[p.curToken.Literal]; ok {
+		return constValue
+	}
+	return value
 }

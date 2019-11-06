@@ -913,6 +913,71 @@ func testScope(t *testing.T, i int, statement ast.Statement, expectedScope token
 	}
 }
 
+func TestConstants(t *testing.T) {
+	input := `
+const FOO = 2
+const BAR = FLAG_TEMP_1 +   3
+	- FLAG_BASE   const PROF_BIRCH = FOO+1
+const PROF_ELM = PROF_BIRCH - 1
+
+script Script1 {
+	command1(FOO)
+	command2(1, 2 + BAR)
+	command3(2, (PROF_ELM) - ((PROF_BIRCH + FOO)))
+	if (flag(PROF_ELM)) {}
+	if (var(PROF_BIRCH) == PROF_ELM +1) {}
+	switch (var(PROF_ELM)) {
+		case FOO: commandfood()
+		default: command()
+	}
+}
+
+mapscripts MyMapScript {
+	MAP_SCRIPT_ON_FRAME_TABLE [
+		PROF_ELM, FOO: MyOnFrameScript
+	]
+}
+`
+	l := lexer.New(input)
+	p := New(l, "", nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	script := program.TopLevelStatements[0].(*ast.ScriptStatement)
+	command1 := script.Body.Statements[0].(*ast.CommandStatement)
+	command2 := script.Body.Statements[1].(*ast.CommandStatement)
+	command3 := script.Body.Statements[2].(*ast.CommandStatement)
+	testConstant(t, "2", command1.Args[0])
+	testConstant(t, "2 + FLAG_TEMP_1 + 3 - FLAG_BASE", command2.Args[1])
+	testConstant(t, "( 2 + 1 - 1 ) - ( ( 2 + 1 + 2 ) )", command3.Args[1])
+
+	if1 := script.Body.Statements[3].(*ast.IfStatement)
+	op1 := if1.Consequence.Expression.(*ast.OperatorExpression)
+	testConstant(t, "2 + 1 - 1", op1.Operand)
+
+	if2 := script.Body.Statements[4].(*ast.IfStatement)
+	op2 := if2.Consequence.Expression.(*ast.OperatorExpression)
+	testConstant(t, "2 + 1", op2.Operand)
+	testConstant(t, "2 + 1 - 1 + 1", op2.ComparisonValue)
+
+	sw := script.Body.Statements[5].(*ast.SwitchStatement)
+	testConstant(t, "2 + 1 - 1", sw.Operand)
+	testConstant(t, "2", sw.Cases[0].Value)
+
+	ms := program.TopLevelStatements[1].(*ast.MapScriptsStatement)
+	frame := ms.TableMapScripts[0].Entries[0]
+	testConstant(t, "2 + 1 - 1", frame.Condition)
+	testConstant(t, "2", frame.Comparison)
+}
+
+func testConstant(t *testing.T, expected, actual string) {
+	if actual != expected {
+		t.Errorf("Expected '%s', but got '%s'", expected, actual)
+	}
+}
+
 func TestErrors(t *testing.T) {
 	tests := []struct {
 		input         string
@@ -1588,6 +1653,27 @@ movement() MyMovement {walk_left}`,
 			input: `
 mapscripts() MyMapScripts {}`,
 			expectedError: "line 2: scope modifier must be 'global' or 'local', but got ')' instead",
+		},
+		{
+			input:         `const 45`,
+			expectedError: "line 1: expected identifier after const, but got '45' instead",
+		},
+		{
+			input:         `const FOO`,
+			expectedError: "line 1: missing equals sign after const name 'FOO'",
+		},
+		{
+			input:         `const FOO = 4 const FOO = 5`,
+			expectedError: "line 1: duplicate const 'FOO'. Must use unique const names",
+		},
+		{
+			input:         `const FOO = `,
+			expectedError: "line 1: missing value for const 'FOO'",
+		},
+		{
+			input: `const FOO = 
+			script MyScript {}`,
+			expectedError: "line 1: missing value for const 'FOO'",
 		},
 	}
 

@@ -22,16 +22,17 @@ const (
 	RAWSTRING = "RAWSTRING"
 
 	// Operators
-	EQ  = "=="
-	NEQ = "!="
-	LT  = "<"
-	GT  = ">"
-	LTE = "<="
-	GTE = ">="
-	AND = "&&"
-	OR  = "||"
-	NOT = "!"
-	MUL = "*"
+	ASSIGN = "="
+	EQ     = "=="
+	NEQ    = "!="
+	LT     = "<"
+	GT     = ">"
+	LTE    = "<="
+	GTE    = ">="
+	AND    = "&&"
+	OR     = "||"
+	NOT    = "!"
+	MUL    = "*"
 
 	// Delimeters
 	COMMA = ","
@@ -69,6 +70,7 @@ const (
 	GLOBAL     = "GLOBAL"
 	LOCAL      = "LOCAL"
 	PORYSWITCH = "PORYSWITCH"
+	CONST      = "CONST"
 )
 
 // If statement comparison types
@@ -104,6 +106,7 @@ var keywords = map[string]Type{
 	"global":     GLOBAL,
 	"local":      LOCAL,
 	"poryswitch": PORYSWITCH,
+	"const":      CONST,
 }
 
 // GetIdentType looks up the token type for the given identifier

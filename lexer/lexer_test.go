@@ -39,6 +39,7 @@ func TestNextToken(t *testing.T) {
 		defeated
 		text
 		poryswitch
+		const
 		movement
 		mapscripts
 		*
@@ -106,7 +107,7 @@ func TestNextToken(t *testing.T) {
 		{token.LT, "<"},
 		{token.GT, ">"},
 		{token.GTE, ">="},
-		{token.ILLEGAL, "="},
+		{token.ASSIGN, "="},
 		{token.NOT, "!"},
 		{token.ILLEGAL, "/"},
 		{token.AND, "&&"},
@@ -130,6 +131,7 @@ func TestNextToken(t *testing.T) {
 		{token.DEFEATED, "defeated"},
 		{token.TEXT, "text"},
 		{token.PORYSWITCH, "poryswitch"},
+		{token.CONST, "const"},
 		{token.MOVEMENT, "movement"},
 		{token.MAPSCRIPTS, "mapscripts"},
 		{token.MUL, "*"},
