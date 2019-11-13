@@ -92,7 +92,7 @@ mostlyclean: tidy
 ```
 ```diff
 sound/%.bin: sound/%.aif ; $(AIF) $< $@
-+ data/%.inc: data/%.pory; $(SCRIPT) -i $< -o $@
++ data/%.inc: data/%.pory; $(SCRIPT) -i $< -o $@ -fw tools/poryscript/font_widths.json
 ```
 
 # Poryscript Syntax (How to Write Scripts)
