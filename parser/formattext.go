@@ -53,7 +53,10 @@ func (fw *FontWidthsConfig) FormatText(text string, maxWidth int, fontID string)
 	isFirstWord := true
 	pos := 0
 	for pos < len(text) {
-		endPos, word := fw.getNextWord(text[pos:])
+		endPos, word, err := fw.getNextWord(text[pos:])
+		if err != nil {
+			return "", err
+		}
 		if len(word) == 0 {
 			break
 		}
@@ -107,23 +110,24 @@ func (fw *FontWidthsConfig) FormatText(text string, maxWidth int, fontID string)
 	return formattedSb.String(), nil
 }
 
-func (fw *FontWidthsConfig) getNextWord(text string) (int, string) {
+func (fw *FontWidthsConfig) getNextWord(text string) (int, string, error) {
 	escape := false
 	endPos := 0
 	startPos := 0
 	foundNonSpace := false
 	foundRegularRune := false
 	endOnNext := false
+	controlCodeLevel := 0
 	for pos, char := range text {
 		if endOnNext {
-			return pos, text[startPos:pos]
+			return pos, text[startPos:pos], nil
 		}
 		if escape && (char == 'l' || char == 'n' || char == 'p') {
 			if foundRegularRune {
-				return endPos, text[startPos:endPos]
+				return endPos, text[startPos:endPos], nil
 			}
 			endOnNext = true
-		} else if char == '\\' {
+		} else if char == '\\' && controlCodeLevel == 0 {
 			escape = true
 			if !foundRegularRune {
 				startPos = pos
@@ -132,8 +136,8 @@ func (fw *FontWidthsConfig) getNextWord(text string) (int, string) {
 			endPos = pos
 		} else {
 			if char == ' ' {
-				if foundNonSpace {
-					return pos, text[startPos:pos]
+				if foundNonSpace && controlCodeLevel == 0 {
+					return pos, text[startPos:pos], nil
 				}
 			} else {
 				if !foundNonSpace {
@@ -141,14 +145,21 @@ func (fw *FontWidthsConfig) getNextWord(text string) (int, string) {
 				}
 				foundRegularRune = true
 				foundNonSpace = true
+				if char == '{' {
+					controlCodeLevel++
+				} else if char == '}' {
+					if controlCodeLevel > 0 {
+						controlCodeLevel--
+					}
+				}
 			}
 			escape = false
 		}
 	}
 	if !foundNonSpace {
-		return len(text), ""
+		return len(text), "", nil
 	}
-	return len(text), text[startPos:]
+	return len(text), text[startPos:], nil
 }
 
 func (fw *FontWidthsConfig) isLineBreak(word string) bool {

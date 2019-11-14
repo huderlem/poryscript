@@ -886,9 +886,8 @@ MyScript_18:
 func TestEmitTextStatements(t *testing.T) {
 	input := `
 script TextFormatLineBreaks {
-    msgbox(format("Long cat is loooong once again\p"
-                  "Very very loooong and we need to have"
-                  "multiple lines to fit its loooongness"))
+	msgbox(format("Ryder: {COLOR BLUE}You were late to getting your"
+				  "first Pokémon from {COLOR GREEN}Professor Cypress{COLOR BLUE}!"))
 }
 
 script MyScript {
@@ -913,9 +912,8 @@ MyScript::
 
 
 TextFormatLineBreaks_Text_0:
-	.string "Long cat is loooong once again\p"
-	.string "Very very loooong and we need to have\n"
-	.string "multiple lines to fit its loooongness$"
+	.string "Ryder: {COLOR BLUE}You were late to getting your\n"
+	.string "first Pokémon from {COLOR GREEN}Professor Cypress{COLOR BLUE}!$"
 
 MyScript_Text_0:
 	.string "Hello$"
@@ -938,9 +936,8 @@ MyScript::
 
 
 TextFormatLineBreaks_Text_0:
-	.string "Long cat is loooong once again\p"
-	.string "Very very loooong and we need to have\n"
-	.string "multiple lines to fit its loooongness$"
+	.string "Ryder: {COLOR BLUE}You were late to getting your\n"
+	.string "first Pokémon from {COLOR GREEN}Professor Cypress{COLOR BLUE}!$"
 
 MyScript_Text_0:
 	.string "Hello$"

@@ -1536,7 +1536,7 @@ script Foo {
 text Foo {
 	format("Hi", "invalidFontID")
 }`,
-			expectedError: "Unknown fontID 'invalidFontID' used in format(). List of valid fontIDs are '[1_latin]'",
+			expectedError: "line 3: Unknown fontID 'invalidFontID' used in format(). List of valid fontIDs are '[1_latin]'",
 		},
 		{
 			input: `

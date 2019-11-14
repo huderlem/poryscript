@@ -43,6 +43,8 @@ func TestGetNextWord(t *testing.T) {
 		{"Hello", 5, "Hello"},
 		{"{PLAYER} is cool", 8, "{PLAYER}"},
 		{"{PLAYER}is cool", 10, "{PLAYER}is"},
+		{"{COLOR BLUE}Player is cool", 18, "{COLOR BLUE}Player"},
+		{"{  COLOR BLUE RED }Player is cool", 25, "{  COLOR BLUE RED }Player"},
 		{"Foo Bar", 3, "Foo"},
 		{`Foo\nBar`, 3, "Foo"},
 		{`Foo\lBar`, 3, "Foo"},
@@ -57,7 +59,7 @@ func TestGetNextWord(t *testing.T) {
 	fw := FontWidthsConfig{}
 
 	for i, tt := range tests {
-		resultPos, resultValue := fw.getNextWord(tt.inputText)
+		resultPos, resultValue, _ := fw.getNextWord(tt.inputText)
 		if resultPos != tt.expectedPos {
 			t.Errorf("TestGetNextWord Test %d: Expected Pos '%d', but Got '%d'", i, tt.expectedPos, resultPos)
 		}

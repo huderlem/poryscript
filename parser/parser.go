@@ -866,6 +866,7 @@ func (p *Parser) parseFormatStringOperator() (string, error) {
 	if err := p.expectPeek(token.STRING); err != nil {
 		return "", fmt.Errorf("line %d: invalid format() argument '%s'. Expected a string literal", p.peekToken.LineNumber, p.peekToken.Literal)
 	}
+	lineNum := p.curToken.LineNumber
 	rawText := p.curToken.Literal
 	var fontID string
 	setFontID := false
@@ -890,7 +891,11 @@ func (p *Parser) parseFormatStringOperator() (string, error) {
 	if !setFontID {
 		fontID = p.fonts.DefaultFontID
 	}
-	return p.fonts.FormatText(rawText, 208, fontID)
+	formatted, err := p.fonts.FormatText(rawText, 208, fontID)
+	if err != nil {
+		return "", fmt.Errorf("line %d: %s", lineNum, err.Error())
+	}
+	return formatted, nil
 }
 
 func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, []impText, error) {
