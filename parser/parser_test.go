@@ -18,7 +18,7 @@ func TestScriptStatements(t *testing.T) {
 	input := `
 script MyScript {
 	lock
-	bufferitemname(0, VAR_BUG_CONTEST_PRIZE)
+	bufferitemname("Bar", 0, VAR_BUG_CONTEST_PRIZE, "Foo", format("Baz"))
 	# this is a comment
 	# another comment
 	message() waitstate
@@ -46,7 +46,7 @@ script MyScript3 {
 	}{
 		{"MyScript", []commandArgs{
 			{"lock", []string{}},
-			{"bufferitemname", []string{"0", "VAR_BUG_CONTEST_PRIZE"}},
+			{"bufferitemname", []string{"MyScript_Text_0", "0", "VAR_BUG_CONTEST_PRIZE", "MyScript_Text_1", "MyScript_Text_2"}},
 			{"message", []string{}},
 			{"waitstate", []string{}},
 			{"somecommand", []string{"foo", "4 + 6", "", "( CONST_FOO ) + 1"}},

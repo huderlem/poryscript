@@ -398,7 +398,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, []impT
 				}
 				implicitTexts = append(implicitTexts, impText{
 					command:    command,
-					argPos:     len(argParts),
+					argPos:     len(command.Args),
 					text:       p.formatTextTerminator(strValue),
 					scriptName: scriptName,
 				})
@@ -406,7 +406,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, []impT
 			} else if p.curToken.Type == token.STRING {
 				implicitTexts = append(implicitTexts, impText{
 					command:    command,
-					argPos:     len(argParts),
+					argPos:     len(command.Args),
 					text:       p.formatTextTerminator(p.curToken.Literal),
 					scriptName: scriptName,
 				})

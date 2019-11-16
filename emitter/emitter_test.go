@@ -888,6 +888,7 @@ func TestEmitTextStatements(t *testing.T) {
 script TextFormatLineBreaks {
 	msgbox(format("Ryder: {COLOR BLUE}You were late to getting your"
 				  "first Pokémon from {COLOR GREEN}Professor Cypress{COLOR BLUE}!"))
+	trainerbattle(TRAINER_BATTLE_SINGLE_NO_INTRO_TEXT, TRAINER_YOUNGSTER_TRAINERSCHOOL_OUTDOOR_SCRIPTFIGHT, 0, "Not another defeat!")
 }
 
 script MyScript {
@@ -903,6 +904,7 @@ text(local) MyText2 { "Bye!" }
 
 	expectedUnoptimized := `TextFormatLineBreaks::
 	msgbox TextFormatLineBreaks_Text_0
+	trainerbattle TRAINER_BATTLE_SINGLE_NO_INTRO_TEXT, TRAINER_YOUNGSTER_TRAINERSCHOOL_OUTDOOR_SCRIPTFIGHT, 0, TextFormatLineBreaks_Text_1
 	return
 
 
@@ -914,6 +916,9 @@ MyScript::
 TextFormatLineBreaks_Text_0:
 	.string "Ryder: {COLOR BLUE}You were late to getting your\n"
 	.string "first Pokémon from {COLOR GREEN}Professor Cypress{COLOR BLUE}!$"
+
+TextFormatLineBreaks_Text_1:
+	.string "Not another defeat!$"
 
 MyScript_Text_0:
 	.string "Hello$"
@@ -927,6 +932,7 @@ MyText2:
 
 	expectedOptimized := `TextFormatLineBreaks::
 	msgbox TextFormatLineBreaks_Text_0
+	trainerbattle TRAINER_BATTLE_SINGLE_NO_INTRO_TEXT, TRAINER_YOUNGSTER_TRAINERSCHOOL_OUTDOOR_SCRIPTFIGHT, 0, TextFormatLineBreaks_Text_1
 	return
 
 
@@ -938,6 +944,9 @@ MyScript::
 TextFormatLineBreaks_Text_0:
 	.string "Ryder: {COLOR BLUE}You were late to getting your\n"
 	.string "first Pokémon from {COLOR GREEN}Professor Cypress{COLOR BLUE}!$"
+
+TextFormatLineBreaks_Text_1:
+	.string "Not another defeat!$"
 
 MyScript_Text_0:
 	.string "Hello$"
