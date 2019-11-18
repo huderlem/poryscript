@@ -56,6 +56,8 @@ Usage of poryscript:
         output script file (leave empty to write to standard output)
   -optimize
         optimize compiled script size (To disable, use '-optimize=false') (default true)
+  -s value
+        set a compile-time switch. Multiple -s options can be set. Example: -s VERSION=RUBY -s LANGUAGE=GERMAN
   -v    show version of poryscript
 ```
 
