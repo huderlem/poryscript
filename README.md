@@ -67,15 +67,15 @@ Convert a `.pory` script to a compiled `.inc` script, which can be directly incl
 ```
 
 To automatically convert your Poryscript scripts when compiling a decomp project, perform these two steps:
-1. Add the `poryscript` command-line executable tool to the `tools` directory. Also copy `font_widths.json` to the same location.
+1. Create a new `tools/poryscript/` directory, and add the `poryscript` command-line executable tool to it. Also copy `font_widths.json` to the same location.
 ```
 # For example, on Windows, place the files here.
-pokeemerald/tools/poryscript.exe
-pokeemerald/tools/font_widths.json
+pokeemerald/tools/poryscript/poryscript.exe
+pokeemerald/tools/poryscript/font_widths.json
 ```
 2. Update the Makefile with these changes (Note, don't add the `+` symbol at the start of the lines. That's just to show the line is being added.):
 ```diff
-+ SCRIPT := tools/poryscript$(EXE)
++ SCRIPT := tools/poryscript/poryscript$(EXE)
 ```
 ```diff
 mostlyclean: tidy
@@ -94,7 +94,11 @@ mostlyclean: tidy
 ```
 ```diff
 sound/%.bin: sound/%.aif ; $(AIF) $< $@
-+ data/%.inc: data/%.pory; $(SCRIPT) -i $< -o $@ -fw tools/font_widths.json
++ data/%.inc: data/%.pory; $(SCRIPT) -i $< -o $@ -fw tools/poryscript/font_widths.json
+```
+```diff
+-TOOLDIRS := $(filter-out tools/agbcc tools/binutils,$(wildcard tools/*))
++TOOLDIRS := $(filter-out tools/agbcc tools/binutils tools/poryscript,$(wildcard tools/*))
 ```
 
 # Poryscript Syntax (How to Write Scripts)
