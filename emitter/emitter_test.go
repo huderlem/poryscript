@@ -695,6 +695,419 @@ MyScript_21:
 	}
 }
 
+func TestEmitNegatedBooleanExpressions(t *testing.T) {
+	input := `
+script MyScript {
+	if (flag(FLAG_1) && !(((flag(FLAG_2) && var(VAR_1)))))
+	{
+		dostuff
+	}
+	release
+}
+
+script MyScript2 {
+	if (!(!((!(var(VAR_2) < 2)))) || !(!flag(FLAG_2) || !(!(var(VAR_1) > 3))))
+	{
+		dostuff
+	}
+	release
+}
+
+script MyScript3 {
+	if (!(var(VAR_1) <= 2 && var(VAR_2) >= 3 && !(defeated(TRAINER_1) == true)))
+	{
+		dostuff
+	}
+	release
+}
+
+script MyScript4 {
+	if (flag(FLAG_1) && !(((var(VAR_1) == 1 && var(VAR_2) == 2)) || var(VAR_3) == 3))
+	{
+		dostuff
+	}
+	release
+}
+
+script MyScript5 {
+	if (flag(FLAG_1) || !(var(VAR_1) == 1 || var(VAR_2) == 2 && var(VAR_3) == 3 || defeated(TRAINER_1) == false))
+	{
+		dostuff
+	}
+	release
+}
+
+script MyScript6 {
+	if (flag(FLAG_1) && !(flag(FLAG_2) && !(var(VAR_1) || var(VAR_4))))
+	{
+		dostuff
+	}
+	release
+}
+`
+
+	expectedUnoptimized := `MyScript::
+	goto MyScript_4
+
+MyScript_1:
+	release
+	return
+
+MyScript_2:
+	dostuff
+	goto MyScript_1
+
+MyScript_3:
+	goto MyScript_6
+
+MyScript_4:
+	goto_if_set FLAG_1, MyScript_3
+	goto MyScript_1
+
+MyScript_5:
+	goto MyScript_7
+
+MyScript_6:
+	goto_if_unset FLAG_2, MyScript_2
+	goto MyScript_5
+
+MyScript_7:
+	compare VAR_1, 0
+	goto_if_eq MyScript_2
+	goto MyScript_1
+
+
+MyScript2::
+	goto MyScript2_4
+
+MyScript2_1:
+	release
+	return
+
+MyScript2_2:
+	dostuff
+	goto MyScript2_1
+
+MyScript2_3:
+	goto MyScript2_6
+
+MyScript2_4:
+	compare VAR_2, 2
+	goto_if_ge MyScript2_2
+	goto MyScript2_3
+
+MyScript2_5:
+	goto MyScript2_7
+
+MyScript2_6:
+	goto_if_set FLAG_2, MyScript2_5
+	goto MyScript2_1
+
+MyScript2_7:
+	compare VAR_1, 3
+	goto_if_le MyScript2_2
+	goto MyScript2_1
+
+
+MyScript3::
+	goto MyScript3_5
+
+MyScript3_1:
+	release
+	return
+
+MyScript3_2:
+	dostuff
+	goto MyScript3_1
+
+MyScript3_3:
+	goto MyScript3_7
+
+MyScript3_4:
+	goto MyScript3_6
+
+MyScript3_5:
+	compare VAR_1, 2
+	goto_if_gt MyScript3_2
+	goto MyScript3_4
+
+MyScript3_6:
+	compare VAR_2, 3
+	goto_if_lt MyScript3_2
+	goto MyScript3_3
+
+MyScript3_7:
+	checktrainerflag TRAINER_1
+	goto_if 1, MyScript3_2
+	goto MyScript3_1
+
+
+MyScript4::
+	goto MyScript4_4
+
+MyScript4_1:
+	release
+	return
+
+MyScript4_2:
+	dostuff
+	goto MyScript4_1
+
+MyScript4_3:
+	goto MyScript4_7
+
+MyScript4_4:
+	goto_if_set FLAG_1, MyScript4_3
+	goto MyScript4_1
+
+MyScript4_5:
+	goto MyScript4_9
+
+MyScript4_6:
+	goto MyScript4_8
+
+MyScript4_7:
+	compare VAR_1, 1
+	goto_if_ne MyScript4_5
+	goto MyScript4_6
+
+MyScript4_8:
+	compare VAR_2, 2
+	goto_if_ne MyScript4_5
+	goto MyScript4_1
+
+MyScript4_9:
+	compare VAR_3, 3
+	goto_if_ne MyScript4_2
+	goto MyScript4_1
+
+
+MyScript5::
+	goto MyScript5_4
+
+MyScript5_1:
+	release
+	return
+
+MyScript5_2:
+	dostuff
+	goto MyScript5_1
+
+MyScript5_3:
+	goto MyScript5_6
+
+MyScript5_4:
+	goto_if_set FLAG_1, MyScript5_2
+	goto MyScript5_3
+
+MyScript5_5:
+	goto MyScript5_9
+
+MyScript5_6:
+	compare VAR_1, 1
+	goto_if_ne MyScript5_5
+	goto MyScript5_1
+
+MyScript5_7:
+	goto MyScript5_11
+
+MyScript5_8:
+	goto MyScript5_10
+
+MyScript5_9:
+	compare VAR_2, 2
+	goto_if_ne MyScript5_7
+	goto MyScript5_8
+
+MyScript5_10:
+	compare VAR_3, 3
+	goto_if_ne MyScript5_7
+	goto MyScript5_1
+
+MyScript5_11:
+	checktrainerflag TRAINER_1
+	goto_if 1, MyScript5_2
+	goto MyScript5_1
+
+
+MyScript6::
+	goto MyScript6_4
+
+MyScript6_1:
+	release
+	return
+
+MyScript6_2:
+	dostuff
+	goto MyScript6_1
+
+MyScript6_3:
+	goto MyScript6_6
+
+MyScript6_4:
+	goto_if_set FLAG_1, MyScript6_3
+	goto MyScript6_1
+
+MyScript6_5:
+	goto MyScript6_8
+
+MyScript6_6:
+	goto_if_unset FLAG_2, MyScript6_2
+	goto MyScript6_5
+
+MyScript6_7:
+	goto MyScript6_9
+
+MyScript6_8:
+	compare VAR_1, 0
+	goto_if_ne MyScript6_2
+	goto MyScript6_7
+
+MyScript6_9:
+	compare VAR_4, 0
+	goto_if_ne MyScript6_2
+	goto MyScript6_1
+
+`
+
+	expectedOptimized := `MyScript::
+	goto_if_set FLAG_1, MyScript_3
+MyScript_1:
+	release
+	return
+
+MyScript_2:
+	dostuff
+	goto MyScript_1
+
+MyScript_3:
+	goto_if_unset FLAG_2, MyScript_2
+	compare VAR_1, 0
+	goto_if_eq MyScript_2
+	goto MyScript_1
+
+
+MyScript2::
+	compare VAR_2, 2
+	goto_if_ge MyScript2_2
+	goto_if_set FLAG_2, MyScript2_5
+MyScript2_1:
+	release
+	return
+
+MyScript2_2:
+	dostuff
+	goto MyScript2_1
+
+MyScript2_5:
+	compare VAR_1, 3
+	goto_if_le MyScript2_2
+	goto MyScript2_1
+
+
+MyScript3::
+	compare VAR_1, 2
+	goto_if_gt MyScript3_2
+	compare VAR_2, 3
+	goto_if_lt MyScript3_2
+	checktrainerflag TRAINER_1
+	goto_if 1, MyScript3_2
+MyScript3_1:
+	release
+	return
+
+MyScript3_2:
+	dostuff
+	goto MyScript3_1
+
+
+MyScript4::
+	goto_if_set FLAG_1, MyScript4_3
+MyScript4_1:
+	release
+	return
+
+MyScript4_2:
+	dostuff
+	goto MyScript4_1
+
+MyScript4_3:
+	compare VAR_1, 1
+	goto_if_ne MyScript4_5
+	compare VAR_2, 2
+	goto_if_ne MyScript4_5
+	goto MyScript4_1
+
+MyScript4_5:
+	compare VAR_3, 3
+	goto_if_ne MyScript4_2
+	goto MyScript4_1
+
+
+MyScript5::
+	goto_if_set FLAG_1, MyScript5_2
+	compare VAR_1, 1
+	goto_if_ne MyScript5_5
+MyScript5_1:
+	release
+	return
+
+MyScript5_2:
+	dostuff
+	goto MyScript5_1
+
+MyScript5_5:
+	compare VAR_2, 2
+	goto_if_ne MyScript5_7
+	compare VAR_3, 3
+	goto_if_ne MyScript5_7
+	goto MyScript5_1
+
+MyScript5_7:
+	checktrainerflag TRAINER_1
+	goto_if 1, MyScript5_2
+	goto MyScript5_1
+
+
+MyScript6::
+	goto_if_set FLAG_1, MyScript6_3
+MyScript6_1:
+	release
+	return
+
+MyScript6_2:
+	dostuff
+	goto MyScript6_1
+
+MyScript6_3:
+	goto_if_unset FLAG_2, MyScript6_2
+	compare VAR_1, 0
+	goto_if_ne MyScript6_2
+	compare VAR_4, 0
+	goto_if_ne MyScript6_2
+	goto MyScript6_1
+
+`
+	l := lexer.New(input)
+	p := parser.New(l, "", nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	e := New(program, false)
+	result, _ := e.Emit()
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result, _ = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+	}
+}
+
 func TestSwitchStatements(t *testing.T) {
 	input := `
 script MyScript {

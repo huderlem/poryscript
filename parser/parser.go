@@ -32,6 +32,7 @@ type Parser struct {
 	l                  *lexer.Lexer
 	curToken           token.Token
 	peekToken          token.Token
+	peek2Token         token.Token
 	inlineTexts        []ast.Text
 	inlineTextsSet     map[string]string
 	inlineTextCounts   map[string]int
@@ -56,7 +57,8 @@ func New(l *lexer.Lexer, fontConfigFilepath string, compileSwitches map[string]s
 		compileSwitches:    compileSwitches,
 		constants:          make(map[string]string),
 	}
-	// Read two tokens, so curToken and peekToken are both set.
+	// Read three tokens, so curToken, peekToken, and peek2Token are all set.
+	p.nextToken()
 	p.nextToken()
 	p.nextToken()
 	return p
@@ -94,11 +96,16 @@ func (p *Parser) peekContinueStack() ast.Statement {
 
 func (p *Parser) nextToken() {
 	p.curToken = p.peekToken
-	p.peekToken = p.l.NextToken()
+	p.peekToken = p.peek2Token
+	p.peek2Token = p.l.NextToken()
 }
 
 func (p *Parser) peekTokenIs(expectedType token.Type) bool {
 	return p.peekToken.Type == expectedType
+}
+
+func (p *Parser) peek2TokenIs(expectedType token.Type) bool {
+	return p.peek2Token.Type == expectedType
 }
 
 func (p *Parser) expectPeek(expectedType token.Type) error {
@@ -992,7 +999,7 @@ func (p *Parser) parseDoWhileStatement(scriptName string) (*ast.DoWhileStatement
 		return nil, nil, fmt.Errorf("line %d: missing '(' to start condition for do...while statement", p.curToken.LineNumber)
 	}
 
-	boolExpression, err := p.parseBooleanExpression(false)
+	boolExpression, err := p.parseBooleanExpression(false, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1134,7 +1141,7 @@ func (p *Parser) parseConditionExpression(scriptName string) (*ast.ConditionExpr
 
 	expression := &ast.ConditionExpression{}
 	implicitTexts := make([]impText, 0)
-	boolExpression, err := p.parseBooleanExpression(false)
+	boolExpression, err := p.parseBooleanExpression(false, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1153,11 +1160,21 @@ func (p *Parser) parseConditionExpression(scriptName string) (*ast.ConditionExpr
 	return expression, implicitTexts, nil
 }
 
-func (p *Parser) parseBooleanExpression(single bool) (ast.BooleanExpression, error) {
-	if p.peekTokenIs(token.LPAREN) {
+func (p *Parser) parseBooleanExpression(single bool, negated bool) (ast.BooleanExpression, error) {
+	nested := p.peekTokenIs(token.LPAREN)
+	negatedNested := p.peekTokenIs(token.NOT) && p.peek2TokenIs(token.LPAREN)
+	if nested || negatedNested {
 		// Open parenthesis indicates a nested expression.
+		// If a NOT operator is used before a nested expression, distribute
+		// it to the nested expression (i.e. De Morgan's law).
 		p.nextToken()
-		nestedExpression, err := p.parseBooleanExpression(false)
+		if nested {
+			negatedNested = negated
+		} else if negatedNested {
+			p.nextToken()
+			negatedNested = !negated
+		}
+		nestedExpression, err := p.parseBooleanExpression(false, negatedNested)
 		if err != nil {
 			return nil, err
 		}
@@ -1166,7 +1183,7 @@ func (p *Parser) parseBooleanExpression(single bool) (ast.BooleanExpression, err
 		}
 		if p.peekTokenIs(token.AND) || p.peekTokenIs(token.OR) {
 			p.nextToken()
-			return p.parseRightSideExpression(nestedExpression, single)
+			return p.parseRightSideExpression(nestedExpression, single, negated)
 		}
 		p.nextToken()
 		return nestedExpression, nil
@@ -1176,16 +1193,48 @@ func (p *Parser) parseBooleanExpression(single bool) (ast.BooleanExpression, err
 	if err != nil {
 		return nil, err
 	}
+
+	if negated {
+		leaf.Operator = getNegatedBooleanOperator(leaf.Operator)
+	}
 	if single {
 		return leaf, nil
 	}
-	return p.parseRightSideExpression(leaf, single)
+	return p.parseRightSideExpression(leaf, single, negated)
 }
 
-func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single bool) (ast.BooleanExpression, error) {
+func getNegatedBooleanOperator(operator token.Type) token.Type {
+	switch operator {
+	case token.EQ:
+		return token.NEQ
+	case token.NEQ:
+		return token.EQ
+	case token.LT:
+		return token.GTE
+	case token.GT:
+		return token.LTE
+	case token.LTE:
+		return token.GT
+	case token.GTE:
+		return token.LT
+	case token.AND:
+		return token.OR
+	case token.OR:
+		return token.AND
+	default:
+		return operator
+	}
+}
+
+func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single bool, negated bool) (ast.BooleanExpression, error) {
+	curTokenType := p.curToken.Type
+	if negated {
+		curTokenType = getNegatedBooleanOperator(curTokenType)
+	}
+
 	if p.curToken.Type == token.AND {
-		operator := p.curToken.Type
-		right, err := p.parseBooleanExpression(true)
+		operator := curTokenType
+		right, err := p.parseBooleanExpression(true, negated)
 		if err != nil {
 			return nil, err
 		}
@@ -1197,16 +1246,20 @@ func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single boo
 		if p.curToken.Literal == token.RPAREN {
 			return grouped, nil
 		}
-		binaryExpression := &ast.BinaryExpression{Left: grouped, Operator: p.curToken.Type}
-		boolExpression, err := p.parseBooleanExpression(false)
+		operator = p.curToken.Type
+		if negated {
+			operator = getNegatedBooleanOperator(p.curToken.Type)
+		}
+		binaryExpression := &ast.BinaryExpression{Left: grouped, Operator: operator}
+		boolExpression, err := p.parseBooleanExpression(false, negated)
 		if err != nil {
 			return nil, err
 		}
 		binaryExpression.Right = boolExpression
 		return binaryExpression, nil
 	} else if p.curToken.Type == token.OR {
-		operator := p.curToken.Type
-		right, err := p.parseBooleanExpression(false)
+		operator := curTokenType
+		right, err := p.parseBooleanExpression(false, negated)
 		if err != nil {
 			return nil, err
 		}
@@ -1309,8 +1362,8 @@ func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) e
 }
 
 func (p *Parser) parseConditionFlagLikeOperator(expression *ast.OperatorExpression, operatorName string) error {
-	if p.curToken.Type != token.EQ {
-		// Missing '==' means test for implicit truthiness.
+	if p.curToken.Type != token.EQ && p.curToken.Type != token.NEQ {
+		// Missing '==' or '!=' means test for implicit truthiness.
 		expression.Operator = token.EQ
 		expression.ComparisonValue = token.TRUE
 		return nil
@@ -1324,7 +1377,7 @@ func (p *Parser) parseConditionFlagLikeOperator(expression *ast.OperatorExpressi
 	}
 
 	if p.curToken.Type != token.TRUE && p.curToken.Type != token.FALSE {
-		return fmt.Errorf("line %d: invalid %s comparison value '%s'. Only 'TRUE' and 'FALSE' are allowed", p.curToken.LineNumber, operatorName, p.curToken.Literal)
+		return fmt.Errorf("line %d: invalid %s comparison value '%s'. Only TRUE and FALSE are allowed", p.curToken.LineNumber, operatorName, p.curToken.Literal)
 	}
 	expression.ComparisonValue = string(p.curToken.Type)
 	p.nextToken()

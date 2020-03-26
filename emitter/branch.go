@@ -149,7 +149,8 @@ func renderBranchComparison(sb *strings.Builder, dest *conditionDestination, scr
 }
 
 func renderFlagComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
-	if dest.operatorExpression.ComparisonValue == token.TRUE {
+	if (dest.operatorExpression.Operator == token.EQ && dest.operatorExpression.ComparisonValue == token.TRUE) ||
+		(dest.operatorExpression.Operator == token.NEQ && dest.operatorExpression.ComparisonValue == token.FALSE) {
 		sb.WriteString(fmt.Sprintf("\tgoto_if_set %s, %s_%d\n", dest.operatorExpression.Operand, scriptName, dest.id))
 	} else {
 		sb.WriteString(fmt.Sprintf("\tgoto_if_unset %s, %s_%d\n", dest.operatorExpression.Operand, scriptName, dest.id))
@@ -176,7 +177,8 @@ func renderVarComparison(sb *strings.Builder, dest *conditionDestination, script
 
 func renderDefeatedComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
 	sb.WriteString(fmt.Sprintf("\tchecktrainerflag %s\n", dest.operatorExpression.Operand))
-	if dest.operatorExpression.ComparisonValue == token.TRUE {
+	if (dest.operatorExpression.Operator == token.EQ && dest.operatorExpression.ComparisonValue == token.TRUE) ||
+		(dest.operatorExpression.Operator == token.NEQ && dest.operatorExpression.ComparisonValue == token.FALSE) {
 		sb.WriteString(fmt.Sprintf("\tgoto_if 1, %s_%d\n", scriptName, dest.id))
 	} else {
 		sb.WriteString(fmt.Sprintf("\tgoto_if 0, %s_%d\n", scriptName, dest.id))

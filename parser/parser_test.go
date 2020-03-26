@@ -1317,7 +1317,7 @@ script MyScript {
 		continue
 	} while (flag(FLAG_1) == 45)
 }`,
-			expectedError: "line 5: invalid flag comparison value '45'. Only 'TRUE' and 'FALSE' are allowed",
+			expectedError: "line 5: invalid flag comparison value '45'. Only TRUE and FALSE are allowed",
 		},
 		{
 			input: `
