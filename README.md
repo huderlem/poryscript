@@ -173,8 +173,9 @@ Compound boolean expressions are also supported. This means you can use the AND 
     }
     ...
     # Group nested conditions together with another set of parentheses.
-    if (flag(FLAG_IS_CHAMPION) && (flag(FLAG_SYS_TOWER_GOLD) || flag(FLAG_SYS_DOME_GOLD))) {
-        msgbox("Wow, you're a Battle Frontier pro!)
+    if (flag(FLAG_IS_CHAMPION) && !(flag(FLAG_SYS_TOWER_GOLD) || flag(FLAG_SYS_DOME_GOLD))) {
+        msgbox("You should try to beat the\n"
+               "Battle Tower or Battle Dome!)
     }
 ```
 
@@ -233,12 +234,6 @@ if (defeated(TRAINER_GARY) == true)
 # Check if the trainer hasn't been defeated.
 if (!defeated(TRAINER_GARY))
 if (defeated(TRAINER_GARY) == false)
-
-# The NOT operator (!) can only be used directly before an
-# operator, unlike regular programming languages.
-# This code would be an error, because the NOT operator is not
-# applying directly to a single flag() operator.
-if (!(flag(FLAG_1) && flag(FLAG_2)))
 ```
 
 When not using implicit truthiness, like in the above examples, they each have different valid comparison values on the right-hand side of the condition.
