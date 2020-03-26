@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 Nothing, yet.
 
+## [2.8.0] - 2020-03-25
+### Added
+- Add ability to use the NOT (`!`) operator in front of nested boolean expressions. Example: `if (flag(A) && !(flag(B) || flag(C)))`
+
 ## [2.7.2] - 2019-11-16
 ### Fixed
 - Fix bug where implicit text labels weren't properly inserted into command arguments.
@@ -91,7 +95,8 @@ Nothing, yet.
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/poryscript/compare/2.7.2...HEAD
+[Unreleased]: https://github.com/huderlem/poryscript/compare/2.8.0...HEAD
+[2.8.0]: https://github.com/huderlem/poryscript/compare/2.7.2...2.8.0
 [2.7.2]: https://github.com/huderlem/poryscript/compare/2.7.1...2.7.2
 [2.7.1]: https://github.com/huderlem/poryscript/compare/2.7.0...2.7.1
 [2.7.0]: https://github.com/huderlem/poryscript/compare/2.6.0...2.7.0
