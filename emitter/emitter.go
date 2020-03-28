@@ -7,19 +7,23 @@ import (
 	"strings"
 
 	"github.com/huderlem/poryscript/ast"
+	"github.com/huderlem/poryscript/genconfig"
 	"github.com/huderlem/poryscript/token"
+	"github.com/huderlem/poryscript/types"
 )
 
 // Emitter is responsible for transforming a parsed Poryscript program into
 // the target assembler bytecode script.
 type Emitter struct {
+	gen      types.Gen
 	program  *ast.Program
 	optimize bool
 }
 
 // New creates a new Poryscript program emitter.
-func New(program *ast.Program, optimize bool) *Emitter {
+func New(program *ast.Program, gen types.Gen, optimize bool) *Emitter {
 	return &Emitter{
+		gen:      gen,
 		program:  program,
 		optimize: optimize,
 	}
@@ -169,11 +173,11 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, 
 			// "end" and "return" are special control-flow commands that end execution of
 			// the current logic scope. Therefore, we should not process any further into the
 			// current chunk, and mark it as finalized.
-			if commandStmt.Name.Value == "end" || commandStmt.Name.Value == "return" {
+			if commandStmt.Name.Value == genconfig.EndCommands[e.gen] || commandStmt.Name.Value == genconfig.ReturnCommands[e.gen] {
 				completeChunk := &chunk{
 					id:               curChunk.id,
 					returnID:         -1,
-					useEndTerminator: commandStmt.Name.Value == "end",
+					useEndTerminator: commandStmt.Name.Value == genconfig.EndCommands[e.gen],
 					statements:       curChunk.statements[:i],
 				}
 				finalChunks[completeChunk.id] = completeChunk
@@ -561,7 +565,7 @@ func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string, isGloba
 		if err != nil {
 			return "", err
 		}
-		isFallThrough := chunk.renderBranching(scriptName, &sb, nextChunkID, registerJumpChunk)
+		isFallThrough := chunk.renderBranching(scriptName, &sb, nextChunkID, registerJumpChunk, e.gen)
 		if !isFallThrough {
 			sb.WriteString("\n")
 		}

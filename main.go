@@ -114,7 +114,7 @@ func main() {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
 	}
 
-	emitter := emitter.New(program, options.optimize)
+	emitter := emitter.New(program, gen, options.optimize)
 	result, err := emitter.Emit()
 	if err != nil {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())

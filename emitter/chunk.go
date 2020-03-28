@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/huderlem/poryscript/ast"
+	"github.com/huderlem/poryscript/genconfig"
+	"github.com/huderlem/poryscript/types"
 )
 
 // Represents a single chunk of script output. Each chunk has an associated label in
@@ -43,7 +45,7 @@ func (c *chunk) renderStatements(sb *strings.Builder) error {
 	return nil
 }
 
-func (c *chunk) renderBranching(scriptName string, sb *strings.Builder, nextChunkID int, registerJumpChunk func(int)) bool {
+func (c *chunk) renderBranching(scriptName string, sb *strings.Builder, nextChunkID int, registerJumpChunk func(int), gen types.Gen) bool {
 	if c.branchBehavior != nil {
 		isFallThrough := c.branchBehavior.renderBranchConditions(sb, scriptName, nextChunkID, registerJumpChunk)
 		return isFallThrough
@@ -51,7 +53,7 @@ func (c *chunk) renderBranching(scriptName string, sb *strings.Builder, nextChun
 
 	// Handle natural return logic that wasn't covered by a branch behavior.
 	if c.returnID == -1 {
-		sb.WriteString(fmt.Sprintf("\t%s\n", c.getTerminatorCommand()))
+		sb.WriteString(fmt.Sprintf("\t%s\n", c.getTerminatorCommand(gen)))
 		return false
 	} else if c.returnID != nextChunkID {
 		registerJumpChunk(c.returnID)
@@ -63,11 +65,11 @@ func (c *chunk) renderBranching(scriptName string, sb *strings.Builder, nextChun
 	return true
 }
 
-func (c *chunk) getTerminatorCommand() string {
+func (c *chunk) getTerminatorCommand(gen types.Gen) string {
 	if c.useEndTerminator {
-		return "end"
+		return genconfig.EndCommands[gen]
 	}
-	return "return"
+	return genconfig.ReturnCommands[gen]
 }
 
 func (c *chunk) splitChunkForBranch(statementIndex int, chunkCounter *int, remainingChunks []*chunk) ([]*chunk, int) {

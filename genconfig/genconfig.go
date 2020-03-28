@@ -43,3 +43,18 @@ func SupportedSwitchOperators(gen types.Gen) []token.Type {
 		return []token.Type{}
 	}
 }
+
+// ReturnCommands is a mapping of the return command used for
+// each Gen. These return from the called script execution, or
+// halt script execution if there is no current call context.
+var ReturnCommands = map[types.Gen]string{
+	types.GEN2: "end",
+	types.GEN3: "return",
+}
+
+// EndCommands is a mapping of the halting end command used for
+// each Gen. These halt script execution.
+var EndCommands = map[types.Gen]string{
+	types.GEN2: "endall",
+	types.GEN3: "end",
+}
