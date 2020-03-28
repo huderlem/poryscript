@@ -108,7 +108,8 @@ func main() {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
 	}
 
-	parser := parser.New(lexer.New(input, config.GEN3), options.fontWidthsFilepath, options.compileSwitches)
+	gen := config.GEN3
+	parser := parser.New(lexer.New(input, gen), gen, options.fontWidthsFilepath, options.compileSwitches)
 	program, err := parser.ParseProgram()
 	if err != nil {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())

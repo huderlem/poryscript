@@ -457,7 +457,7 @@ func createSwitchStatementChunks(stmt *ast.SwitchStatement, statementIndex int, 
 	}
 	remainingChunks = append(remainingChunks, switchChunk)
 
-	branchBehavior := &switchBranch{operand: stmt.Operand}
+	branchBehavior := &switchBranch{operator: stmt.Operator, operand: stmt.Operand}
 	branchCases := []*switchCaseBranch{}
 	i := 0
 	for i < len(stmt.Cases) {

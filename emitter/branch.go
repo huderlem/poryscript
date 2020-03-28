@@ -96,6 +96,7 @@ type switchCaseBranch struct {
 
 // Represents the a switch statement branch behavior.
 type switchBranch struct {
+	operator    string
 	operand     string
 	cases       []*switchCaseBranch
 	defaultCase *switchCaseBranch

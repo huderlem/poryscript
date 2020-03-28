@@ -234,6 +234,7 @@ type SwitchCase struct {
 // SwitchStatement is a switch statement in Poryscript.
 type SwitchStatement struct {
 	Token       token.Token
+	Operator    string
 	Operand     string
 	Cases       []*SwitchCase
 	DefaultCase *SwitchCase

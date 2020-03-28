@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/huderlem/poryscript/ast"
+	"github.com/huderlem/poryscript/config"
 	"github.com/huderlem/poryscript/lexer"
 	"github.com/huderlem/poryscript/token"
 )
@@ -29,6 +30,7 @@ type impText struct {
 
 // Parser is a Poryscript AST parser.
 type Parser struct {
+	gen                config.Gen
 	l                  *lexer.Lexer
 	curToken           token.Token
 	peekToken          token.Token
@@ -46,8 +48,9 @@ type Parser struct {
 }
 
 // New creates a new Poryscript AST Parser.
-func New(l *lexer.Lexer, fontConfigFilepath string, compileSwitches map[string]string) *Parser {
+func New(l *lexer.Lexer, gen config.Gen, fontConfigFilepath string, compileSwitches map[string]string) *Parser {
 	p := &Parser{
+		gen:                gen,
 		l:                  l,
 		inlineTexts:        make([]ast.Text, 0),
 		inlineTextsSet:     make(map[string]string),
@@ -1050,11 +1053,32 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	if err := p.expectPeek(token.LPAREN); err != nil {
 		return nil, nil, fmt.Errorf("line %d: missing opening parenthesis of switch statement operand", p.curToken.LineNumber)
 	}
-	if err := p.expectPeek(token.VAR); err != nil {
-		return nil, nil, fmt.Errorf("line %d: invalid switch statement operand '%s'. Must be 'var`", p.peekToken.LineNumber, p.peekToken.Literal)
+
+	var operator token.Token
+	supportedOperators := supportedSwitchOperators(p.gen)
+	if len(supportedOperators) > 0 {
+		found := false
+		for _, o := range supportedOperators {
+			if p.peekTokenIs(o) {
+				found = true
+				operator = p.peekToken
+				p.nextToken()
+				break
+			}
+		}
+		if !found {
+
+			return nil, nil, fmt.Errorf("line %d: invalid switch statement operator '%s'. Must be one of the following: %v", p.peekToken.LineNumber, p.peekToken.Literal, supportedOperators)
+		}
+	} else {
+		if err := p.expectPeek(token.IDENT); err != nil {
+			return nil, nil, fmt.Errorf("line %d: invalid switch statement operator '%s'. Must be an identifier", p.peekToken.LineNumber, p.peekToken.Literal)
+		}
+		operator = p.curToken
 	}
+
 	if err := p.expectPeek(token.LPAREN); err != nil {
-		return nil, nil, fmt.Errorf("line %d: missing '(' after var operator. Got '%s` instead", p.peekToken.LineNumber, p.peekToken.Literal)
+		return nil, nil, fmt.Errorf("line %d: missing '(' after '%s' operator. Got '%s` instead", p.peekToken.LineNumber, operator.Literal, p.peekToken.Literal)
 	}
 
 	p.nextToken()
@@ -1066,7 +1090,10 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 		parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 		p.nextToken()
 	}
-	p.nextToken()
+	if err := p.expectPeek(token.RPAREN); err != nil {
+		return nil, nil, fmt.Errorf("line %d: missing closing parenthesis for switch statement operand. Got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+	}
+	statement.Operator = operator.Literal
 	statement.Operand = strings.Join(parts, " ")
 
 	if err := p.expectPeek(token.LBRACE); err != nil {
@@ -1132,6 +1159,19 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	}
 
 	return statement, implicitTexts, nil
+}
+
+// Gets the list of supported operators that can be used in a switch statement.
+// An empty list indicates that arbitrary operators can be used.
+func supportedSwitchOperators(gen config.Gen) []token.Type {
+	switch gen {
+	case config.GEN2:
+		return []token.Type{}
+	case config.GEN3:
+		return []token.Type{token.VAR}
+	default:
+		return []token.Type{}
+	}
 }
 
 func (p *Parser) parseConditionExpression(scriptName string) (*ast.ConditionExpression, []impText, error) {

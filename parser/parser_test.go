@@ -31,7 +31,7 @@ script MyScript3 {
 		}
 `
 	l := lexer.New(input, config.GEN3)
-	p := New(l, "", nil)
+	p := New(l, config.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -185,7 +185,7 @@ movement MyMovement {
 
 	for _, tt := range scriptTests {
 		l := lexer.New(input, config.GEN3)
-		p := New(l, "../font_widths.json", tt.switches)
+		p := New(l, config.GEN3, "../font_widths.json", tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -213,7 +213,7 @@ movement MyMovement {
 
 	for i, tt := range textTests {
 		l := lexer.New(input, config.GEN3)
-		p := New(l, "../font_widths.json", tt.switches)
+		p := New(l, config.GEN3, "../font_widths.json", tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -236,7 +236,7 @@ movement MyMovement {
 
 	for _, tt := range movementTests {
 		l := lexer.New(input, config.GEN3)
-		p := New(l, "../font_widths.json", tt.switches)
+		p := New(l, config.GEN3, "../font_widths.json", tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -265,7 +265,7 @@ raw ` + "`" + `
 	step_down
 ` + "`"
 	l := lexer.New(input, config.GEN3)
-	p := New(l, "", nil)
+	p := New(l, config.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -358,7 +358,7 @@ script Test {
 }
 `
 	l := lexer.New(input, config.GEN3)
-	p := New(l, "", nil)
+	p := New(l, config.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -425,7 +425,7 @@ script Test {
 }
 `
 	l := lexer.New(input, config.GEN3)
-	p := New(l, "", nil)
+	p := New(l, config.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -470,7 +470,7 @@ script Test {
 }
 `
 	l := lexer.New(input, config.GEN3)
-	p := New(l, "", nil)
+	p := New(l, config.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -547,7 +547,7 @@ script Test {
 }
 `
 	l := lexer.New(input, config.GEN3)
-	p := New(l, "", nil)
+	p := New(l, config.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -602,7 +602,7 @@ script Script2 {
 }
 `
 	l := lexer.New(input, config.GEN3)
-	p := New(l, "", nil)
+	p := New(l, config.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -634,7 +634,7 @@ script MyScript1 {
 }
 `
 	l := lexer.New(input, config.GEN3)
-	p := New(l, "", nil)
+	p := New(l, config.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -656,7 +656,7 @@ text MyText {
 }
 `
 	l := lexer.New(input, config.GEN3)
-	p := New(l, "../font_widths.json", nil)
+	p := New(l, config.GEN3, "../font_widths.json", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -691,7 +691,7 @@ movement MyMovement3 {
 }
 `
 	l := lexer.New(input, config.GEN3)
-	p := New(l, "", nil)
+	p := New(l, config.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -745,7 +745,7 @@ mapscripts MyMap_MapScripts {
 }
 `
 	l := lexer.New(input, config.GEN3)
-	p := New(l, "", nil)
+	p := New(l, config.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -865,7 +865,7 @@ mapscripts(local) MapScripts2 {}
 mapscripts(global) MapScripts3 {}
 `
 	l := lexer.New(input, config.GEN3)
-	p := New(l, "", nil)
+	p := New(l, config.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -939,7 +939,7 @@ mapscripts MyMapScript {
 }
 `
 	l := lexer.New(input, config.GEN3)
-	p := New(l, "", nil)
+	p := New(l, config.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1143,7 +1143,7 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError: "line 3: invalid switch statement operand 'flag'. Must be 'var`",
+			expectedError: "line 3: invalid switch statement operator 'flag'. Must be one of the following: [VAR]",
 		},
 		{
 			input: `
@@ -1153,7 +1153,7 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError: "line 3: missing '(' after var operator. Got 'FLAG_1` instead",
+			expectedError: "line 3: missing '(' after 'var' operator. Got 'FLAG_1` instead",
 		},
 		{
 			input: `
@@ -1164,6 +1164,16 @@ script MyScript {
 	}
 }`,
 			expectedError: "line 3: missing opening curly brace of switch statement",
+		},
+		{
+			input: `
+script MyScript {
+	switch (var(FLAG_1) {
+	case 1:
+		foo
+	}
+}`,
+			expectedError: "line 3: missing closing parenthesis for switch statement operand. Got '{' instead",
 		},
 		{
 			input: `
@@ -1684,7 +1694,7 @@ mapscripts() MyMapScripts {}`,
 
 func testForParseError(t *testing.T, input string, expectedErrorText string) {
 	l := lexer.New(input, config.GEN3)
-	p := New(l, "../font_widths.json", nil)
+	p := New(l, config.GEN3, "../font_widths.json", nil)
 	_, err := p.ParseProgram()
 	if err == nil {
 		t.Fatalf("Expected error '%s', but no error occurred", expectedErrorText)

@@ -137,7 +137,7 @@ func (l *Lexer) NextToken() token.Token {
 	case '}':
 		tok = newToken(token.RBRACE, l.ch, l.lineNumber)
 	case '$':
-		if config.SupportsDollarSignHexNotation(l.gen) {
+		if supportsDollarSignHexNotation(l.gen) {
 			l.readChar()
 			tok.Type = token.INT
 			tok.Literal = "$" + l.readHexNumber()
@@ -146,7 +146,7 @@ func (l *Lexer) NextToken() token.Token {
 		}
 		tok = newToken(token.ILLEGAL, l.ch, l.lineNumber)
 	case '0':
-		if config.Supports0xHexNotation(l.gen) {
+		if supports0xHexNotation(l.gen) {
 			if l.peekChar() == 'x' {
 				l.readChar()
 				l.readChar()
@@ -274,4 +274,26 @@ func isDigit(ch byte) bool {
 
 func isHexDigit(ch byte) bool {
 	return ('0' <= ch && ch <= '9') || ('a' <= ch && ch <= 'f') || ('A' <= ch && ch <= 'F')
+}
+
+func supportsDollarSignHexNotation(gen config.Gen) bool {
+	switch gen {
+	case config.GEN2:
+		return true
+	case config.GEN3:
+		return false
+	default:
+		return true
+	}
+}
+
+func supports0xHexNotation(gen config.Gen) bool {
+	switch gen {
+	case config.GEN2:
+		return false
+	case config.GEN3:
+		return true
+	default:
+		return true
+	}
 }
