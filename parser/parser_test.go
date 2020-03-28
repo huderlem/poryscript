@@ -529,7 +529,7 @@ func testOperatorExpression(t *testing.T, ex *ast.OperatorExpression, expectType
 	}
 }
 
-func TestSwitchStatements(t *testing.T) {
+func TestGen3SwitchStatements(t *testing.T) {
 	input := `
 script Test {
 	switch (var(VAR_1)) {
@@ -558,6 +558,9 @@ script Test {
 	if !ok {
 		t.Fatalf("not a switch statement\n")
 	}
+	if switchStmt.Operator != "var" {
+		t.Fatalf("switchStmt.Operator != var. Got '%s' instead.", switchStmt.Operator)
+	}
 	if switchStmt.Operand != "VAR_1" {
 		t.Fatalf("switchStmt.Operand != VAR_1. Got '%s' instead.", switchStmt.Operand)
 	}
@@ -573,6 +576,56 @@ script Test {
 	testSwitchCase(t, switchStmt.Cases[3], "3", 3)
 	testSwitchCase(t, switchStmt.DefaultCase, "", 1)
 	testSwitchCase(t, (switchStmt.Cases[3].Body.Statements[1].(*ast.SwitchStatement)).Cases[0], "67", 1)
+}
+
+func TestGen2SwitchStatements(t *testing.T) {
+	input := `
+script Test {
+	switch (var(VAR_1)) {
+		case 0: message1()
+	}
+	switch (closewindow) {
+		case 0: message1()
+	}
+}
+`
+	l := lexer.New(input, types.GEN2)
+	p := New(l, types.GEN2, "", nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
+	switchStmt, ok := scriptStmt.Body.Statements[0].(*ast.SwitchStatement)
+	if !ok {
+		t.Fatalf("not a switch statement\n")
+	}
+	if switchStmt.Operator != "var" {
+		t.Fatalf("switchStmt.Operator != var. Got '%s' instead.", switchStmt.Operator)
+	}
+	if switchStmt.Operand != "VAR_1" {
+		t.Fatalf("switchStmt.Operand != VAR_1. Got '%s' instead.", switchStmt.Operand)
+	}
+	if len(switchStmt.Cases) != 1 {
+		t.Fatalf("len(switchStmt.Cases) != 1. Got '%d' instead.", len(switchStmt.Cases))
+	}
+	testSwitchCase(t, switchStmt.Cases[0], "0", 1)
+
+	switchStmt, ok = scriptStmt.Body.Statements[1].(*ast.SwitchStatement)
+	if !ok {
+		t.Fatalf("not a switch statement\n")
+	}
+	if switchStmt.Operator != "closewindow" {
+		t.Fatalf("switchStmt.Operator != closewindow. Got '%s' instead.", switchStmt.Operator)
+	}
+	if switchStmt.Operand != "" {
+		t.Fatalf("switchStmt.Operand != ''. Got '%s' instead.", switchStmt.Operand)
+	}
+	if len(switchStmt.Cases) != 1 {
+		t.Fatalf("len(switchStmt.Cases) != 1. Got '%d' instead.", len(switchStmt.Cases))
+	}
+	testSwitchCase(t, switchStmt.Cases[0], "0", 1)
 }
 
 func testSwitchCase(t *testing.T, sc *ast.SwitchCase, expectValue string, expectBodyLength int) {

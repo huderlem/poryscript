@@ -1077,26 +1077,28 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 		}
 		operator = p.curToken
 	}
+	statement.Operator = operator.Literal
 
-	if err := p.expectPeek(token.LPAREN); err != nil {
-		return nil, nil, fmt.Errorf("line %d: missing '(' after '%s' operator. Got '%s` instead", p.peekToken.LineNumber, operator.Literal, p.peekToken.Literal)
-	}
-
-	p.nextToken()
-	parts := []string{}
-	for p.curToken.Type != token.RPAREN {
-		if p.curToken.Type == token.EOF {
-			return nil, nil, fmt.Errorf("line %d: missing closing parenthesis of switch statement value", originalLineNumber)
+	shouldParseOperand := operator.Type != token.IDENT || p.peekTokenIs(token.LPAREN)
+	if shouldParseOperand {
+		if err := p.expectPeek(token.LPAREN); err != nil {
+			return nil, nil, fmt.Errorf("line %d: missing '(' after '%s' operator. Got '%s` instead", p.peekToken.LineNumber, operator.Literal, p.peekToken.Literal)
 		}
-		parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 		p.nextToken()
+		parts := []string{}
+		for p.curToken.Type != token.RPAREN {
+			if p.curToken.Type == token.EOF {
+				return nil, nil, fmt.Errorf("line %d: missing closing parenthesis of switch statement value", originalLineNumber)
+			}
+			parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
+			p.nextToken()
+		}
+		statement.Operand = strings.Join(parts, " ")
 	}
+
 	if err := p.expectPeek(token.RPAREN); err != nil {
 		return nil, nil, fmt.Errorf("line %d: missing closing parenthesis for switch statement operand. Got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
 	}
-	statement.Operator = operator.Literal
-	statement.Operand = strings.Join(parts, " ")
-
 	if err := p.expectPeek(token.LBRACE); err != nil {
 		return nil, nil, fmt.Errorf("line %d: missing opening curly brace of switch statement", p.curToken.LineNumber)
 	}
