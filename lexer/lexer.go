@@ -137,21 +137,25 @@ func (l *Lexer) NextToken() token.Token {
 	case '}':
 		tok = newToken(token.RBRACE, l.ch, l.lineNumber)
 	case '$':
-		l.readChar()
-		tok.Type = token.INT
-		tok.Literal = "$" + l.readHexNumber()
-		tok.LineNumber = l.lineNumber
-		return tok
-	case '0':
-		if l.peekChar() == 'x' {
-			l.readChar()
+		if config.SupportsDollarSignHexNotation(l.gen) {
 			l.readChar()
 			tok.Type = token.INT
-			tok.Literal = "0x" + l.readHexNumber()
+			tok.Literal = "$" + l.readHexNumber()
 			tok.LineNumber = l.lineNumber
 			return tok
 		}
-
+		tok = newToken(token.ILLEGAL, l.ch, l.lineNumber)
+	case '0':
+		if config.Supports0xHexNotation(l.gen) {
+			if l.peekChar() == 'x' {
+				l.readChar()
+				l.readChar()
+				tok.Type = token.INT
+				tok.Literal = "0x" + l.readHexNumber()
+				tok.LineNumber = l.lineNumber
+				return tok
+			}
+		}
 		tok.Type = token.INT
 		tok.Literal = l.readNumber()
 		tok.LineNumber = l.lineNumber
