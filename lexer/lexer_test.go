@@ -3,6 +3,7 @@ package lexer
 import (
 	"testing"
 
+	"github.com/huderlem/poryscript/config"
 	"github.com/huderlem/poryscript/token"
 )
 
@@ -35,6 +36,7 @@ func TestNextToken(t *testing.T) {
 		0435
 		-23
 		case: default
+		$4acb
 		while
 		defeated
 		text
@@ -127,6 +129,7 @@ func TestNextToken(t *testing.T) {
 		{token.CASE, "case"},
 		{token.COLON, ":"},
 		{token.DEFAULT, "default"},
+		{token.INT, "$4acb"},
 		{token.WHILE, "while"},
 		{token.DEFEATED, "defeated"},
 		{token.TEXT, "text"},
@@ -146,7 +149,7 @@ func TestNextToken(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input)
+	l := New(input, config.GEN3)
 
 	for i, tt := range tests {
 		tok := l.NextToken()

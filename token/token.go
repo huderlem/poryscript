@@ -1,5 +1,7 @@
 package token
 
+import "github.com/huderlem/poryscript/config"
+
 // Type distinguishes between different types of tokens in the Poryscript lexer.
 type Type string
 
@@ -73,12 +75,6 @@ const (
 	CONST      = "CONST"
 )
 
-// If statement comparison types
-const (
-	CMPVAR  = "CMPVAR"
-	CMPFLAG = "CMPFLAG"
-)
-
 var keywords = map[string]Type{
 	"script":     SCRIPT,
 	"raw":        RAW,
@@ -86,9 +82,6 @@ var keywords = map[string]Type{
 	"movement":   MOVEMENT,
 	"mapscripts": MAPSCRIPTS,
 	"format":     FORMAT,
-	"var":        VAR,
-	"flag":       FLAG,
-	"defeated":   DEFEATED,
 	"TRUE":       TRUE,
 	"FALSE":      FALSE,
 	"true":       TRUE,
@@ -109,10 +102,21 @@ var keywords = map[string]Type{
 	"const":      CONST,
 }
 
-// GetIdentType looks up the token type for the given identifier
-func GetIdentType(ident string) Type {
+var gen3Keywords = map[string]Type{
+	"var":      VAR,
+	"flag":     FLAG,
+	"defeated": DEFEATED,
+}
+
+// GetIdentType looks up the token type for the given identifier in the given Gen context.
+func GetIdentType(ident string, gen config.Gen) Type {
 	if tokType, ok := keywords[ident]; ok {
 		return tokType
+	}
+	if gen == config.GEN3 {
+		if tokType, ok := gen3Keywords[ident]; ok {
+			return tokType
+		}
 	}
 	return IDENT
 }

@@ -3,10 +3,10 @@ package parser
 import (
 	"testing"
 
-	"github.com/huderlem/poryscript/token"
-
 	"github.com/huderlem/poryscript/ast"
+	"github.com/huderlem/poryscript/config"
 	"github.com/huderlem/poryscript/lexer"
+	"github.com/huderlem/poryscript/token"
 )
 
 type commandArgs struct {
@@ -30,7 +30,7 @@ script MyScript2 {}
 script MyScript3 {
 		}
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -184,7 +184,7 @@ movement MyMovement {
 	}
 
 	for _, tt := range scriptTests {
-		l := lexer.New(input)
+		l := lexer.New(input, config.GEN3)
 		p := New(l, "../font_widths.json", tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
@@ -212,7 +212,7 @@ movement MyMovement {
 	}
 
 	for i, tt := range textTests {
-		l := lexer.New(input)
+		l := lexer.New(input, config.GEN3)
 		p := New(l, "../font_widths.json", tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
@@ -235,7 +235,7 @@ movement MyMovement {
 	}
 
 	for _, tt := range movementTests {
-		l := lexer.New(input)
+		l := lexer.New(input, config.GEN3)
 		p := New(l, "../font_widths.json", tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
@@ -264,7 +264,7 @@ raw ` + "`" + `
 raw ` + "`" + `
 	step_down
 ` + "`"
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -357,7 +357,7 @@ script Test {
 	}
 }
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -424,7 +424,7 @@ script Test {
 	} while (var(VAR_1) > 2)
 }
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -469,7 +469,7 @@ script Test {
 	}
 }
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -546,7 +546,7 @@ script Test {
 	}
 }
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -601,7 +601,7 @@ script Script2 {
 		"Multiline$", MSGBOX_DEFAULT)
 }
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -633,7 +633,7 @@ script MyScript1 {
 	foo()
 }
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -655,7 +655,7 @@ text MyText {
 	format("FooBar", "TEST")
 }
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := New(l, "../font_widths.json", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -690,7 +690,7 @@ movement MyMovement3 {
 	delay_16*2
 }
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -744,7 +744,7 @@ mapscripts MyMap_MapScripts {
 	]
 }
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -864,7 +864,7 @@ mapscripts MapScripts1 {}
 mapscripts(local) MapScripts2 {}
 mapscripts(global) MapScripts3 {}
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -938,7 +938,7 @@ mapscripts MyMapScript {
 	]
 }
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -1683,7 +1683,7 @@ mapscripts() MyMapScripts {}`,
 }
 
 func testForParseError(t *testing.T, input string, expectedErrorText string) {
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := New(l, "../font_widths.json", nil)
 	_, err := p.ParseProgram()
 	if err == nil {

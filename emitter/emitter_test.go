@@ -3,6 +3,8 @@ package emitter
 import (
 	"testing"
 
+	"github.com/huderlem/poryscript/config"
+
 	"github.com/huderlem/poryscript/lexer"
 	"github.com/huderlem/poryscript/parser"
 )
@@ -268,7 +270,7 @@ Route29_EventScript_Dude_Text_1:
 	.string "If you weaken them first, POKéMON\n"
 	.string "are easier to catch.$"
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := parser.New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -371,7 +373,7 @@ Route29_EventScript_WaitingMan_Text_0:
 Route29_EventScript_WaitingMan_Text_1:
 	.string "...How about now?$"
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := parser.New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -499,7 +501,7 @@ MyScript_13:
 
 `
 
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := parser.New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -675,7 +677,7 @@ MyScript_21:
 	goto MyScript_2
 
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := parser.New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -1088,7 +1090,7 @@ MyScript6_3:
 	goto MyScript6_1
 
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := parser.New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -1276,7 +1278,7 @@ MyScript_18:
 	goto MyScript_5
 
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := parser.New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -1370,7 +1372,7 @@ MyText::
 MyText2:
 	.string "Bye!$"
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := parser.New(l, "../font_widths.json", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -1430,7 +1432,7 @@ ScripText_2:
 	end
 
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := parser.New(l, "../font_widths.json", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -1658,7 +1660,7 @@ PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	.string "Haha it worked! This should make writing\n"
 	.string "map scripts much easier.$"
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := parser.New(l, "../font_widths.json", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -1790,7 +1792,7 @@ MovementWalk3::
 ScriptWithMovement_Text_0:
 	.string "Let's go for a walk.$"
 `
-	l := lexer.New(input)
+	l := lexer.New(input, config.GEN3)
 	p := parser.New(l, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
@@ -2125,7 +2127,7 @@ MyText::
 	}
 
 	for i, tt := range tests {
-		l := lexer.New(input)
+		l := lexer.New(input, config.GEN3)
 		p := parser.New(l, "../font_widths.json", tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
@@ -2213,7 +2215,7 @@ Route29_Text_Dude_CatchingTutRejected:
 	var result string
 	b.Run("unoptimized", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			l := lexer.New(input)
+			l := lexer.New(input, config.GEN3)
 			p := parser.New(l, "", nil)
 			program, _ := p.ParseProgram()
 			e := New(program, false)
@@ -2224,7 +2226,7 @@ Route29_Text_Dude_CatchingTutRejected:
 
 	b.Run("optimized", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			l := lexer.New(input)
+			l := lexer.New(input, config.GEN3)
 			p := parser.New(l, "", nil)
 			program, _ := p.ParseProgram()
 			e := New(program, true)

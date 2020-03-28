@@ -4,11 +4,13 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/huderlem/poryscript/config"
 	"github.com/huderlem/poryscript/token"
 )
 
 // Lexer produces tokens from a Poryscript file
 type Lexer struct {
+	gen          config.Gen
 	input        string
 	position     int  // current position in input (points to current char)
 	readPosition int  // current reading position in input (after current char)
@@ -17,8 +19,8 @@ type Lexer struct {
 }
 
 // New initializes a new lexer for the given Poryscript file
-func New(input string) *Lexer {
-	l := &Lexer{input: input, lineNumber: 1}
+func New(input string, gen config.Gen) *Lexer {
+	l := &Lexer{gen: gen, input: input, lineNumber: 1}
 	l.readChar()
 	return l
 }
@@ -134,6 +136,12 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.LBRACE, l.ch, l.lineNumber)
 	case '}':
 		tok = newToken(token.RBRACE, l.ch, l.lineNumber)
+	case '$':
+		l.readChar()
+		tok.Type = token.INT
+		tok.Literal = "$" + l.readHexNumber()
+		tok.LineNumber = l.lineNumber
+		return tok
 	case '0':
 		if l.peekChar() == 'x' {
 			l.readChar()
@@ -155,7 +163,7 @@ func (l *Lexer) NextToken() token.Token {
 	default:
 		if isLetter(l.ch) {
 			tok.Literal = l.readIdentifier()
-			tok.Type = token.GetIdentType(tok.Literal)
+			tok.Type = token.GetIdentType(tok.Literal, l.gen)
 			tok.LineNumber = l.lineNumber
 			return tok
 		} else if isDigit(l.ch) || (l.ch == '-' && isDigit(l.peekChar())) {

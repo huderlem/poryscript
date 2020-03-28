@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/huderlem/poryscript/config"
+
 	"github.com/huderlem/poryscript/emitter"
 	"github.com/huderlem/poryscript/lexer"
 	"github.com/huderlem/poryscript/parser"
@@ -106,7 +108,7 @@ func main() {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
 	}
 
-	parser := parser.New(lexer.New(input), options.fontWidthsFilepath, options.compileSwitches)
+	parser := parser.New(lexer.New(input, config.GEN3), options.fontWidthsFilepath, options.compileSwitches)
 	program, err := parser.ParseProgram()
 	if err != nil {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
