@@ -1,6 +1,6 @@
 package token
 
-import "github.com/huderlem/poryscript/config"
+import "github.com/huderlem/poryscript/types"
 
 // Type distinguishes between different types of tokens in the Poryscript lexer.
 type Type string
@@ -109,11 +109,11 @@ var gen3Keywords = map[string]Type{
 }
 
 // GetIdentType looks up the token type for the given identifier in the given Gen context.
-func GetIdentType(ident string, gen config.Gen) Type {
+func GetIdentType(ident string, gen types.Gen) Type {
 	if tokType, ok := keywords[ident]; ok {
 		return tokType
 	}
-	if gen == config.GEN3 {
+	if gen == types.GEN3 {
 		if tokType, ok := gen3Keywords[ident]; ok {
 			return tokType
 		}

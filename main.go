@@ -9,11 +9,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/huderlem/poryscript/config"
-
 	"github.com/huderlem/poryscript/emitter"
 	"github.com/huderlem/poryscript/lexer"
 	"github.com/huderlem/poryscript/parser"
+	"github.com/huderlem/poryscript/types"
 )
 
 const version = "2.8.0"
@@ -108,7 +107,7 @@ func main() {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
 	}
 
-	gen := config.GEN3
+	gen := types.GEN3
 	parser := parser.New(lexer.New(input, gen), gen, options.fontWidthsFilepath, options.compileSwitches)
 	program, err := parser.ParseProgram()
 	if err != nil {

@@ -4,13 +4,14 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/huderlem/poryscript/config"
+	"github.com/huderlem/poryscript/genconfig"
 	"github.com/huderlem/poryscript/token"
+	"github.com/huderlem/poryscript/types"
 )
 
 // Lexer produces tokens from a Poryscript file
 type Lexer struct {
-	gen          config.Gen
+	gen          types.Gen
 	input        string
 	position     int  // current position in input (points to current char)
 	readPosition int  // current reading position in input (after current char)
@@ -19,7 +20,7 @@ type Lexer struct {
 }
 
 // New initializes a new lexer for the given Poryscript file
-func New(input string, gen config.Gen) *Lexer {
+func New(input string, gen types.Gen) *Lexer {
 	l := &Lexer{gen: gen, input: input, lineNumber: 1}
 	l.readChar()
 	return l
@@ -137,7 +138,7 @@ func (l *Lexer) NextToken() token.Token {
 	case '}':
 		tok = newToken(token.RBRACE, l.ch, l.lineNumber)
 	case '$':
-		if supportsDollarSignHexNotation(l.gen) {
+		if genconfig.SupportsDollarSignHexNotation(l.gen) {
 			l.readChar()
 			tok.Type = token.INT
 			tok.Literal = "$" + l.readHexNumber()
@@ -146,7 +147,7 @@ func (l *Lexer) NextToken() token.Token {
 		}
 		tok = newToken(token.ILLEGAL, l.ch, l.lineNumber)
 	case '0':
-		if supports0xHexNotation(l.gen) {
+		if genconfig.Supports0xHexNotation(l.gen) {
 			if l.peekChar() == 'x' {
 				l.readChar()
 				l.readChar()
@@ -274,26 +275,4 @@ func isDigit(ch byte) bool {
 
 func isHexDigit(ch byte) bool {
 	return ('0' <= ch && ch <= '9') || ('a' <= ch && ch <= 'f') || ('A' <= ch && ch <= 'F')
-}
-
-func supportsDollarSignHexNotation(gen config.Gen) bool {
-	switch gen {
-	case config.GEN2:
-		return true
-	case config.GEN3:
-		return false
-	default:
-		return true
-	}
-}
-
-func supports0xHexNotation(gen config.Gen) bool {
-	switch gen {
-	case config.GEN2:
-		return false
-	case config.GEN3:
-		return true
-	default:
-		return true
-	}
 }

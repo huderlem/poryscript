@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/huderlem/poryscript/ast"
-	"github.com/huderlem/poryscript/config"
 	"github.com/huderlem/poryscript/lexer"
 	"github.com/huderlem/poryscript/token"
+	"github.com/huderlem/poryscript/types"
 )
 
 type commandArgs struct {
@@ -30,8 +30,8 @@ script MyScript2 {}
 script MyScript3 {
 		}
 `
-	l := lexer.New(input, config.GEN3)
-	p := New(l, config.GEN3, "", nil)
+	l := lexer.New(input, types.GEN3)
+	p := New(l, types.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -184,8 +184,8 @@ movement MyMovement {
 	}
 
 	for _, tt := range scriptTests {
-		l := lexer.New(input, config.GEN3)
-		p := New(l, config.GEN3, "../font_widths.json", tt.switches)
+		l := lexer.New(input, types.GEN3)
+		p := New(l, types.GEN3, "../font_widths.json", tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -212,8 +212,8 @@ movement MyMovement {
 	}
 
 	for i, tt := range textTests {
-		l := lexer.New(input, config.GEN3)
-		p := New(l, config.GEN3, "../font_widths.json", tt.switches)
+		l := lexer.New(input, types.GEN3)
+		p := New(l, types.GEN3, "../font_widths.json", tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -235,8 +235,8 @@ movement MyMovement {
 	}
 
 	for _, tt := range movementTests {
-		l := lexer.New(input, config.GEN3)
-		p := New(l, config.GEN3, "../font_widths.json", tt.switches)
+		l := lexer.New(input, types.GEN3)
+		p := New(l, types.GEN3, "../font_widths.json", tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -264,8 +264,8 @@ raw ` + "`" + `
 raw ` + "`" + `
 	step_down
 ` + "`"
-	l := lexer.New(input, config.GEN3)
-	p := New(l, config.GEN3, "", nil)
+	l := lexer.New(input, types.GEN3)
+	p := New(l, types.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -357,8 +357,8 @@ script Test {
 	}
 }
 `
-	l := lexer.New(input, config.GEN3)
-	p := New(l, config.GEN3, "", nil)
+	l := lexer.New(input, types.GEN3)
+	p := New(l, types.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -424,8 +424,8 @@ script Test {
 	} while (var(VAR_1) > 2)
 }
 `
-	l := lexer.New(input, config.GEN3)
-	p := New(l, config.GEN3, "", nil)
+	l := lexer.New(input, types.GEN3)
+	p := New(l, types.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -469,8 +469,8 @@ script Test {
 	}
 }
 `
-	l := lexer.New(input, config.GEN3)
-	p := New(l, config.GEN3, "", nil)
+	l := lexer.New(input, types.GEN3)
+	p := New(l, types.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -546,8 +546,8 @@ script Test {
 	}
 }
 `
-	l := lexer.New(input, config.GEN3)
-	p := New(l, config.GEN3, "", nil)
+	l := lexer.New(input, types.GEN3)
+	p := New(l, types.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -601,8 +601,8 @@ script Script2 {
 		"Multiline$", MSGBOX_DEFAULT)
 }
 `
-	l := lexer.New(input, config.GEN3)
-	p := New(l, config.GEN3, "", nil)
+	l := lexer.New(input, types.GEN3)
+	p := New(l, types.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -633,8 +633,8 @@ script MyScript1 {
 	foo()
 }
 `
-	l := lexer.New(input, config.GEN3)
-	p := New(l, config.GEN3, "", nil)
+	l := lexer.New(input, types.GEN3)
+	p := New(l, types.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -655,8 +655,8 @@ text MyText {
 	format("FooBar", "TEST")
 }
 `
-	l := lexer.New(input, config.GEN3)
-	p := New(l, config.GEN3, "../font_widths.json", nil)
+	l := lexer.New(input, types.GEN3)
+	p := New(l, types.GEN3, "../font_widths.json", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -690,8 +690,8 @@ movement MyMovement3 {
 	delay_16*2
 }
 `
-	l := lexer.New(input, config.GEN3)
-	p := New(l, config.GEN3, "", nil)
+	l := lexer.New(input, types.GEN3)
+	p := New(l, types.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -744,8 +744,8 @@ mapscripts MyMap_MapScripts {
 	]
 }
 `
-	l := lexer.New(input, config.GEN3)
-	p := New(l, config.GEN3, "", nil)
+	l := lexer.New(input, types.GEN3)
+	p := New(l, types.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -864,8 +864,8 @@ mapscripts MapScripts1 {}
 mapscripts(local) MapScripts2 {}
 mapscripts(global) MapScripts3 {}
 `
-	l := lexer.New(input, config.GEN3)
-	p := New(l, config.GEN3, "", nil)
+	l := lexer.New(input, types.GEN3)
+	p := New(l, types.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -938,8 +938,8 @@ mapscripts MyMapScript {
 	]
 }
 `
-	l := lexer.New(input, config.GEN3)
-	p := New(l, config.GEN3, "", nil)
+	l := lexer.New(input, types.GEN3)
+	p := New(l, types.GEN3, "", nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1693,8 +1693,8 @@ mapscripts() MyMapScripts {}`,
 }
 
 func testForParseError(t *testing.T, input string, expectedErrorText string) {
-	l := lexer.New(input, config.GEN3)
-	p := New(l, config.GEN3, "../font_widths.json", nil)
+	l := lexer.New(input, types.GEN3)
+	p := New(l, types.GEN3, "../font_widths.json", nil)
 	_, err := p.ParseProgram()
 	if err == nil {
 		t.Fatalf("Expected error '%s', but no error occurred", expectedErrorText)

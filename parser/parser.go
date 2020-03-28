@@ -7,9 +7,10 @@ import (
 	"strings"
 
 	"github.com/huderlem/poryscript/ast"
-	"github.com/huderlem/poryscript/config"
+	"github.com/huderlem/poryscript/genconfig"
 	"github.com/huderlem/poryscript/lexer"
 	"github.com/huderlem/poryscript/token"
+	"github.com/huderlem/poryscript/types"
 )
 
 var topLevelTokens = map[token.Type]bool{
@@ -30,7 +31,7 @@ type impText struct {
 
 // Parser is a Poryscript AST parser.
 type Parser struct {
-	gen                config.Gen
+	gen                types.Gen
 	l                  *lexer.Lexer
 	curToken           token.Token
 	peekToken          token.Token
@@ -48,7 +49,7 @@ type Parser struct {
 }
 
 // New creates a new Poryscript AST Parser.
-func New(l *lexer.Lexer, gen config.Gen, fontConfigFilepath string, compileSwitches map[string]string) *Parser {
+func New(l *lexer.Lexer, gen types.Gen, fontConfigFilepath string, compileSwitches map[string]string) *Parser {
 	p := &Parser{
 		gen:                gen,
 		l:                  l,
@@ -1055,7 +1056,7 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	}
 
 	var operator token.Token
-	supportedOperators := supportedSwitchOperators(p.gen)
+	supportedOperators := genconfig.SupportedSwitchOperators(p.gen)
 	if len(supportedOperators) > 0 {
 		found := false
 		for _, o := range supportedOperators {
@@ -1159,19 +1160,6 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	}
 
 	return statement, implicitTexts, nil
-}
-
-// Gets the list of supported operators that can be used in a switch statement.
-// An empty list indicates that arbitrary operators can be used.
-func supportedSwitchOperators(gen config.Gen) []token.Type {
-	switch gen {
-	case config.GEN2:
-		return []token.Type{}
-	case config.GEN3:
-		return []token.Type{token.VAR}
-	default:
-		return []token.Type{}
-	}
 }
 
 func (p *Parser) parseConditionExpression(scriptName string) (*ast.ConditionExpression, []impText, error) {

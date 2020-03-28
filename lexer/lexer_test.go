@@ -3,8 +3,8 @@ package lexer
 import (
 	"testing"
 
-	"github.com/huderlem/poryscript/config"
 	"github.com/huderlem/poryscript/token"
+	"github.com/huderlem/poryscript/types"
 )
 
 func TestNextToken(t *testing.T) {
@@ -151,7 +151,7 @@ func TestNextToken(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l := New(input, config.GEN3)
+	l := New(input, types.GEN3)
 
 	for i, tt := range gen3tests {
 		tok := l.NextToken()
@@ -262,7 +262,7 @@ func TestNextToken(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l = New(input, config.GEN2)
+	l = New(input, types.GEN2)
 	for i, tt := range gen2tests {
 		tok := l.NextToken()
 
