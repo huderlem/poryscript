@@ -1310,17 +1310,32 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 		usedNotOperator = true
 	}
 
-	if !p.peekTokenIs(token.VAR) && !p.peekTokenIs(token.FLAG) && !p.peekTokenIs(token.DEFEATED) {
-		return nil, fmt.Errorf("line %d: left side of binary expression must be var(), flag(), or defeated() operator. Instead, found '%s'", p.curToken.LineNumber, p.peekToken.Literal)
+	supportedBooleanOperators := genconfig.SupportedBooleanOperators(p.gen)
+	if len(supportedBooleanOperators) > 0 {
+		found := false
+		for _, o := range supportedBooleanOperators {
+			if p.peekTokenIs(o) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("line %d: left side of binary expression must be one of the following operators: %v. Instead, found '%s'", p.curToken.LineNumber, supportedBooleanOperators, p.peekToken.Literal)
+		}
+	} else {
+		if !p.peekTokenIs(token.IDENT) {
+			return nil, fmt.Errorf("line %d: left side of binary expression must be an identifier. Instead, found '%s'", p.curToken.LineNumber, p.peekToken.Literal)
+		}
 	}
 	p.nextToken()
-	operatorExpression.Type = p.curToken.Type
+	expressionTypeName := p.curToken.Literal
+	operatorExpression.Token = p.curToken
 
 	if err := p.expectPeek(token.LPAREN); err != nil {
-		return nil, fmt.Errorf("line %d: missing opening parenthesis for condition operator '%s'", p.curToken.LineNumber, operatorExpression.Type)
+		return nil, fmt.Errorf("line %d: missing opening parenthesis for condition operator '%s'", p.curToken.LineNumber, operatorExpression.Token.Type)
 	}
 	if p.peekToken.Type == token.RPAREN {
-		return nil, fmt.Errorf("line %d: missing value for condition operator '%s'", p.curToken.LineNumber, operatorExpression.Type)
+		return nil, fmt.Errorf("line %d: missing value for condition operator '%s'", p.curToken.LineNumber, operatorExpression.Token.Type)
 	}
 	p.nextToken()
 	parts := []string{}
@@ -1336,46 +1351,47 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 	p.nextToken()
 
 	if usedNotOperator {
-		if operatorExpression.Type == token.VAR {
+		switch operatorExpression.Token.Type {
+		case token.VAR:
 			operatorExpression.ComparisonValue = "0"
-		} else if operatorExpression.Type == token.FLAG || operatorExpression.Type == token.DEFEATED {
+		case token.FLAG, token.DEFEATED, token.IDENT:
 			operatorExpression.ComparisonValue = token.FALSE
 		}
 	} else {
-		if operatorExpression.Type == token.VAR {
-			err := p.parseConditionVarOperator(operatorExpression)
-			if err != nil {
-				return nil, err
-			}
-		} else if operatorExpression.Type == token.FLAG {
-			err := p.parseConditionFlagLikeOperator(operatorExpression, "flag")
-			if err != nil {
-				return nil, err
-			}
-		} else if operatorExpression.Type == token.DEFEATED {
-			err := p.parseConditionFlagLikeOperator(operatorExpression, "defeated")
-			if err != nil {
-				return nil, err
-			}
+		var err error
+		switch operatorExpression.Token.Type {
+		case token.VAR, token.IDENT:
+			err = p.parseConditionOperator(operatorExpression, expressionTypeName)
+		case token.FLAG:
+			err = p.parseConditionFlagOperator(operatorExpression, "flag")
+		case token.DEFEATED:
+			err = p.parseConditionFlagOperator(operatorExpression, "defeated")
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	return operatorExpression, nil
 }
 
-func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) error {
+func (p *Parser) parseConditionOperator(expression *ast.OperatorExpression, operatorName string) error {
 	if p.curToken.Type != token.GT && p.curToken.Type != token.GTE && p.curToken.Type != token.LT &&
 		p.curToken.Type != token.LTE && p.curToken.Type != token.EQ && p.curToken.Type != token.NEQ {
 		// Missing condition operator means test for implicit truthiness.
 		expression.Operator = token.NEQ
-		expression.ComparisonValue = "0"
+		if expression.Token.Type == token.IDENT {
+			expression.ComparisonValue = token.FALSE
+		} else {
+			expression.ComparisonValue = "0"
+		}
 		return nil
 	}
 	expression.Operator = p.curToken.Type
 	p.nextToken()
 
 	if p.curToken.Type == token.RPAREN {
-		return fmt.Errorf("line %d: missing comparison value for var operator", p.curToken.LineNumber)
+		return fmt.Errorf("line %d: missing comparison value for %s operator", p.curToken.LineNumber, operatorName)
 	}
 	parts := []string{}
 	lineNum := p.curToken.LineNumber
@@ -1383,7 +1399,7 @@ func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) e
 		parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 		p.nextToken()
 		if p.curToken.Type == token.EOF {
-			return fmt.Errorf("line %d: missing ')', '&&' or '||' when evaluating 'var' operator", lineNum)
+			return fmt.Errorf("line %d: missing ')', '&&' or '||' when evaluating '%s' operator", lineNum, operatorName)
 		}
 	}
 
@@ -1391,7 +1407,7 @@ func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) e
 	return nil
 }
 
-func (p *Parser) parseConditionFlagLikeOperator(expression *ast.OperatorExpression, operatorName string) error {
+func (p *Parser) parseConditionFlagOperator(expression *ast.OperatorExpression, operatorName string) error {
 	if p.curToken.Type != token.EQ && p.curToken.Type != token.NEQ {
 		// Missing '==' or '!=' means test for implicit truthiness.
 		expression.Operator = token.EQ

@@ -19,16 +19,13 @@ type chunk struct {
 	branchBehavior   brancher
 }
 
-func (c *chunk) renderLabel(scriptName string, isGlobal bool, sb *strings.Builder) {
+func (c *chunk) renderLabel(scriptName string, isGlobal bool, sb *strings.Builder, gen types.Gen) {
 	if c.id == 0 {
 		// Main script entrypoint label.
-		if isGlobal {
-			sb.WriteString(fmt.Sprintf("%s::\n", scriptName))
-		} else {
-			sb.WriteString(fmt.Sprintf("%s:\n", scriptName))
-		}
+		sb.WriteString(fmt.Sprintf("%s\n", formatLabel(scriptName, isGlobal, gen)))
 	} else {
-		sb.WriteString(fmt.Sprintf("%s_%d:\n", scriptName, c.id))
+		localScriptName := fmt.Sprintf("%s_%d", scriptName, c.id)
+		sb.WriteString(fmt.Sprintf("%s\n", formatLabel(localScriptName, false, gen)))
 	}
 }
 
@@ -47,7 +44,7 @@ func (c *chunk) renderStatements(sb *strings.Builder) error {
 
 func (c *chunk) renderBranching(scriptName string, sb *strings.Builder, nextChunkID int, registerJumpChunk func(int), gen types.Gen) bool {
 	if c.branchBehavior != nil {
-		isFallThrough := c.branchBehavior.renderBranchConditions(sb, scriptName, nextChunkID, registerJumpChunk)
+		isFallThrough := c.branchBehavior.renderBranchConditions(sb, scriptName, nextChunkID, registerJumpChunk, gen)
 		return isFallThrough
 	}
 
@@ -57,7 +54,7 @@ func (c *chunk) renderBranching(scriptName string, sb *strings.Builder, nextChun
 		return false
 	} else if c.returnID != nextChunkID {
 		registerJumpChunk(c.returnID)
-		sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, c.returnID))
+		sb.WriteString(fmt.Sprintf("\t%s %s_%d\n", genconfig.GotoCommands[gen], scriptName, c.returnID))
 		return false
 	}
 

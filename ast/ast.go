@@ -152,13 +152,13 @@ type OperatorExpression struct {
 	Operand         string
 	Operator        token.Type
 	ComparisonValue string
-	Type            token.Type
+	Token           token.Token
 }
 
 func (oe *OperatorExpression) booleanExpressionNode() {}
 
 func (oe *OperatorExpression) String() string {
-	return fmt.Sprintf("%s(%s) %s %s", oe.Type, oe.Operand, oe.Operator, oe.ComparisonValue)
+	return fmt.Sprintf("%s(%s) %s %s", oe.Token.Type, oe.Operand, oe.Operator, oe.ComparisonValue)
 }
 
 // ConditionExpression is the expression for a condition, and the resulting body of statements

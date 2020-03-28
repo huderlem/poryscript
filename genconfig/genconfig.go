@@ -31,6 +31,19 @@ func Supports0xHexNotation(gen types.Gen) bool {
 	}
 }
 
+// SupportedBooleanOperators gets the list of supported operators that can be used in a boolean expression.
+// An empty list indicates that arbitrary operators can be used.
+func SupportedBooleanOperators(gen types.Gen) []token.Type {
+	switch gen {
+	case types.GEN2:
+		return []token.Type{}
+	case types.GEN3:
+		return []token.Type{token.VAR, token.FLAG, token.DEFEATED}
+	default:
+		return []token.Type{}
+	}
+}
+
 // SupportedSwitchOperators gets the list of supported operators that can be used in a switch statement.
 // An empty list indicates that arbitrary operators can be used.
 func SupportedSwitchOperators(gen types.Gen) []token.Type {
@@ -57,4 +70,11 @@ var ReturnCommands = map[types.Gen]string{
 var EndCommands = map[types.Gen]string{
 	types.GEN2: "endall",
 	types.GEN3: "end",
+}
+
+// GotoCommands is a mapping of the goto command used for
+// each Gen. These jump directly to another related script.
+var GotoCommands = map[types.Gen]string{
+	types.GEN2: "sjump",
+	types.GEN3: "goto",
 }

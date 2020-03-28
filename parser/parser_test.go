@@ -391,8 +391,8 @@ script Test {
 }
 
 func testConditionExpression(t *testing.T, expression *ast.OperatorExpression, expectedType token.Type, expectedOperand string, expectedOperator token.Type, expectedComparisonValue string) {
-	if expression.Type != expectedType {
-		t.Errorf("expression.Type not '%s'. got=%s", expectedType, expression.Type)
+	if expression.Token.Type != expectedType {
+		t.Errorf("expression.Type not '%s'. got=%s", expectedType, expression.Token.Type)
 	}
 	if expression.Operand != expectedOperand {
 		t.Errorf("expression.Operand not '%s'. got=%s", expectedOperand, expression.Operand)
@@ -515,8 +515,8 @@ script Test {
 }
 
 func testOperatorExpression(t *testing.T, ex *ast.OperatorExpression, expectType token.Type, comparisonValue string, operand string, operator token.Type) {
-	if ex.Type != expectType {
-		t.Fatalf("ex.Type != %s. Got '%s' instead.", expectType, ex.Type)
+	if ex.Token.Type != expectType {
+		t.Fatalf("ex.Type != %s. Got '%s' instead.", expectType, ex.Token.Type)
 	}
 	if ex.ComparisonValue != comparisonValue {
 		t.Fatalf("ex.ComparisonValue != %s. Got '%s' instead.", comparisonValue, ex.ComparisonValue)
@@ -1291,7 +1291,7 @@ script MyScript {
 script MyScript {
 	if (var(FLAG_1) ||) {
 	}`,
-			expectedError: "line 3: left side of binary expression must be var(), flag(), or defeated() operator. Instead, found ')'",
+			expectedError: "line 3: left side of binary expression must be one of the following operators: [VAR FLAG DEFEATED]. Instead, found ')'",
 		},
 		{
 			input: `
@@ -1350,7 +1350,7 @@ script MyScript {
 		bar
 	}
 }`,
-			expectedError: "line 5: left side of binary expression must be var(), flag(), or defeated() operator. Instead, found 'fla'",
+			expectedError: "line 5: left side of binary expression must be one of the following operators: [VAR FLAG DEFEATED]. Instead, found 'fla'",
 		},
 		{
 			input: `
@@ -1634,7 +1634,7 @@ mapscripts MyMapScripts {
 		if (sdf)
 	}
 }`,
-			expectedError: "line 4: left side of binary expression must be var(), flag(), or defeated() operator. Instead, found 'sdf'",
+			expectedError: "line 4: left side of binary expression must be one of the following operators: [VAR FLAG DEFEATED]. Instead, found 'sdf'",
 		},
 		{
 			input: `
