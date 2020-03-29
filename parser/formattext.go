@@ -71,7 +71,6 @@ func (fw *FontWidthsConfig) FormatText(text string, maxWidth int, fontID string,
 	pos := 0
 	for pos < len(text) {
 		endPos, word, err := fw.getNextWord(text[pos:], gen)
-		fmt.Println(word)
 		if err != nil {
 			return "", err
 		}
