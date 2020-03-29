@@ -3,6 +3,7 @@ package emitter
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -633,11 +634,118 @@ func optimizeChunkOrder(chunks map[int]*chunk) []int {
 func (e *Emitter) emitText(text ast.Text) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s\n", formatLabel(text.Name, text.IsGlobal, e.gen)))
+	switch e.gen {
+	case types.GEN2:
+		e.emitGen2Text(text, &sb)
+	case types.GEN3:
+		e.emitGen3Text(text, &sb)
+	}
+	return sb.String()
+}
+
+type leadTextMacro int
+
+const (
+	lmText leadTextMacro = iota
+	lmLine
+	lmCont
+	lmPara
+	lmDone
+	lmTextCmd
+)
+
+var leadMacroNames = map[leadTextMacro]string{
+	lmText:    "text",
+	lmLine:    "line",
+	lmCont:    "cont",
+	lmPara:    "para",
+	lmDone:    "done",
+	lmTextCmd: "INVALID",
+}
+
+type gen2TextLine struct {
+	content   string
+	leadMacro leadTextMacro
+}
+
+func (e *Emitter) emitGen2Text(text ast.Text, sb *strings.Builder) {
+	re := regexp.MustCompile(`\r?\n`)
+	textContent := re.ReplaceAllString(text.Value, "")
+	lines := []gen2TextLine{}
+	prevLeadMacro := lmText
+	lineStart := 0
+	for i := 0; i < len(textContent); {
+		if safeCompareStringAt(textContent, i, `\n`) {
+			lines = append(lines, gen2TextLine{textContent[lineStart:i], prevLeadMacro})
+			i += 2
+			lineStart = i
+			prevLeadMacro = lmLine
+		} else if safeCompareStringAt(textContent, i, `\l`) {
+			lines = append(lines, gen2TextLine{textContent[lineStart:i], prevLeadMacro})
+			i += 2
+			lineStart = i
+			prevLeadMacro = lmCont
+		} else if safeCompareStringAt(textContent, i, `\p`) {
+			lines = append(lines, gen2TextLine{textContent[lineStart:i], prevLeadMacro})
+			i += 2
+			lineStart = i
+			prevLeadMacro = lmPara
+		} else if safeCompareStringAt(textContent, i, `{`) {
+			content := textContent[lineStart:i]
+			if !strings.HasSuffix(content, "@") {
+				content += "@"
+			}
+			lines = append(lines, gen2TextLine{content, prevLeadMacro})
+			i++
+
+			closeIndex := strings.IndexRune(textContent[i:], '}')
+			if closeIndex > 0 {
+				textCmd := textContent[i : i+closeIndex]
+				lines = append(lines, gen2TextLine{textCmd, lmTextCmd})
+				i += closeIndex + 1
+				lineStart = i
+				prevLeadMacro = lmText
+			}
+		} else {
+			i++
+		}
+	}
+	if lineStart < len(textContent) {
+		lines = append(lines, gen2TextLine{textContent[lineStart:len(textContent)], prevLeadMacro})
+	}
+	lines = append(lines, gen2TextLine{"", lmDone})
+
+	for _, line := range lines {
+		if line.leadMacro == lmPara {
+			sb.WriteByte('\n')
+		}
+		if len(line.content) == 0 {
+			sb.WriteString(fmt.Sprintf("\t%s\n", leadMacroNames[line.leadMacro]))
+		} else if line.leadMacro == lmTextCmd {
+			sb.WriteString(fmt.Sprintf("\t%s\n", line.content))
+		} else {
+			text := strings.Trim(line.content, "\r\n")
+			sb.WriteString(fmt.Sprintf("\t%s \"%s\"\n", leadMacroNames[line.leadMacro], text))
+		}
+	}
+}
+
+func safeCompareStringAt(text string, index int, comparison string) bool {
+	if len(text) == 0 || len(comparison) == 0 {
+		return false
+	}
+	l := len(comparison)
+	if len(text) < index+l {
+		return false
+	}
+	return strings.Compare(text[index:index+l], comparison) == 0
+}
+
+func (e *Emitter) emitGen3Text(text ast.Text, sb *strings.Builder) {
 	lines := strings.Split(text.Value, "\n")
 	for _, line := range lines {
 		sb.WriteString(fmt.Sprintf("\t.string \"%s\"\n", line))
 	}
-	return sb.String()
 }
 
 func (e *Emitter) emitRawStatement(rawStmt *ast.RawStatement) string {

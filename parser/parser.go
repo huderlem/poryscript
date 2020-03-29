@@ -1432,6 +1432,17 @@ func (p *Parser) parseConditionFlagOperator(expression *ast.OperatorExpression, 
 
 // Automatically adds a terminator character to the text, if it doesn't already have one.
 func (p *Parser) formatTextTerminator(text string) string {
+	switch p.gen {
+	case types.GEN2:
+		return text
+	case types.GEN3:
+		return p.formatGen3TextTerminator(text)
+	default:
+		return text
+	}
+}
+
+func (p *Parser) formatGen3TextTerminator(text string) string {
 	if !strings.HasSuffix(text, "$") {
 		text += "$"
 	}
