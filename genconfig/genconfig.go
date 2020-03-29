@@ -79,10 +79,48 @@ var GotoCommands = map[types.Gen]string{
 	types.GEN3: "goto",
 }
 
-// AltReturnCommands is a mapping of the alternative return comman
+// AltReturnCommands is a mapping of the alternative return command
 // used for each Gen. For example, in pokecrystal, "return" must be
 // used to exit from a map callback script.
 var AltReturnCommands = map[types.Gen]string{
 	types.GEN2: "return",
 	types.GEN3: "return",
+}
+
+// DefaultFontIDs is a mapping of the default font ids for
+// formatted text. These IDs are found within font_widths.json.
+var DefaultFontIDs = map[types.Gen]string{
+	types.GEN2: "return",
+	types.GEN3: "return",
+}
+
+// TextBoxCharWidths is a mapping of the maximum width for
+// formatted text.
+var TextBoxCharWidths = map[types.Gen]int{
+	types.GEN2: 144,
+	types.GEN3: 208,
+}
+
+// TextControlCodeStarts is a mapping of the characters that start
+// control codes in text.
+var TextControlCodeStarts = map[types.Gen]map[rune]struct{}{
+	types.GEN2: map[rune]struct{}{
+		'<': struct{}{},
+		'{': struct{}{},
+	},
+	types.GEN3: map[rune]struct{}{
+		'{': struct{}{},
+	},
+}
+
+// TextControlCodeEnds is a mapping of the characters that end
+// control codes in text.
+var TextControlCodeEnds = map[types.Gen]map[rune]struct{}{
+	types.GEN2: map[rune]struct{}{
+		'>': struct{}{},
+		'}': struct{}{},
+	},
+	types.GEN3: map[rune]struct{}{
+		'}': struct{}{},
+	},
 }

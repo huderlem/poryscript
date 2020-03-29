@@ -1023,9 +1023,9 @@ func (p *Parser) parseFormatStringOperator() (string, error) {
 		p.fonts = &fw
 	}
 	if !setFontID {
-		fontID = p.fonts.DefaultFontID
+		fontID = p.fonts.GetDefaultFontID(p.gen)
 	}
-	formatted, err := p.fonts.FormatText(rawText, 208, fontID)
+	formatted, err := p.fonts.FormatText(rawText, genconfig.TextBoxCharWidths[p.gen], fontID, p.gen)
 	if err != nil {
 		return "", fmt.Errorf("line %d: %s", lineNum, err.Error())
 	}

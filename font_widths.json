@@ -1,5 +1,6 @@
 {
   "defaultFontId": "1_latin",
+  "defaultFontId_gen2": "pokecrystal",
   "fonts": {
     "1_latin": {
       " ": 3,
@@ -170,6 +171,39 @@
       "{KYOGRE}": 36,
       "{GROUDON}": 42,
       "$": 0
+    },
+    "pokecrystal": {
+      "default": 8,
+      "<PLAY_G>": 56,
+      "<POKE>": 16,
+      "<RED>": 56,
+      "<GREEN>": 56,
+      "<MOM>": 56,
+      "<ENEMY>": 96,
+      "<PKMN>": 16,
+      "<_CONT>": 0,
+      "<SCROLL>": 0,
+      "<NEXT>": 0,
+      "<LINE>": 0,
+      "@": 0,
+      "<PARA>": 0,
+      "<PLAYER>": 56,
+      "<RIVAL>": 56,
+      "#": 32,
+      "<CONT>": 0,
+      "<……>": 16,
+      "<DONE>": 0,
+      "<PROMPT>": 0,
+      "<TARGET>": 88,
+      "<USER>": 88,
+      "<PC>": 16,
+      "<TM>": 16,
+      "<DEXEND>": 0,
+      "<PO>": 16,
+      "<KE>": 16,
+      "<PK>": 8,
+      "<MN>": 8,
+      "<DOT>": 8
     }
   }
 }

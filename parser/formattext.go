@@ -6,12 +6,16 @@ import (
 	"io/ioutil"
 	"regexp"
 	"strings"
+
+	"github.com/huderlem/poryscript/genconfig"
+	"github.com/huderlem/poryscript/types"
 )
 
 // FontWidthsConfig holds the pixel widths of characters in various game fonts.
 type FontWidthsConfig struct {
-	Fonts         map[string]map[string]int `json:"fonts"`
-	DefaultFontID string                    `json:"defaultFontId"`
+	Fonts             map[string]map[string]int `json:"fonts"`
+	DefaultFontIDGen2 string                    `json:"defaultFontId_gen2"`
+	DefaultFontIDGen3 string                    `json:"defaultFontId"`
 }
 
 // LoadFontWidths reads a font width config JSON file.
@@ -29,11 +33,24 @@ func LoadFontWidths(filepath string) (FontWidthsConfig, error) {
 	return config, err
 }
 
+// GetDefaultFontID returns the key for the default font id
+// of the given gen config.
+func (fw *FontWidthsConfig) GetDefaultFontID(gen types.Gen) string {
+	switch gen {
+	case types.GEN2:
+		return fw.DefaultFontIDGen2
+	case types.GEN3:
+		return fw.DefaultFontIDGen3
+	default:
+		return ""
+	}
+}
+
 const testFontID = "TEST"
 
 // FormatText automatically inserts line breaks into text
 // according to in-game text box widths.
-func (fw *FontWidthsConfig) FormatText(text string, maxWidth int, fontID string) (string, error) {
+func (fw *FontWidthsConfig) FormatText(text string, maxWidth int, fontID string, gen types.Gen) (string, error) {
 	if !fw.isFontIDValid(fontID) && len(fontID) > 0 && fontID != testFontID {
 		validFontIDs := make([]string, len(fw.Fonts))
 		i := 0
@@ -53,7 +70,8 @@ func (fw *FontWidthsConfig) FormatText(text string, maxWidth int, fontID string)
 	isFirstWord := true
 	pos := 0
 	for pos < len(text) {
-		endPos, word, err := fw.getNextWord(text[pos:])
+		endPos, word, err := fw.getNextWord(text[pos:], gen)
+		fmt.Println(word)
 		if err != nil {
 			return "", err
 		}
@@ -78,7 +96,7 @@ func (fw *FontWidthsConfig) FormatText(text string, maxWidth int, fontID string)
 			if !isFirstWord {
 				wordWidth += fw.getRunePixelWidth(' ', fontID)
 			}
-			wordWidth += fw.getWordPixelWidth(word, fontID)
+			wordWidth += fw.getWordPixelWidth(word, fontID, gen)
 			if curWidth+wordWidth > maxWidth && curLineSb.Len() > 0 {
 				formattedSb.WriteString(curLineSb.String())
 				if isFirstLine {
@@ -110,7 +128,7 @@ func (fw *FontWidthsConfig) FormatText(text string, maxWidth int, fontID string)
 	return formattedSb.String(), nil
 }
 
-func (fw *FontWidthsConfig) getNextWord(text string) (int, string, error) {
+func (fw *FontWidthsConfig) getNextWord(text string, gen types.Gen) (int, string, error) {
 	escape := false
 	endPos := 0
 	startPos := 0
@@ -145,9 +163,9 @@ func (fw *FontWidthsConfig) getNextWord(text string) (int, string, error) {
 				}
 				foundRegularRune = true
 				foundNonSpace = true
-				if char == '{' {
+				if _, ok := genconfig.TextControlCodeStarts[gen][char]; ok {
 					controlCodeLevel++
-				} else if char == '}' {
+				} else if _, ok := genconfig.TextControlCodeEnds[gen][char]; ok {
 					if controlCodeLevel > 0 {
 						controlCodeLevel--
 					}
@@ -170,17 +188,25 @@ func (fw *FontWidthsConfig) isParagraphBreak(word string) bool {
 	return word == `\p`
 }
 
-func (fw *FontWidthsConfig) getWordPixelWidth(word string, fontID string) int {
-	word, wordWidth := fw.processControlCodes(word, fontID)
+func (fw *FontWidthsConfig) getWordPixelWidth(word string, fontID string, gen types.Gen) int {
+	word, wordWidth := fw.processControlCodes(word, fontID, gen)
 	for _, r := range word {
 		wordWidth += fw.getRunePixelWidth(r, fontID)
 	}
 	return wordWidth
 }
 
-func (fw *FontWidthsConfig) processControlCodes(word string, fontID string) (string, int) {
+func (fw *FontWidthsConfig) processControlCodes(word string, fontID string, gen types.Gen) (string, int) {
 	width := 0
-	re := regexp.MustCompile(`{[^}]*}`)
+	starts := []string{}
+	for r := range genconfig.TextControlCodeStarts[gen] {
+		starts = append(starts, string(r))
+	}
+	ends := []string{}
+	for r := range genconfig.TextControlCodeEnds[gen] {
+		ends = append(ends, string(r))
+	}
+	re := regexp.MustCompile(fmt.Sprintf("[%s][^}]*[%s]", strings.Join(starts, ""), strings.Join(ends, "")))
 	positions := re.FindAllStringIndex(word, -1)
 	for _, pos := range positions {
 		code := word[pos[0]:pos[1]]

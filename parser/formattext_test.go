@@ -1,6 +1,10 @@
 package parser
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/huderlem/poryscript/types"
+)
 
 func TestFormatText(t *testing.T) {
 	tests := []struct {
@@ -22,7 +26,7 @@ func TestFormatText(t *testing.T) {
 	fw := FontWidthsConfig{}
 
 	for i, tt := range tests {
-		result, _ := fw.FormatText(tt.inputText, tt.maxWidth, testFontID)
+		result, _ := fw.FormatText(tt.inputText, tt.maxWidth, testFontID, types.GEN3)
 		if result != tt.expected {
 			t.Errorf("FormatText Test %d: Expected '%s', but Got '%s'", i, tt.expected, result)
 		}
@@ -59,7 +63,7 @@ func TestGetNextWord(t *testing.T) {
 	fw := FontWidthsConfig{}
 
 	for i, tt := range tests {
-		resultPos, resultValue, _ := fw.getNextWord(tt.inputText)
+		resultPos, resultValue, _ := fw.getNextWord(tt.inputText, types.GEN3)
 		if resultPos != tt.expectedPos {
 			t.Errorf("TestGetNextWord Test %d: Expected Pos '%d', but Got '%d'", i, tt.expectedPos, resultPos)
 		}
@@ -85,7 +89,7 @@ func TestProcessControlCodes(t *testing.T) {
 	fw := FontWidthsConfig{}
 
 	for i, tt := range tests {
-		resultValue, resultWidth := fw.processControlCodes(tt.inputText, testFontID)
+		resultValue, resultWidth := fw.processControlCodes(tt.inputText, testFontID, types.GEN3)
 		if resultValue != tt.expectedValue {
 			t.Errorf("TestProcessControlCodes Test %d: Expected Value '%s', but Got '%s'", i, tt.expectedValue, resultValue)
 		}
