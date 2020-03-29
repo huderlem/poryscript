@@ -634,6 +634,27 @@ func (p *Parser) parseMovementValue(allowMultiple bool) ([]string, error) {
 		} else if p.curToken.Type == token.IDENT {
 			moveCommand := p.curToken.Literal
 			p.nextToken()
+			if p.curToken.Type == token.LPAREN {
+				startLineNumber := p.curToken.LineNumber
+				p.nextToken()
+				argParts := []string{}
+				numOpenParens := 0
+				for !(p.curToken.Type == token.RPAREN && numOpenParens == 0) {
+					if p.curToken.Type == token.EOF {
+						return nil, fmt.Errorf("line %d: missing closing parenthesis for movement command", startLineNumber)
+					}
+					if p.curToken.Type == token.LPAREN {
+						numOpenParens++
+					} else if p.curToken.Type == token.RPAREN {
+						numOpenParens--
+					}
+					argParts = append(argParts, p.curToken.Literal)
+					p.nextToken()
+				}
+				moveCommand = fmt.Sprintf("%s %s", moveCommand, strings.Join(argParts, " "))
+				p.nextToken()
+			}
+
 			if p.curToken.Type == token.MUL {
 				p.nextToken()
 				if p.curToken.Type != token.INT {
