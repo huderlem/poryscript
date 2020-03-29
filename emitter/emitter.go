@@ -97,6 +97,58 @@ func (e *Emitter) Emit() (string, error) {
 }
 
 func (e *Emitter) emitMapScriptStatement(mapScriptStmt *ast.MapScriptsStatement) (string, error) {
+	switch e.gen {
+	case types.GEN2:
+		return e.emitGen2MapScriptStatement(mapScriptStmt)
+	case types.GEN3:
+		return e.emitGen3MapScriptStatement(mapScriptStmt)
+	default:
+		return "", nil
+	}
+}
+
+func (e *Emitter) emitGen2MapScriptStatement(mapScriptStmt *ast.MapScriptsStatement) (string, error) {
+	var sb strings.Builder
+	isGlobal := mapScriptStmt.Scope == token.GLOBAL
+	sb.WriteString(fmt.Sprintf("%s\n", formatLabel(mapScriptStmt.Name.Value, isGlobal, e.gen)))
+	sb.WriteString(fmt.Sprintf("\tdb %d ; scene scripts\n", len(mapScriptStmt.TableMapScripts)))
+	for _, tableMapScript := range mapScriptStmt.TableMapScripts {
+		for _, scriptEntry := range tableMapScript.Entries {
+			sb.WriteString(fmt.Sprintf("\tscene_script %s\n", scriptEntry.Name))
+		}
+	}
+	sb.WriteString("\n")
+	sb.WriteString(fmt.Sprintf("\tdb %d ; callbacks\n", len(mapScriptStmt.MapScripts)))
+	for _, mapScript := range mapScriptStmt.MapScripts {
+		sb.WriteString(fmt.Sprintf("\tcallback %s, %s\n", mapScript.Type, mapScript.Name))
+	}
+	sb.WriteString("\n")
+
+	for _, tableMapScript := range mapScriptStmt.TableMapScripts {
+		for _, scriptEntry := range tableMapScript.Entries {
+			if scriptEntry.Script != nil {
+				scriptOutput, err := e.emitScriptStatement(scriptEntry.Script)
+				if err != nil {
+					return "", err
+				}
+				sb.WriteString(scriptOutput)
+			}
+		}
+	}
+	for _, mapScript := range mapScriptStmt.MapScripts {
+		if mapScript.Script != nil {
+			scriptOutput, err := e.emitScriptStatement(mapScript.Script)
+			if err != nil {
+				return "", err
+			}
+			sb.WriteString(scriptOutput)
+		}
+	}
+
+	return sb.String(), nil
+}
+
+func (e *Emitter) emitGen3MapScriptStatement(mapScriptStmt *ast.MapScriptsStatement) (string, error) {
 	var sb strings.Builder
 	isGlobal := mapScriptStmt.Scope == token.GLOBAL
 	sb.WriteString(fmt.Sprintf("%s\n", formatLabel(mapScriptStmt.Name.Value, isGlobal, e.gen)))
