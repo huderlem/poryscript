@@ -78,3 +78,11 @@ var GotoCommands = map[types.Gen]string{
 	types.GEN2: "sjump",
 	types.GEN3: "goto",
 }
+
+// AltReturnCommands is a mapping of the alternative return comman
+// used for each Gen. For example, in pokecrystal, "return" must be
+// used to exit from a map callback script.
+var AltReturnCommands = map[types.Gen]string{
+	types.GEN2: "return",
+	types.GEN3: "return",
+}

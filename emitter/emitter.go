@@ -59,7 +59,7 @@ func (e *Emitter) Emit() (string, error) {
 
 		scriptStmt, ok := stmt.(*ast.ScriptStatement)
 		if ok {
-			output, err := e.emitScriptStatement(scriptStmt)
+			output, err := e.emitScriptStatement(scriptStmt, false)
 			if err != nil {
 				return "", err
 			}
@@ -127,7 +127,7 @@ func (e *Emitter) emitGen2MapScriptStatement(mapScriptStmt *ast.MapScriptsStatem
 	for _, tableMapScript := range mapScriptStmt.TableMapScripts {
 		for _, scriptEntry := range tableMapScript.Entries {
 			if scriptEntry.Script != nil {
-				scriptOutput, err := e.emitScriptStatement(scriptEntry.Script)
+				scriptOutput, err := e.emitScriptStatement(scriptEntry.Script, false)
 				if err != nil {
 					return "", err
 				}
@@ -137,7 +137,7 @@ func (e *Emitter) emitGen2MapScriptStatement(mapScriptStmt *ast.MapScriptsStatem
 	}
 	for _, mapScript := range mapScriptStmt.MapScripts {
 		if mapScript.Script != nil {
-			scriptOutput, err := e.emitScriptStatement(mapScript.Script)
+			scriptOutput, err := e.emitScriptStatement(mapScript.Script, true)
 			if err != nil {
 				return "", err
 			}
@@ -162,7 +162,7 @@ func (e *Emitter) emitGen3MapScriptStatement(mapScriptStmt *ast.MapScriptsStatem
 
 	for _, mapScript := range mapScriptStmt.MapScripts {
 		if mapScript.Script != nil {
-			scriptOutput, err := e.emitScriptStatement(mapScript.Script)
+			scriptOutput, err := e.emitScriptStatement(mapScript.Script, false)
 			if err != nil {
 				return "", err
 			}
@@ -177,7 +177,7 @@ func (e *Emitter) emitGen3MapScriptStatement(mapScriptStmt *ast.MapScriptsStatem
 		sb.WriteString("\t.2byte 0\n\n")
 		for _, scriptEntry := range tableMapScript.Entries {
 			if scriptEntry.Script != nil {
-				scriptOutput, err := e.emitScriptStatement(scriptEntry.Script)
+				scriptOutput, err := e.emitScriptStatement(scriptEntry.Script, false)
 				if err != nil {
 					return "", err
 				}
@@ -189,7 +189,7 @@ func (e *Emitter) emitGen3MapScriptStatement(mapScriptStmt *ast.MapScriptsStatem
 	return sb.String(), nil
 }
 
-func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, error) {
+func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement, useAltReturn bool) (string, error) {
 	// The algorithm for emitting script statements is to split the scripts into
 	// self-contained chunks that logically branch to one another. When branching logic
 	// occurs, create a new chunk for any shared logic that follows the branching, as well
@@ -198,7 +198,7 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, 
 	chunkCounter := 0
 	finalChunks := make(map[int]*chunk)
 	remainingChunks := []*chunk{
-		&chunk{id: chunkCounter, returnID: -1, statements: scriptStmt.Body.Statements[:]},
+		&chunk{id: chunkCounter, returnID: -1, statements: scriptStmt.Body.Statements[:], useAltReturnTerminator: useAltReturn},
 	}
 	breakStatementReturnChunks := make(map[ast.Statement]int)
 	breakStatementOriginChunks := make(map[ast.Statement]int)
@@ -223,12 +223,15 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, 
 			// "end" and "return" are special control-flow commands that end execution of
 			// the current logic scope. Therefore, we should not process any further into the
 			// current chunk, and mark it as finalized.
-			if commandStmt.Name.Value == genconfig.EndCommands[e.gen] || commandStmt.Name.Value == genconfig.ReturnCommands[e.gen] {
+			if commandStmt.Name.Value == genconfig.EndCommands[e.gen] ||
+				commandStmt.Name.Value == genconfig.ReturnCommands[e.gen] ||
+				commandStmt.Name.Value == genconfig.AltReturnCommands[e.gen] {
 				completeChunk := &chunk{
-					id:               curChunk.id,
-					returnID:         -1,
-					useEndTerminator: commandStmt.Name.Value == genconfig.EndCommands[e.gen],
-					statements:       curChunk.statements[:i],
+					id:                     curChunk.id,
+					returnID:               -1,
+					useEndTerminator:       commandStmt.Name.Value == genconfig.EndCommands[e.gen],
+					useAltReturnTerminator: commandStmt.Name.Value == genconfig.AltReturnCommands[e.gen],
+					statements:             curChunk.statements[:i],
 				}
 				finalChunks[completeChunk.id] = completeChunk
 				shouldContinue = true
@@ -248,35 +251,38 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, 
 
 		// Create new chunks from if statement blocks.
 		if stmt, ok := curChunk.statements[i].(*ast.IfStatement); ok {
-			newRemainingChunks, ifBranch := createIfStatementChunks(stmt, i, curChunk, remainingChunks, &chunkCounter)
+			newRemainingChunks, ifBranch := createIfStatementChunks(stmt, i, curChunk, remainingChunks, &chunkCounter, useAltReturn)
 			remainingChunks = newRemainingChunks
 			completeChunk := &chunk{
-				id:             curChunk.id,
-				returnID:       curChunk.returnID,
-				statements:     curChunk.statements[:i],
-				branchBehavior: ifBranch,
+				id:                     curChunk.id,
+				returnID:               curChunk.returnID,
+				statements:             curChunk.statements[:i],
+				branchBehavior:         ifBranch,
+				useAltReturnTerminator: useAltReturn,
 			}
 			finalChunks[completeChunk.id] = completeChunk
 		} else if stmt, ok := curChunk.statements[i].(*ast.WhileStatement); ok {
-			newRemainingChunks, jump, returnID := createWhileStatementChunks(stmt, i, curChunk, remainingChunks, &chunkCounter)
+			newRemainingChunks, jump, returnID := createWhileStatementChunks(stmt, i, curChunk, remainingChunks, &chunkCounter, useAltReturn)
 			remainingChunks = newRemainingChunks
 			completeChunk := &chunk{
-				id:             curChunk.id,
-				returnID:       curChunk.returnID,
-				statements:     curChunk.statements[:i],
-				branchBehavior: jump,
+				id:                     curChunk.id,
+				returnID:               curChunk.returnID,
+				statements:             curChunk.statements[:i],
+				branchBehavior:         jump,
+				useAltReturnTerminator: useAltReturn,
 			}
 			finalChunks[completeChunk.id] = completeChunk
 			breakStatementReturnChunks[stmt] = returnID
 			breakStatementOriginChunks[stmt] = jump.destChunkID
 		} else if stmt, ok := curChunk.statements[i].(*ast.DoWhileStatement); ok {
-			newRemainingChunks, jump, returnID := createDoWhileStatementChunks(stmt, i, curChunk, remainingChunks, &chunkCounter)
+			newRemainingChunks, jump, returnID := createDoWhileStatementChunks(stmt, i, curChunk, remainingChunks, &chunkCounter, useAltReturn)
 			remainingChunks = newRemainingChunks
 			completeChunk := &chunk{
-				id:             curChunk.id,
-				returnID:       curChunk.returnID,
-				statements:     curChunk.statements[:i],
-				branchBehavior: jump,
+				id:                     curChunk.id,
+				returnID:               curChunk.returnID,
+				statements:             curChunk.statements[:i],
+				branchBehavior:         jump,
+				useAltReturnTerminator: useAltReturn,
 			}
 			finalChunks[completeChunk.id] = completeChunk
 			breakStatementReturnChunks[stmt] = returnID
@@ -287,10 +293,11 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, 
 				return "", errors.New("could not emit 'break' statement because its return point is unknown")
 			}
 			completeChunk := &chunk{
-				id:             curChunk.id,
-				returnID:       curChunk.returnID,
-				statements:     curChunk.statements[:i],
-				branchBehavior: &breakContext{destChunkID: destChunkID},
+				id:                     curChunk.id,
+				returnID:               curChunk.returnID,
+				statements:             curChunk.statements[:i],
+				branchBehavior:         &breakContext{destChunkID: destChunkID},
+				useAltReturnTerminator: useAltReturn,
 			}
 			finalChunks[completeChunk.id] = completeChunk
 		} else if stmt, ok := curChunk.statements[i].(*ast.ContinueStatement); ok {
@@ -299,29 +306,32 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, 
 				return "", errors.New("could not emit 'continue' statement because its return point is unknown")
 			}
 			completeChunk := &chunk{
-				id:             curChunk.id,
-				returnID:       curChunk.returnID,
-				statements:     curChunk.statements[:i],
-				branchBehavior: &breakContext{destChunkID: destChunkID},
+				id:                     curChunk.id,
+				returnID:               curChunk.returnID,
+				statements:             curChunk.statements[:i],
+				branchBehavior:         &breakContext{destChunkID: destChunkID},
+				useAltReturnTerminator: useAltReturn,
 			}
 			finalChunks[completeChunk.id] = completeChunk
 		} else if stmt, ok := curChunk.statements[i].(*ast.SwitchStatement); ok {
-			newRemainingChunks, jump, returnID := createSwitchStatementChunks(stmt, i, curChunk, remainingChunks, &chunkCounter)
+			newRemainingChunks, jump, returnID := createSwitchStatementChunks(stmt, i, curChunk, remainingChunks, &chunkCounter, useAltReturn)
 			remainingChunks = newRemainingChunks
 			completeChunk := &chunk{
-				id:             curChunk.id,
-				returnID:       curChunk.returnID,
-				statements:     curChunk.statements[:i],
-				branchBehavior: jump,
+				id:                     curChunk.id,
+				returnID:               curChunk.returnID,
+				statements:             curChunk.statements[:i],
+				branchBehavior:         jump,
+				useAltReturnTerminator: useAltReturn,
 			}
 			finalChunks[completeChunk.id] = completeChunk
 			breakStatementReturnChunks[stmt] = returnID
 			breakStatementOriginChunks[stmt] = jump.destChunkID
 		} else {
 			completeChunk := &chunk{
-				id:         curChunk.id,
-				returnID:   curChunk.returnID,
-				statements: curChunk.statements[:i],
+				id:                     curChunk.id,
+				returnID:               curChunk.returnID,
+				statements:             curChunk.statements[:i],
+				useAltReturnTerminator: useAltReturn,
 			}
 			finalChunks[completeChunk.id] = completeChunk
 		}
@@ -337,14 +347,15 @@ func createConditionDestination(destinationChunk int, operatorExpression *ast.Op
 	}
 }
 
-func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, remainingChunks []*chunk, chunkCounter *int) ([]*chunk, *jump) {
+func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, remainingChunks []*chunk, chunkCounter *int, useAltReturn bool) ([]*chunk, *jump) {
 	remainingChunks, returnID := curChunk.splitChunkForBranch(i, chunkCounter, remainingChunks)
 
 	*chunkCounter++
 	consequenceChunk := &chunk{
-		id:         *chunkCounter,
-		returnID:   returnID,
-		statements: stmt.Consequence.Body.Statements,
+		id:                     *chunkCounter,
+		returnID:               returnID,
+		statements:             stmt.Consequence.Body.Statements,
+		useAltReturnTerminator: useAltReturn,
 	}
 	remainingChunks = append(remainingChunks, consequenceChunk)
 
@@ -352,9 +363,10 @@ func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, rema
 	for _, elifStmt := range stmt.ElifConsequences {
 		*chunkCounter++
 		elifChunk := &chunk{
-			id:         *chunkCounter,
-			returnID:   returnID,
-			statements: elifStmt.Body.Statements,
+			id:                     *chunkCounter,
+			returnID:               returnID,
+			statements:             elifStmt.Body.Statements,
+			useAltReturnTerminator: useAltReturn,
 		}
 		remainingChunks = append(remainingChunks, elifChunk)
 		elifChunks = append(elifChunks, elifChunk)
@@ -364,9 +376,10 @@ func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, rema
 	if stmt.ElseConsequence != nil {
 		*chunkCounter++
 		elseChunk = &chunk{
-			id:         *chunkCounter,
-			returnID:   returnID,
-			statements: stmt.ElseConsequence.Statements,
+			id:                     *chunkCounter,
+			returnID:               returnID,
+			statements:             stmt.ElseConsequence.Statements,
+			useAltReturnTerminator: useAltReturn,
 		}
 		remainingChunks = append(remainingChunks, elseChunk)
 	}
@@ -377,36 +390,37 @@ func createIfStatementChunks(stmt *ast.IfStatement, i int, curChunk *chunk, rema
 		for i := len(elifChunks) - 1; i >= 0; i-- {
 			if i == len(elifChunks)-1 {
 				if elseChunk != nil {
-					remainingChunks, _, prevElifEntryID = splitBooleanExpressionChunks(stmt.ElifConsequences[i].Expression, chunkCounter, elifChunks[i].id, elseChunk.id, remainingChunks, -1)
+					remainingChunks, _, prevElifEntryID = splitBooleanExpressionChunks(stmt.ElifConsequences[i].Expression, chunkCounter, elifChunks[i].id, elseChunk.id, remainingChunks, -1, useAltReturn)
 				} else {
-					remainingChunks, _, prevElifEntryID = splitBooleanExpressionChunks(stmt.ElifConsequences[i].Expression, chunkCounter, elifChunks[i].id, returnID, remainingChunks, -1)
+					remainingChunks, _, prevElifEntryID = splitBooleanExpressionChunks(stmt.ElifConsequences[i].Expression, chunkCounter, elifChunks[i].id, returnID, remainingChunks, -1, useAltReturn)
 				}
 			} else {
-				remainingChunks, _, prevElifEntryID = splitBooleanExpressionChunks(stmt.ElifConsequences[i].Expression, chunkCounter, elifChunks[i].id, prevElifEntryID, remainingChunks, -1)
+				remainingChunks, _, prevElifEntryID = splitBooleanExpressionChunks(stmt.ElifConsequences[i].Expression, chunkCounter, elifChunks[i].id, prevElifEntryID, remainingChunks, -1, useAltReturn)
 			}
 		}
 	}
 
 	var initialEntryChunkID int
 	if len(elifChunks) > 0 {
-		remainingChunks, _, initialEntryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, prevElifEntryID, remainingChunks, -1)
+		remainingChunks, _, initialEntryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, prevElifEntryID, remainingChunks, -1, useAltReturn)
 	} else if elseChunk != nil {
-		remainingChunks, _, initialEntryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, elseChunk.id, remainingChunks, -1)
+		remainingChunks, _, initialEntryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, elseChunk.id, remainingChunks, -1, useAltReturn)
 	} else {
-		remainingChunks, _, initialEntryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, returnID, remainingChunks, -1)
+		remainingChunks, _, initialEntryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, returnID, remainingChunks, -1, useAltReturn)
 	}
 
 	return remainingChunks, &jump{destChunkID: initialEntryChunkID}
 }
 
-func splitBooleanExpressionChunks(expression ast.BooleanExpression, chunkCounter *int, successChunkID int, failureChunkID int, remainingChunks []*chunk, firstID int) ([]*chunk, *chunk, int) {
+func splitBooleanExpressionChunks(expression ast.BooleanExpression, chunkCounter *int, successChunkID int, failureChunkID int, remainingChunks []*chunk, firstID int, useAltReturn bool) ([]*chunk, *chunk, int) {
 	if operatorExpression, ok := expression.(*ast.OperatorExpression); ok {
 		dest := createConditionDestination(successChunkID, operatorExpression)
 		*chunkCounter++
 		newChunk := &chunk{
-			id:             *chunkCounter,
-			statements:     []ast.Statement{},
-			branchBehavior: &leafExpressionBranch{truthyDest: dest, falseyReturnID: failureChunkID},
+			id:                     *chunkCounter,
+			statements:             []ast.Statement{},
+			branchBehavior:         &leafExpressionBranch{truthyDest: dest, falseyReturnID: failureChunkID},
+			useAltReturnTerminator: useAltReturn,
 		}
 		remainingChunks = append(remainingChunks, newChunk)
 		if firstID == -1 {
@@ -419,26 +433,28 @@ func splitBooleanExpressionChunks(expression ast.BooleanExpression, chunkCounter
 		if binaryExpression.Operator == token.AND {
 			*chunkCounter++
 			successChunk := &chunk{
-				id:         *chunkCounter,
-				statements: []ast.Statement{},
+				id:                     *chunkCounter,
+				statements:             []ast.Statement{},
+				useAltReturnTerminator: useAltReturn,
 			}
 			var linkChunk *chunk
 			var leftLink *chunk
-			remainingChunks, leftLink, firstID = splitBooleanExpressionChunks(binaryExpression.Left, chunkCounter, successChunk.id, failureChunkID, remainingChunks, firstID)
-			remainingChunks, linkChunk, firstID = splitBooleanExpressionChunks(binaryExpression.Right, chunkCounter, successChunkID, failureChunkID, remainingChunks, firstID)
+			remainingChunks, leftLink, firstID = splitBooleanExpressionChunks(binaryExpression.Left, chunkCounter, successChunk.id, failureChunkID, remainingChunks, firstID, useAltReturn)
+			remainingChunks, linkChunk, firstID = splitBooleanExpressionChunks(binaryExpression.Right, chunkCounter, successChunkID, failureChunkID, remainingChunks, firstID, useAltReturn)
 			successChunk.branchBehavior = &jump{destChunkID: linkChunk.id}
 			remainingChunks = append(remainingChunks, successChunk)
 			return remainingChunks, leftLink, firstID
 		} else if binaryExpression.Operator == token.OR {
 			*chunkCounter++
 			failChunk := &chunk{
-				id:         *chunkCounter,
-				statements: []ast.Statement{},
+				id:                     *chunkCounter,
+				statements:             []ast.Statement{},
+				useAltReturnTerminator: useAltReturn,
 			}
 			var linkChunk *chunk
 			var leftLink *chunk
-			remainingChunks, leftLink, firstID = splitBooleanExpressionChunks(binaryExpression.Left, chunkCounter, successChunkID, failChunk.id, remainingChunks, firstID)
-			remainingChunks, linkChunk, firstID = splitBooleanExpressionChunks(binaryExpression.Right, chunkCounter, successChunkID, failureChunkID, remainingChunks, firstID)
+			remainingChunks, leftLink, firstID = splitBooleanExpressionChunks(binaryExpression.Left, chunkCounter, successChunkID, failChunk.id, remainingChunks, firstID, useAltReturn)
+			remainingChunks, linkChunk, firstID = splitBooleanExpressionChunks(binaryExpression.Right, chunkCounter, successChunkID, failureChunkID, remainingChunks, firstID, useAltReturn)
 			failChunk.branchBehavior = &jump{destChunkID: linkChunk.id}
 			remainingChunks = append(remainingChunks, failChunk)
 			return remainingChunks, leftLink, firstID
@@ -448,26 +464,28 @@ func splitBooleanExpressionChunks(expression ast.BooleanExpression, chunkCounter
 	return remainingChunks, nil, firstID
 }
 
-func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk, remainingChunks []*chunk, chunkCounter *int) ([]*chunk, *jump, int) {
+func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk, remainingChunks []*chunk, chunkCounter *int, useAltReturn bool) ([]*chunk, *jump, int) {
 
 	remainingChunks, returnID := curChunk.splitChunkForBranch(i, chunkCounter, remainingChunks)
 
 	*chunkCounter++
 	headerChunk := &chunk{
-		id:         *chunkCounter,
-		returnID:   returnID,
-		statements: []ast.Statement{},
+		id:                     *chunkCounter,
+		returnID:               returnID,
+		statements:             []ast.Statement{},
+		useAltReturnTerminator: useAltReturn,
 	}
 
 	*chunkCounter++
 	consequenceChunk := &chunk{
-		id:         *chunkCounter,
-		returnID:   headerChunk.id,
-		statements: stmt.Consequence.Body.Statements,
+		id:                     *chunkCounter,
+		returnID:               headerChunk.id,
+		statements:             stmt.Consequence.Body.Statements,
+		useAltReturnTerminator: useAltReturn,
 	}
 
 	var entryChunkID int
-	remainingChunks, _, entryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, returnID, remainingChunks, -1)
+	remainingChunks, _, entryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, returnID, remainingChunks, -1, useAltReturn)
 	headerChunk.branchBehavior = &jump{destChunkID: entryChunkID}
 	remainingChunks = append(remainingChunks, consequenceChunk)
 	remainingChunks = append(remainingChunks, headerChunk)
@@ -475,25 +493,27 @@ func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk
 	return remainingChunks, &jump{destChunkID: headerChunk.id}, returnID
 }
 
-func createDoWhileStatementChunks(stmt *ast.DoWhileStatement, i int, curChunk *chunk, remainingChunks []*chunk, chunkCounter *int) ([]*chunk, *jump, int) {
+func createDoWhileStatementChunks(stmt *ast.DoWhileStatement, i int, curChunk *chunk, remainingChunks []*chunk, chunkCounter *int, useAltReturn bool) ([]*chunk, *jump, int) {
 	remainingChunks, returnID := curChunk.splitChunkForBranch(i, chunkCounter, remainingChunks)
 
 	*chunkCounter++
 	headerChunk := &chunk{
-		id:         *chunkCounter,
-		returnID:   returnID,
-		statements: []ast.Statement{},
+		id:                     *chunkCounter,
+		returnID:               returnID,
+		statements:             []ast.Statement{},
+		useAltReturnTerminator: useAltReturn,
 	}
 
 	*chunkCounter++
 	consequenceChunk := &chunk{
-		id:         *chunkCounter,
-		returnID:   headerChunk.id,
-		statements: stmt.Consequence.Body.Statements,
+		id:                     *chunkCounter,
+		returnID:               headerChunk.id,
+		statements:             stmt.Consequence.Body.Statements,
+		useAltReturnTerminator: useAltReturn,
 	}
 
 	var entryChunkID int
-	remainingChunks, _, entryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, returnID, remainingChunks, -1)
+	remainingChunks, _, entryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, returnID, remainingChunks, -1, useAltReturn)
 	headerChunk.branchBehavior = &jump{destChunkID: entryChunkID}
 	remainingChunks = append(remainingChunks, consequenceChunk)
 	remainingChunks = append(remainingChunks, headerChunk)
@@ -501,13 +521,14 @@ func createDoWhileStatementChunks(stmt *ast.DoWhileStatement, i int, curChunk *c
 	return remainingChunks, &jump{destChunkID: consequenceChunk.id}, returnID
 }
 
-func createSwitchStatementChunks(stmt *ast.SwitchStatement, statementIndex int, curChunk *chunk, remainingChunks []*chunk, chunkCounter *int) ([]*chunk, *jump, int) {
+func createSwitchStatementChunks(stmt *ast.SwitchStatement, statementIndex int, curChunk *chunk, remainingChunks []*chunk, chunkCounter *int, useAltReturn bool) ([]*chunk, *jump, int) {
 	remainingChunks, returnID := curChunk.splitChunkForBranch(statementIndex, chunkCounter, remainingChunks)
 
 	*chunkCounter++
 	switchChunk := &chunk{
-		id:       *chunkCounter,
-		returnID: returnID,
+		id:                     *chunkCounter,
+		returnID:               returnID,
+		useAltReturnTerminator: useAltReturn,
 	}
 	remainingChunks = append(remainingChunks, switchChunk)
 
@@ -520,9 +541,10 @@ func createSwitchStatementChunks(stmt *ast.SwitchStatement, statementIndex int, 
 		if len(switchCase.Body.Statements) > 0 {
 			*chunkCounter++
 			caseChunk := &chunk{
-				id:         *chunkCounter,
-				returnID:   returnID,
-				statements: switchCase.Body.Statements,
+				id:                     *chunkCounter,
+				returnID:               returnID,
+				statements:             switchCase.Body.Statements,
+				useAltReturnTerminator: useAltReturn,
 			}
 			remainingChunks = append(remainingChunks, caseChunk)
 			destChunkID = caseChunk.id
@@ -532,9 +554,10 @@ func createSwitchStatementChunks(stmt *ast.SwitchStatement, statementIndex int, 
 				if len(stmt.Cases[j].Body.Statements) > 0 {
 					*chunkCounter++
 					caseChunk := &chunk{
-						id:         *chunkCounter,
-						returnID:   returnID,
-						statements: stmt.Cases[j].Body.Statements,
+						id:                     *chunkCounter,
+						returnID:               returnID,
+						statements:             stmt.Cases[j].Body.Statements,
+						useAltReturnTerminator: useAltReturn,
 					}
 					remainingChunks = append(remainingChunks, caseChunk)
 					destChunkID = caseChunk.id
@@ -564,9 +587,10 @@ func createSwitchStatementChunks(stmt *ast.SwitchStatement, statementIndex int, 
 	if stmt.DefaultCase != nil {
 		*chunkCounter++
 		defaultChunk := &chunk{
-			id:         *chunkCounter,
-			returnID:   returnID,
-			statements: stmt.DefaultCase.Body.Statements,
+			id:                     *chunkCounter,
+			returnID:               returnID,
+			statements:             stmt.DefaultCase.Body.Statements,
+			useAltReturnTerminator: useAltReturn,
 		}
 		remainingChunks = append(remainingChunks, defaultChunk)
 		branchBehavior.defaultCase = &switchCaseBranch{

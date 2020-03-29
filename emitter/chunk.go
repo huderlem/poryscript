@@ -12,11 +12,12 @@ import (
 // Represents a single chunk of script output. Each chunk has an associated label in
 // the emitted bytecode output.
 type chunk struct {
-	id               int
-	returnID         int
-	useEndTerminator bool
-	statements       []ast.Statement
-	branchBehavior   brancher
+	id                     int
+	returnID               int
+	useEndTerminator       bool
+	useAltReturnTerminator bool
+	statements             []ast.Statement
+	branchBehavior         brancher
 }
 
 func (c *chunk) renderLabel(scriptName string, isGlobal bool, sb *strings.Builder, gen types.Gen) {
@@ -63,6 +64,9 @@ func (c *chunk) renderBranching(scriptName string, sb *strings.Builder, nextChun
 }
 
 func (c *chunk) getTerminatorCommand(gen types.Gen) string {
+	if c.useAltReturnTerminator {
+		return genconfig.AltReturnCommands[gen]
+	}
 	if c.useEndTerminator {
 		return genconfig.EndCommands[gen]
 	}
@@ -94,9 +98,10 @@ func (c *chunk) isLastStatement(statementIndex int) bool {
 
 func (c *chunk) createPostLogicChunk(id int, lastStatementIndex int) *chunk {
 	newChunk := &chunk{
-		id:         id,
-		returnID:   c.returnID,
-		statements: c.statements[lastStatementIndex+1:],
+		id:                     id,
+		returnID:               c.returnID,
+		statements:             c.statements[lastStatementIndex+1:],
+		useAltReturnTerminator: c.useAltReturnTerminator,
 	}
 	return newChunk
 }
