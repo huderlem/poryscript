@@ -31,7 +31,7 @@ type jump struct {
 func (j *jump) renderBranchConditions(sb *strings.Builder, scriptName string, nextChunkID int, registerJumpChunk func(int), gen types.Gen) bool {
 	if j.destChunkID != nextChunkID {
 		registerJumpChunk(j.destChunkID)
-		sb.WriteString(fmt.Sprintf("\t%s %s_%d\n", genconfig.GotoCommands[gen], scriptName, j.destChunkID))
+		sb.WriteString(fmt.Sprintf("\t%s %s\n", genconfig.GotoCommands[gen], getLocalScriptLabel(scriptName, j.destChunkID, gen)))
 		return false
 	}
 	return true
@@ -54,7 +54,7 @@ func (bc *breakContext) renderBranchConditions(sb *strings.Builder, scriptName s
 		return false
 	} else if bc.destChunkID != nextChunkID {
 		registerJumpChunk(bc.destChunkID)
-		sb.WriteString(fmt.Sprintf("\t%s %s_%d\n", genconfig.GotoCommands[gen], scriptName, bc.destChunkID))
+		sb.WriteString(fmt.Sprintf("\t%s %s\n", genconfig.GotoCommands[gen], getLocalScriptLabel(scriptName, bc.destChunkID, gen)))
 		return false
 	}
 	return true
@@ -80,7 +80,7 @@ func (l *leafExpressionBranch) renderBranchConditions(sb *strings.Builder, scrip
 		return false
 	} else if l.falseyReturnID != nextChunkID {
 		registerJumpChunk(l.falseyReturnID)
-		sb.WriteString(fmt.Sprintf("\t%s %s_%d\n", genconfig.GotoCommands[gen], scriptName, l.falseyReturnID))
+		sb.WriteString(fmt.Sprintf("\t%s %s\n", genconfig.GotoCommands[gen], getLocalScriptLabel(scriptName, l.falseyReturnID, gen)))
 		return false
 	}
 	return true
@@ -117,7 +117,7 @@ func (s *switchBranch) renderBranchConditions(sb *strings.Builder, scriptName st
 	if s.defaultCase != nil {
 		if s.defaultCase.destChunkID != nextChunkID {
 			registerJumpChunk(s.defaultCase.destChunkID)
-			sb.WriteString(fmt.Sprintf("\t%s %s_%d\n", genconfig.GotoCommands[gen], scriptName, s.defaultCase.destChunkID))
+			sb.WriteString(fmt.Sprintf("\t%s %s\n", genconfig.GotoCommands[gen], getLocalScriptLabel(scriptName, s.defaultCase.destChunkID, gen)))
 			return false
 		}
 	} else if s.destChunkID != nextChunkID {
@@ -125,7 +125,7 @@ func (s *switchBranch) renderBranchConditions(sb *strings.Builder, scriptName st
 			sb.WriteString(fmt.Sprintf("\t%s\n", genconfig.ReturnCommands[gen]))
 		} else {
 			registerJumpChunk(s.destChunkID)
-			sb.WriteString(fmt.Sprintf("\t%s %s_%d\n", genconfig.GotoCommands[gen], scriptName, s.destChunkID))
+			sb.WriteString(fmt.Sprintf("\t%s %s\n", genconfig.GotoCommands[gen], getLocalScriptLabel(scriptName, s.destChunkID, gen)))
 		}
 		return false
 	}
@@ -137,7 +137,7 @@ func (s *switchBranch) renderGen2SwitchCases(sb *strings.Builder, scriptName str
 	sb.WriteString(fmt.Sprintf("\t%s %s\n", s.operator, s.operand))
 	for _, switchCase := range s.cases {
 		registerJumpChunk(switchCase.destChunkID)
-		sb.WriteString(fmt.Sprintf("\tifequal %s, %s_%d\n", switchCase.comparisonValue, scriptName, switchCase.destChunkID))
+		sb.WriteString(fmt.Sprintf("\tifequal %s, %s\n", switchCase.comparisonValue, getLocalScriptLabel(scriptName, switchCase.destChunkID, types.GEN2)))
 	}
 }
 
@@ -145,7 +145,7 @@ func (s *switchBranch) renderGen3SwitchCases(sb *strings.Builder, scriptName str
 	sb.WriteString(fmt.Sprintf("\tswitch %s\n", s.operand))
 	for _, switchCase := range s.cases {
 		registerJumpChunk(switchCase.destChunkID)
-		sb.WriteString(fmt.Sprintf("\tcase %s, %s_%d\n", switchCase.comparisonValue, scriptName, switchCase.destChunkID))
+		sb.WriteString(fmt.Sprintf("\tcase %s, %s\n", switchCase.comparisonValue, getLocalScriptLabel(scriptName, switchCase.destChunkID, types.GEN3)))
 	}
 }
 
@@ -167,32 +167,33 @@ func renderBranchComparison(sb *strings.Builder, dest *conditionDestination, scr
 }
 
 func renderGen2BranchComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
+	scriptLabel := getLocalScriptLabel(scriptName, dest.id, types.GEN2)
 	sb.WriteString(fmt.Sprintf("\t%s %s\n", dest.operatorExpression.Token.Literal, dest.operatorExpression.Operand))
 	switch dest.operatorExpression.Operator {
 	case token.EQ:
 		if dest.operatorExpression.ComparisonValue == token.TRUE {
-			sb.WriteString(fmt.Sprintf("\tiftrue %s_%d\n", scriptName, dest.id))
+			sb.WriteString(fmt.Sprintf("\tiftrue %s\n", scriptLabel))
 		} else if dest.operatorExpression.ComparisonValue == token.FALSE {
-			sb.WriteString(fmt.Sprintf("\tiffalse %s_%d\n", scriptName, dest.id))
+			sb.WriteString(fmt.Sprintf("\tiffalse %s\n", scriptLabel))
 		} else {
-			sb.WriteString(fmt.Sprintf("\tifequal %s, %s_%d\n", dest.operatorExpression.ComparisonValue, scriptName, dest.id))
+			sb.WriteString(fmt.Sprintf("\tifequal %s, %s\n", dest.operatorExpression.ComparisonValue, scriptLabel))
 		}
 	case token.NEQ:
 		if dest.operatorExpression.ComparisonValue == token.TRUE {
-			sb.WriteString(fmt.Sprintf("\tiffalse %s_%d\n", scriptName, dest.id))
+			sb.WriteString(fmt.Sprintf("\tiffalse %s\n", scriptLabel))
 		} else if dest.operatorExpression.ComparisonValue == token.FALSE {
-			sb.WriteString(fmt.Sprintf("\tiftrue %s_%d\n", scriptName, dest.id))
+			sb.WriteString(fmt.Sprintf("\tiftrue %s\n", scriptLabel))
 		} else {
-			sb.WriteString(fmt.Sprintf("\tifnotequal %s, %s_%d\n", dest.operatorExpression.ComparisonValue, scriptName, dest.id))
+			sb.WriteString(fmt.Sprintf("\tifnotequal %s, %s\n", dest.operatorExpression.ComparisonValue, scriptLabel))
 		}
 	case token.LT:
-		sb.WriteString(fmt.Sprintf("\tifless %s, %s_%d\n", dest.operatorExpression.ComparisonValue, scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tifless %s, %s\n", dest.operatorExpression.ComparisonValue, scriptLabel))
 	case token.GT:
-		sb.WriteString(fmt.Sprintf("\tifgreater %s, %s_%d\n", dest.operatorExpression.ComparisonValue, scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tifgreater %s, %s\n", dest.operatorExpression.ComparisonValue, scriptLabel))
 	case token.LTE:
-		sb.WriteString(fmt.Sprintf("\tifless (%s) + 1, %s_%d\n", dest.operatorExpression.ComparisonValue, scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tifless (%s) + 1, %s\n", dest.operatorExpression.ComparisonValue, scriptLabel))
 	case token.GTE:
-		sb.WriteString(fmt.Sprintf("\tifgreater (%s) - 1, %s_%d\n", dest.operatorExpression.ComparisonValue, scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tifgreater (%s) - 1, %s\n", dest.operatorExpression.ComparisonValue, scriptLabel))
 	}
 }
 
@@ -208,38 +209,48 @@ func renderGen3BranchComparison(sb *strings.Builder, dest *conditionDestination,
 }
 
 func renderFlagComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
+	scriptLabel := getLocalScriptLabel(scriptName, dest.id, types.GEN3)
 	if (dest.operatorExpression.Operator == token.EQ && dest.operatorExpression.ComparisonValue == token.TRUE) ||
 		(dest.operatorExpression.Operator == token.NEQ && dest.operatorExpression.ComparisonValue == token.FALSE) {
-		sb.WriteString(fmt.Sprintf("\tgoto_if_set %s, %s_%d\n", dest.operatorExpression.Operand, scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tgoto_if_set %s, %s\n", dest.operatorExpression.Operand, scriptLabel))
 	} else {
-		sb.WriteString(fmt.Sprintf("\tgoto_if_unset %s, %s_%d\n", dest.operatorExpression.Operand, scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tgoto_if_unset %s, %s\n", dest.operatorExpression.Operand, scriptLabel))
 	}
 }
 
 func renderVarComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
+	scriptLabel := getLocalScriptLabel(scriptName, dest.id, types.GEN3)
 	sb.WriteString(fmt.Sprintf("\tcompare %s, %s\n", dest.operatorExpression.Operand, dest.operatorExpression.ComparisonValue))
 	switch dest.operatorExpression.Operator {
 	case token.EQ:
-		sb.WriteString(fmt.Sprintf("\tgoto_if_eq %s_%d\n", scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tgoto_if_eq %s\n", scriptLabel))
 	case token.NEQ:
-		sb.WriteString(fmt.Sprintf("\tgoto_if_ne %s_%d\n", scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tgoto_if_ne %s\n", scriptLabel))
 	case token.LT:
-		sb.WriteString(fmt.Sprintf("\tgoto_if_lt %s_%d\n", scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tgoto_if_lt %s\n", scriptLabel))
 	case token.LTE:
-		sb.WriteString(fmt.Sprintf("\tgoto_if_le %s_%d\n", scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tgoto_if_le %s\n", scriptLabel))
 	case token.GT:
-		sb.WriteString(fmt.Sprintf("\tgoto_if_gt %s_%d\n", scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tgoto_if_gt %s\n", scriptLabel))
 	case token.GTE:
-		sb.WriteString(fmt.Sprintf("\tgoto_if_ge %s_%d\n", scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tgoto_if_ge %s\n", scriptLabel))
 	}
 }
 
 func renderDefeatedComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
+	scriptLabel := getLocalScriptLabel(scriptName, dest.id, types.GEN3)
 	sb.WriteString(fmt.Sprintf("\tchecktrainerflag %s\n", dest.operatorExpression.Operand))
 	if (dest.operatorExpression.Operator == token.EQ && dest.operatorExpression.ComparisonValue == token.TRUE) ||
 		(dest.operatorExpression.Operator == token.NEQ && dest.operatorExpression.ComparisonValue == token.FALSE) {
-		sb.WriteString(fmt.Sprintf("\tgoto_if 1, %s_%d\n", scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tgoto_if 1, %s\n", scriptLabel))
 	} else {
-		sb.WriteString(fmt.Sprintf("\tgoto_if 0, %s_%d\n", scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tgoto_if 0, %s\n", scriptLabel))
 	}
+}
+
+func getLocalScriptLabel(scriptName string, id int, gen types.Gen) string {
+	if strings.HasPrefix(scriptName, genconfig.LocalScriptNamePrefixes[gen]) {
+		return fmt.Sprintf("%s_%d", scriptName, id)
+	}
+	return fmt.Sprintf("%s%s_%d", genconfig.LocalScriptNamePrefixes[gen], scriptName, id)
 }

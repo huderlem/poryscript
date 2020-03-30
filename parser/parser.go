@@ -121,8 +121,8 @@ func (p *Parser) expectPeek(expectedType token.Type) error {
 	return fmt.Errorf("line %d: expected next token to be '%s', got '%s' instead", p.peekToken.LineNumber, expectedType, p.peekToken.Literal)
 }
 
-func getImplicitTextLabel(scriptName string, i int) string {
-	return fmt.Sprintf("%s_Text_%d", scriptName, i)
+func getImplicitTextLabel(scriptName string, i int, gen types.Gen) string {
+	return fmt.Sprintf("%s_Text_%d", strings.TrimLeft(scriptName, genconfig.LocalScriptNamePrefixes[gen]), i)
 }
 
 // ParseProgram parses a Poryscript file into an AST.
@@ -216,7 +216,7 @@ func (p *Parser) addImplicitTexts(implicitTexts []impText) {
 		if textLabel, ok := p.inlineTextsSet[t.text]; ok {
 			t.command.Args[t.argPos] = textLabel
 		} else {
-			textLabel := getImplicitTextLabel(t.scriptName, p.inlineTextCounts[t.scriptName])
+			textLabel := getImplicitTextLabel(t.scriptName, p.inlineTextCounts[t.scriptName], p.gen)
 			t.command.Args[t.argPos] = textLabel
 			p.inlineTextCounts[t.scriptName]++
 			p.inlineTextsSet[t.text] = textLabel
@@ -810,7 +810,7 @@ func (p *Parser) parseGen2MapScript(mapScriptType string, statement *ast.MapScri
 		for p.curToken.Type != token.RBRACKET {
 			if p.curToken.Type == token.LBRACE {
 				p.nextToken()
-				scriptName := fmt.Sprintf("%s_%s_%d", statement.Name.Value, "Scene", i)
+				scriptName := fmt.Sprintf("%s%s_%s_%d", genconfig.LocalScriptNamePrefixes[p.gen], statement.Name.Value, "Scene", i)
 				blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName)
 				if err != nil {
 					return nil, err
@@ -854,7 +854,7 @@ func (p *Parser) parseGen2MapScript(mapScriptType string, statement *ast.MapScri
 		p.nextToken()
 	} else if p.curToken.Type == token.LBRACE {
 		p.nextToken()
-		scriptName := fmt.Sprintf("%s_%s", statement.Name.Value, mapScriptType)
+		scriptName := fmt.Sprintf("%s%s_%s", genconfig.LocalScriptNamePrefixes[p.gen], statement.Name.Value, mapScriptType)
 		blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName)
 		if err != nil {
 			return nil, err
@@ -891,7 +891,7 @@ func (p *Parser) parseGen3MapScript(mapScriptType string, statement *ast.MapScri
 		p.nextToken()
 	} else if p.curToken.Type == token.LBRACE {
 		p.nextToken()
-		scriptName := fmt.Sprintf("%s_%s", statement.Name.Value, mapScriptType)
+		scriptName := fmt.Sprintf("%s%s_%s", genconfig.LocalScriptNamePrefixes[p.gen], statement.Name.Value, mapScriptType)
 		blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName)
 		if err != nil {
 			return nil, err
@@ -961,7 +961,7 @@ func (p *Parser) parseGen3MapScript(mapScriptType string, statement *ast.MapScri
 				p.nextToken()
 			} else if p.curToken.Type == token.LBRACE {
 				p.nextToken()
-				scriptName := fmt.Sprintf("%s_%s_%d", statement.Name.Value, mapScriptType, i)
+				scriptName := fmt.Sprintf("%s%s_%s_%d", genconfig.LocalScriptNamePrefixes[p.gen], statement.Name.Value, mapScriptType, i)
 				blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName)
 				if err != nil {
 					return nil, err
@@ -1453,25 +1453,22 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 	p.nextToken()
 	expressionTypeName := p.curToken.Literal
 	operatorExpression.Token = p.curToken
+	p.nextToken()
 
-	if err := p.expectPeek(token.LPAREN); err != nil {
-		return nil, fmt.Errorf("line %d: missing opening parenthesis for condition operator '%s'", p.curToken.LineNumber, operatorExpression.Token.Type)
-	}
-	if p.peekToken.Type == token.RPAREN {
-		return nil, fmt.Errorf("line %d: missing value for condition operator '%s'", p.curToken.LineNumber, operatorExpression.Token.Type)
-	}
-	p.nextToken()
-	parts := []string{}
-	lineNum := p.curToken.LineNumber
-	for p.curToken.Type != token.RPAREN {
-		parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
+	if p.curToken.Type == token.LPAREN {
 		p.nextToken()
-		if p.curToken.Type == token.EOF {
-			return nil, fmt.Errorf("line %d: missing closing ')' for condition operator value", lineNum)
+		parts := []string{}
+		lineNum := p.curToken.LineNumber
+		for p.curToken.Type != token.RPAREN {
+			parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
+			p.nextToken()
+			if p.curToken.Type == token.EOF {
+				return nil, fmt.Errorf("line %d: missing closing ')' for condition operator value", lineNum)
+			}
 		}
+		operatorExpression.Operand = strings.Join(parts, " ")
+		p.nextToken()
 	}
-	operatorExpression.Operand = strings.Join(parts, " ")
-	p.nextToken()
 
 	if usedNotOperator {
 		switch operatorExpression.Token.Type {

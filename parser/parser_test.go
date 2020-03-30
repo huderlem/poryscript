@@ -1315,7 +1315,7 @@ script MyScript {
 	if (var{FLAG_1) {
 		foo
 	}`,
-			expectedError: "line 3: missing opening parenthesis for condition operator 'VAR'",
+			expectedError: "line 3: expected next token to be '{', got 'FLAG_1' instead",
 		},
 		{
 			input: `
@@ -1323,15 +1323,7 @@ script MyScript {
 	if (flag{FLAG_1) {
 		foo
 	}`,
-			expectedError: "line 3: missing opening parenthesis for condition operator 'FLAG'",
-		},
-		{
-			input: `
-script MyScript {
-	if (flag()) {
-		foo
-	}`,
-			expectedError: "line 3: missing value for condition operator 'FLAG'",
+			expectedError: "line 3: expected next token to be '{', got 'FLAG_1' instead",
 		},
 		{
 			input: `
@@ -1453,15 +1445,6 @@ script MyScript {
 	}
 }`,
 			expectedError: "line 3: missing comparison value for defeated operator",
-		},
-		{
-			input: `
-script MyScript {
-	while (var(VAR_1) == 1 && flag(FLAG_1) == true && flag()) {
-		foo
-	}
-}`,
-			expectedError: "line 3: missing value for condition operator 'FLAG'",
 		},
 		{
 			input: `

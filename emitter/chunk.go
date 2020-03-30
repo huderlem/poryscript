@@ -23,10 +23,10 @@ type chunk struct {
 func (c *chunk) renderLabel(scriptName string, isGlobal bool, sb *strings.Builder, gen types.Gen) {
 	if c.id == 0 {
 		// Main script entrypoint label.
-		sb.WriteString(fmt.Sprintf("%s\n", formatLabel(scriptName, isGlobal, gen)))
+		sb.WriteString(fmt.Sprintf("%s\n", formatLabel(scriptName, isGlobal, gen, true)))
 	} else {
-		localScriptName := fmt.Sprintf("%s_%d", scriptName, c.id)
-		sb.WriteString(fmt.Sprintf("%s\n", formatLabel(localScriptName, false, gen)))
+		localScriptName := getLocalScriptLabel(scriptName, c.id, gen)
+		sb.WriteString(fmt.Sprintf("%s\n", formatLabel(localScriptName, false, gen, true)))
 	}
 }
 
@@ -55,7 +55,7 @@ func (c *chunk) renderBranching(scriptName string, sb *strings.Builder, nextChun
 		return false
 	} else if c.returnID != nextChunkID {
 		registerJumpChunk(c.returnID)
-		sb.WriteString(fmt.Sprintf("\t%s %s_%d\n", genconfig.GotoCommands[gen], scriptName, c.returnID))
+		sb.WriteString(fmt.Sprintf("\t%s %s\n", genconfig.GotoCommands[gen], getLocalScriptLabel(scriptName, c.returnID, gen)))
 		return false
 	}
 

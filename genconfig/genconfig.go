@@ -57,6 +57,13 @@ func SupportedSwitchOperators(gen types.Gen) []token.Type {
 	}
 }
 
+// LocalScriptNamePrefixes is a mapping of the prefix for
+// local script label names for each Gen.
+var LocalScriptNamePrefixes = map[types.Gen]string{
+	types.GEN2: ".",
+	types.GEN3: "",
+}
+
 // ReturnCommands is a mapping of the return command used for
 // each Gen. These return from the called script execution, or
 // halt script execution if there is no current call context.

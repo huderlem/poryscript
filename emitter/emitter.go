@@ -110,7 +110,7 @@ func (e *Emitter) emitMapScriptStatement(mapScriptStmt *ast.MapScriptsStatement)
 func (e *Emitter) emitGen2MapScriptStatement(mapScriptStmt *ast.MapScriptsStatement) (string, error) {
 	var sb strings.Builder
 	isGlobal := mapScriptStmt.Scope == token.GLOBAL
-	sb.WriteString(fmt.Sprintf("%s\n", formatLabel(mapScriptStmt.Name.Value, isGlobal, e.gen)))
+	sb.WriteString(fmt.Sprintf("%s\n", formatLabel(mapScriptStmt.Name.Value, isGlobal, e.gen, true)))
 	sb.WriteString(fmt.Sprintf("\tdb %d ; scene scripts\n", len(mapScriptStmt.TableMapScripts)))
 	for _, tableMapScript := range mapScriptStmt.TableMapScripts {
 		for _, scriptEntry := range tableMapScript.Entries {
@@ -151,7 +151,7 @@ func (e *Emitter) emitGen2MapScriptStatement(mapScriptStmt *ast.MapScriptsStatem
 func (e *Emitter) emitGen3MapScriptStatement(mapScriptStmt *ast.MapScriptsStatement) (string, error) {
 	var sb strings.Builder
 	isGlobal := mapScriptStmt.Scope == token.GLOBAL
-	sb.WriteString(fmt.Sprintf("%s\n", formatLabel(mapScriptStmt.Name.Value, isGlobal, e.gen)))
+	sb.WriteString(fmt.Sprintf("%s\n", formatLabel(mapScriptStmt.Name.Value, isGlobal, e.gen, true)))
 	for _, mapScript := range mapScriptStmt.MapScripts {
 		sb.WriteString(fmt.Sprintf("\tmap_script %s, %s\n", mapScript.Type, mapScript.Name))
 	}
@@ -709,7 +709,7 @@ func optimizeChunkOrder(chunks map[int]*chunk) []int {
 
 func (e *Emitter) emitText(text ast.Text) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s\n", formatLabel(text.Name, text.IsGlobal, e.gen)))
+	sb.WriteString(fmt.Sprintf("%s\n", formatLabel(text.Name, text.IsGlobal, e.gen, false)))
 	switch e.gen {
 	case types.GEN2:
 		e.emitGen2Text(text, &sb)
@@ -834,7 +834,7 @@ func (e *Emitter) emitMovementStatement(movementStmt *ast.MovementStatement) str
 	terminator := "step_end"
 	var sb strings.Builder
 	isGlobal := movementStmt.Scope == token.GLOBAL
-	sb.WriteString(fmt.Sprintf("%s\n", formatLabel(movementStmt.Name.Value, isGlobal, e.gen)))
+	sb.WriteString(fmt.Sprintf("%s\n", formatLabel(movementStmt.Name.Value, isGlobal, e.gen, false)))
 	for _, cmd := range movementStmt.MovementCommands {
 		sb.WriteString(fmt.Sprintf("\t%s\n", cmd))
 		if cmd == terminator {
@@ -845,25 +845,30 @@ func (e *Emitter) emitMovementStatement(movementStmt *ast.MovementStatement) str
 	return sb.String()
 }
 
-func formatLabel(labelName string, isGlobal bool, gen types.Gen) string {
+func formatLabel(labelName string, isGlobal bool, gen types.Gen, isScriptLabel bool) string {
 	switch gen {
 	case types.GEN2:
-		return formatGen2Label(labelName, isGlobal)
+		return formatGen2Label(labelName, isGlobal, isScriptLabel)
 	case types.GEN3:
-		return formatGen3Label(labelName, isGlobal)
+		return formatGen3Label(labelName, isGlobal, isScriptLabel)
 	default:
 		return labelName
 	}
 }
 
-func formatGen2Label(labelName string, isGlobal bool) string {
+func formatGen2Label(labelName string, isGlobal bool, isScriptLabel bool) string {
 	if isGlobal {
 		return fmt.Sprintf("%s::", labelName)
+	} else if isScriptLabel {
+		if strings.HasPrefix(labelName, genconfig.LocalScriptNamePrefixes[types.GEN2]) {
+			return labelName
+		}
+		return fmt.Sprintf("%s%s", genconfig.LocalScriptNamePrefixes[types.GEN2], labelName)
 	}
 	return fmt.Sprintf("%s:", labelName)
 }
 
-func formatGen3Label(labelName string, isGlobal bool) string {
+func formatGen3Label(labelName string, isGlobal bool, isScriptLabel bool) string {
 	if isGlobal {
 		return fmt.Sprintf("%s::", labelName)
 	}
