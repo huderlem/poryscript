@@ -564,8 +564,8 @@ script Test {
 	if switchStmt.Operand != "VAR_1" {
 		t.Fatalf("switchStmt.Operand != VAR_1. Got '%s' instead.", switchStmt.Operand)
 	}
-	if len(switchStmt.Cases) != 4 {
-		t.Fatalf("len(switchStmt.Cases) != 4. Got '%d' instead.", len(switchStmt.Cases))
+	if len(switchStmt.Cases) != 5 {
+		t.Fatalf("len(switchStmt.Cases) != 5. Got '%d' instead.", len(switchStmt.Cases))
 	}
 	if switchStmt.DefaultCase == nil {
 		t.Fatalf("switchStmt.DefaultCase == nil")

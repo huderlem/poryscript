@@ -1270,6 +1270,10 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 				return nil, nil, err
 			}
 			implicitTexts = append(implicitTexts, stmtTexts...)
+			statement.Cases = append(statement.Cases, &ast.SwitchCase{
+				IsDefault: true,
+				Body:      body,
+			})
 			statement.DefaultCase = &ast.SwitchCase{
 				Body: body,
 			}

@@ -1114,7 +1114,9 @@ func TestSwitchStatements(t *testing.T) {
 script MyScript {
 	while (var(VAR_2) == 2) {
 		switch (var(VAR_1)) {
-			default: messagedefault()
+			case 6:
+			default:
+			case 5: messagedefault()
 			case 0:
 				if (flag(FLAG_1) == true) {
 					delay(5)
@@ -1167,24 +1169,24 @@ MyScript_5:
 
 MyScript_6:
 	switch VAR_1
-	case 0, MyScript_7
-	case 72, MyScript_8
-	case 1, MyScript_9
-	case 2, MyScript_9
-	goto MyScript_10
-
+	case 6, MyScript_7
+	case 5, MyScript_7
+	case 0, MyScript_8
+	case 72, MyScript_9
+	case 1, MyScript_10
+	case 2, MyScript_10
 MyScript_7:
-	goto MyScript_13
-
-MyScript_8:
-	goto MyScript_14
-
-MyScript_9:
-	message1
 	messagedefault
 	goto MyScript_5
 
+MyScript_8:
+	goto MyScript_13
+
+MyScript_9:
+	goto MyScript_14
+
 MyScript_10:
+	message1
 	messagedefault
 	goto MyScript_5
 
@@ -1236,29 +1238,32 @@ MyScript_2:
 
 MyScript_3:
 	switch VAR_1
-	case 0, MyScript_7
-	case 72, MyScript_8
-	case 1, MyScript_9
-	case 2, MyScript_9
+	case 6, MyScript_7
+	case 5, MyScript_7
+	case 0, MyScript_8
+	case 72, MyScript_9
+	case 1, MyScript_10
+	case 2, MyScript_10
+MyScript_7:
 	messagedefault
 MyScript_5:
 	afterswitch
 	goto MyScript_2
 
-MyScript_7:
+MyScript_8:
 	goto_if_set FLAG_1, MyScript_12
 MyScript_11:
 	message0
 	goto MyScript_5
 
-MyScript_8:
+MyScript_9:
 	switch VAR_5
 	case 434, MyScript_15
 	case 2, MyScript_15
 	seconddefault
 	goto MyScript_2
 
-MyScript_9:
+MyScript_10:
 	message1
 	messagedefault
 	goto MyScript_5

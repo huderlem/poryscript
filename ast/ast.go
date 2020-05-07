@@ -227,8 +227,9 @@ func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }
 
 // SwitchCase is a single case in a switch statement.
 type SwitchCase struct {
-	Value string
-	Body  *BlockStatement
+	Value     string
+	Body      *BlockStatement
+	IsDefault bool
 }
 
 // SwitchStatement is a switch statement in Poryscript.
