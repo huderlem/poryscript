@@ -460,6 +460,7 @@ func createSwitchStatementChunks(stmt *ast.SwitchStatement, statementIndex int, 
 	branchBehavior := &switchBranch{operand: stmt.Operand}
 	branchCases := []*switchCaseBranch{}
 	i := 0
+	processedDefaultCase := false
 	for i < len(stmt.Cases) {
 		switchCase := stmt.Cases[i]
 		destChunkID := -1
@@ -472,6 +473,13 @@ func createSwitchStatementChunks(stmt *ast.SwitchStatement, statementIndex int, 
 			}
 			remainingChunks = append(remainingChunks, caseChunk)
 			destChunkID = caseChunk.id
+			if switchCase.IsDefault {
+				branchBehavior.defaultCase = &switchCaseBranch{
+					comparisonValue: stmt.DefaultCase.Value,
+					destChunkID:     caseChunk.id,
+				}
+				processedDefaultCase = true
+			}
 		} else {
 			// Scan forward for the shared case body.
 			for j := i + 1; j < len(stmt.Cases); j++ {
@@ -484,20 +492,41 @@ func createSwitchStatementChunks(stmt *ast.SwitchStatement, statementIndex int, 
 					}
 					remainingChunks = append(remainingChunks, caseChunk)
 					destChunkID = caseChunk.id
+					if stmt.Cases[j].IsDefault {
+						branchBehavior.defaultCase = &switchCaseBranch{
+							comparisonValue: stmt.DefaultCase.Value,
+							destChunkID:     caseChunk.id,
+						}
+						processedDefaultCase = true
+					}
 
 					// Apply this chunk body to all of the previous shared cases.
 					for i < j {
-						branchCases = append(branchCases, &switchCaseBranch{
-							comparisonValue: stmt.Cases[i].Value,
-							destChunkID:     destChunkID,
-						})
+						if stmt.Cases[i].IsDefault {
+							defaultChunk := &chunk{
+								id:         *chunkCounter,
+								returnID:   returnID,
+								statements: stmt.Cases[j].Body.Statements,
+							}
+							remainingChunks = append(remainingChunks, defaultChunk)
+							branchBehavior.defaultCase = &switchCaseBranch{
+								comparisonValue: stmt.DefaultCase.Value,
+								destChunkID:     destChunkID,
+							}
+							processedDefaultCase = true
+						} else {
+							branchCases = append(branchCases, &switchCaseBranch{
+								comparisonValue: stmt.Cases[i].Value,
+								destChunkID:     destChunkID,
+							})
+						}
 						i++
 					}
 					break
 				}
 			}
 		}
-		if destChunkID != -1 {
+		if destChunkID != -1 && !stmt.Cases[i].IsDefault {
 			branchCases = append(branchCases, &switchCaseBranch{
 				comparisonValue: stmt.Cases[i].Value,
 				destChunkID:     destChunkID,
@@ -505,21 +534,9 @@ func createSwitchStatementChunks(stmt *ast.SwitchStatement, statementIndex int, 
 		}
 		i++
 	}
-	branchBehavior.cases = branchCases
 
-	if stmt.DefaultCase != nil {
-		*chunkCounter++
-		defaultChunk := &chunk{
-			id:         *chunkCounter,
-			returnID:   returnID,
-			statements: stmt.DefaultCase.Body.Statements,
-		}
-		remainingChunks = append(remainingChunks, defaultChunk)
-		branchBehavior.defaultCase = &switchCaseBranch{
-			comparisonValue: stmt.DefaultCase.Value,
-			destChunkID:     defaultChunk.id,
-		}
-	} else {
+	branchBehavior.cases = branchCases
+	if !processedDefaultCase {
 		branchBehavior.destChunkID = returnID
 	}
 	switchChunk.branchBehavior = branchBehavior

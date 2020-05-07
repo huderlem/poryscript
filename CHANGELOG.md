@@ -5,7 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-Nothing, yet.
+### Fixed
+- Fix bug where `switch` statement `default` case didn't work properly when combined with other cases.
 
 ## [2.8.0] - 2020-03-25
 ### Added
