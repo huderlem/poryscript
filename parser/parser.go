@@ -893,7 +893,7 @@ func (p *Parser) parseFormatStringOperator() (string, error) {
 		}
 		num, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
 		if err != nil {
-			return "", fmt.Errorf("line %d: invalid format() maxLineLen '%s'. Expected integer", p.curToken.LineNumber, p.curToken.Literal, err.Error())
+			return "", fmt.Errorf("line %d: invalid format() maxLineLen '%s'. Expected integer", p.curToken.LineNumber, p.curToken.Literal)
 		}
 		maxTextLength = int(num)
 	}
