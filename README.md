@@ -322,6 +322,26 @@ Becomes:
 ```
 The font widths configuration JSON file informs Poryscript how many pixels wide each character in the message is. Different fonts have different character widths. For convenience, Poryscript comes with `font_widths.json`, which contains the configuration for pokeemerald's `1_latin` font. More fonts can easily be added to this file by the user by creating anothing font id node under the `fonts` key in `font_widths.json`.
 
+The length of a line can optionally be specified as the third parameter to `format()` if a font id was specified as the second parameter.
+
+```
+text MyText {
+    format("Hello, are you the real-live legendary {PLAYER} that everyone talks about?\pAmazing!\pSo glad to meet you!", "1_latin", 100)
+}
+```
+Becomes:
+```
+.string "Hello, are you the\n"
+.string "real-live\l"
+.string "legendary\l"
+.string "{PLAYER} that\l"
+.string "everyone talks\l"
+.string "about?\p"
+.string "Amazing!\p"
+.string "So glad to meet\n"
+.string "you!$"
+```
+
 ## `movement` Statement
 Use `movement` statements to conveniently define movement data that is typically used with the `applymovement` command. `*` can be used as a shortcut to repeat a single command many times. Data defined with `movement` is created with local scope, not global.
 ```
