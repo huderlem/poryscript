@@ -885,6 +885,18 @@ func (p *Parser) parseFormatStringOperator() (string, error) {
 		fontID = p.curToken.Literal
 		setFontID = true
 	}
+	maxTextLength := 208
+	if p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+		if err := p.expectPeek(token.INT); err != nil {
+			return "", fmt.Errorf("line %d: invalid format() maxLineLen '%s'. Expected integer", p.peekToken.LineNumber, p.peekToken.Literal)
+		}
+		num, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+		if err != nil {
+			return "", fmt.Errorf("line %d: invalid format() maxLineLen '%s'. Expected integer", p.curToken.LineNumber, p.curToken.Literal, err.Error())
+		}
+		maxTextLength = int(num)
+	}
 	if err := p.expectPeek(token.RPAREN); err != nil {
 		return "", fmt.Errorf("line %d: missing closing parenthesis ')' for format()", p.peekToken.LineNumber)
 	}
@@ -898,7 +910,7 @@ func (p *Parser) parseFormatStringOperator() (string, error) {
 	if !setFontID {
 		fontID = p.fonts.DefaultFontID
 	}
-	formatted, err := p.fonts.FormatText(rawText, 208, fontID)
+	formatted, err := p.fonts.FormatText(rawText, maxTextLength, fontID)
 	if err != nil {
 		return "", fmt.Errorf("line %d: %s", lineNum, err.Error())
 	}
