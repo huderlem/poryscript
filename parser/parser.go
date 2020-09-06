@@ -877,25 +877,42 @@ func (p *Parser) parseFormatStringOperator() (string, error) {
 	rawText := p.curToken.Literal
 	var fontID string
 	setFontID := false
-	if p.peekTokenIs(token.COMMA) {
-		p.nextToken()
-		if err := p.expectPeek(token.STRING); err != nil {
-			return "", fmt.Errorf("line %d: invalid format() fontId '%s'. Expected string", p.peekToken.LineNumber, p.peekToken.Literal)
-		}
-		fontID = p.curToken.Literal
-		setFontID = true
-	}
 	maxTextLength := 208
 	if p.peekTokenIs(token.COMMA) {
 		p.nextToken()
-		if err := p.expectPeek(token.INT); err != nil {
-			return "", fmt.Errorf("line %d: invalid format() maxLineLen '%s'. Expected integer", p.peekToken.LineNumber, p.peekToken.Literal)
+		if p.peekTokenIs(token.STRING) {
+			p.nextToken()
+			fontID = p.curToken.Literal
+			setFontID = true
+			if p.peekTokenIs(token.COMMA) {
+				p.nextToken()
+				if err := p.expectPeek(token.INT); err != nil {
+					return "", fmt.Errorf("line %d: invalid format() maxLineLength '%s'. Expected integer", p.peekToken.LineNumber, p.peekToken.Literal)
+				}
+				num, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+				if err != nil {
+					return "", fmt.Errorf("line %d: invalid format() maxLineLength '%s'. Expected integer", p.curToken.LineNumber, p.curToken.Literal)
+				}
+				maxTextLength = int(num)
+			}
+		} else if p.peekTokenIs(token.INT) {
+			p.nextToken()
+			num, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+			if err != nil {
+				return "", fmt.Errorf("line %d: invalid format() maxLineLength '%s'. Expected integer", p.curToken.LineNumber, p.curToken.Literal)
+			}
+			maxTextLength = int(num)
+			if p.peekTokenIs(token.COMMA) {
+				p.nextToken()
+				if err := p.expectPeek(token.STRING); err != nil {
+					return "", fmt.Errorf("line %d: invalid format() fontId '%s'. Expected string", p.peekToken.LineNumber, p.peekToken.Literal)
+				}
+				fontID = p.curToken.Literal
+				setFontID = true
+			}
+		} else {
+			return "", fmt.Errorf("line %d: invalid format() parameter '%s'. Expected eighter fontId (string) or maxLineLength (integer)", p.peekToken.LineNumber, p.peekToken.Literal)
 		}
-		num, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
-		if err != nil {
-			return "", fmt.Errorf("line %d: invalid format() maxLineLen '%s'. Expected integer", p.curToken.LineNumber, p.curToken.Literal)
-		}
-		maxTextLength = int(num)
 	}
 	if err := p.expectPeek(token.RPAREN); err != nil {
 		return "", fmt.Errorf("line %d: missing closing parenthesis ')' for format()", p.peekToken.LineNumber)
