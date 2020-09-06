@@ -654,6 +654,14 @@ script MyScript1 {
 text MyText {
 	format("FooBar", "TEST")
 }
+
+text MyText1 {
+	format("FooBar", "TEST", 100)
+}
+
+text MyText2 {
+	format("FooBar", 100, "TEST")
+}
 `
 	l := lexer.New(input)
 	p := New(l, "../font_widths.json", nil)
@@ -662,14 +670,20 @@ text MyText {
 		t.Fatalf(err.Error())
 	}
 
-	if len(program.Texts) != 2 {
-		t.Fatalf("len(program.Texts) != 2. Got '%d' instead.", len(program.Texts))
+	if len(program.Texts) != 4 {
+		t.Fatalf("len(program.Texts) != 3. Got '%d' instead.", len(program.Texts))
 	}
 	if program.Texts[0].Value != "Test»{BLAH}$" {
 		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[0].Value, "Test»{BLAH}$")
 	}
 	if program.Texts[1].Value != "FooBar$" {
 		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[1].Value, "FooBar$")
+	}
+	if program.Texts[2].Value != "FooBar$" {
+		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[2].Value, "FooBar$")
+	}
+	if program.Texts[3].Value != "FooBar$" {
+		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[3].Value, "FooBar$")
 	}
 }
 
@@ -1515,7 +1529,7 @@ text Foo {
 text Foo {
 	format("Hi", )
 }`,
-			expectedError: "line 3: invalid format() fontId ')'. Expected string",
+			expectedError: "line 3: invalid format() parameter ')'. Expected eighter fontId (string) or maxLineLength (integer)",
 		},
 		{
 			input: `
@@ -1529,7 +1543,7 @@ text Foo {
 script Foo {
 	msgbox(format("Hi", ))
 }`,
-			expectedError: "line 3: invalid format() fontId ')'. Expected string",
+			expectedError: "line 3: invalid format() parameter ')'. Expected eighter fontId (string) or maxLineLength (integer)",
 		},
 		{
 			input: `
