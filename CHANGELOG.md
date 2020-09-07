@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 Nothing, yet.
 
+## [2.9.0] - 2020-09-07
+### Added
+- Added optional maximum line length parameter to `format()` operator.
+
 ## [2.8.1] - 2020-05-06
 ### Fixed
 - Fix bug where `switch` statement `default` case didn't work properly when combined with other cases.
@@ -99,7 +103,8 @@ Nothing, yet.
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/poryscript/compare/2.8.1...HEAD
+[Unreleased]: https://github.com/huderlem/poryscript/compare/2.9.0...HEAD
+[2.9.0]: https://github.com/huderlem/poryscript/compare/2.8.1...2.9.0
 [2.8.1]: https://github.com/huderlem/poryscript/compare/2.8.0...2.8.1
 [2.8.0]: https://github.com/huderlem/poryscript/compare/2.7.2...2.8.0
 [2.7.2]: https://github.com/huderlem/poryscript/compare/2.7.1...2.7.2
