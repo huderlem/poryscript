@@ -1529,7 +1529,7 @@ text Foo {
 text Foo {
 	format("Hi", )
 }`,
-			expectedError: "line 3: invalid format() parameter ')'. Expected eighter fontId (string) or maxLineLength (integer)",
+			expectedError: "line 3: invalid format() parameter ')'. Expected either fontId (string) or maxLineLength (integer)",
 		},
 		{
 			input: `
@@ -1557,7 +1557,7 @@ text Foo {
 script Foo {
 	msgbox(format("Hi", ))
 }`,
-			expectedError: "line 3: invalid format() parameter ')'. Expected eighter fontId (string) or maxLineLength (integer)",
+			expectedError: "line 3: invalid format() parameter ')'. Expected either fontId (string) or maxLineLength (integer)",
 		},
 		{
 			input: `

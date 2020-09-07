@@ -905,7 +905,7 @@ func (p *Parser) parseFormatStringOperator() (string, error) {
 				setFontID = true
 			}
 		} else {
-			return "", fmt.Errorf("line %d: invalid format() parameter '%s'. Expected eighter fontId (string) or maxLineLength (integer)", p.peekToken.LineNumber, p.peekToken.Literal)
+			return "", fmt.Errorf("line %d: invalid format() parameter '%s'. Expected either fontId (string) or maxLineLength (integer)", p.peekToken.LineNumber, p.peekToken.Literal)
 		}
 	}
 	if err := p.expectPeek(token.RPAREN); err != nil {
