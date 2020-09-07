@@ -889,18 +889,12 @@ func (p *Parser) parseFormatStringOperator() (string, error) {
 				if err := p.expectPeek(token.INT); err != nil {
 					return "", fmt.Errorf("line %d: invalid format() maxLineLength '%s'. Expected integer", p.peekToken.LineNumber, p.peekToken.Literal)
 				}
-				num, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
-				if err != nil {
-					return "", fmt.Errorf("line %d: invalid format() maxLineLength '%s'. Expected integer", p.curToken.LineNumber, p.curToken.Literal)
-				}
+				num, _ := strconv.ParseInt(p.curToken.Literal, 0, 64)
 				maxTextLength = int(num)
 			}
 		} else if p.peekTokenIs(token.INT) {
 			p.nextToken()
-			num, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
-			if err != nil {
-				return "", fmt.Errorf("line %d: invalid format() maxLineLength '%s'. Expected integer", p.curToken.LineNumber, p.curToken.Literal)
-			}
+			num, _ := strconv.ParseInt(p.curToken.Literal, 0, 64)
 			maxTextLength = int(num)
 			if p.peekTokenIs(token.COMMA) {
 				p.nextToken()

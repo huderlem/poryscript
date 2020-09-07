@@ -1540,6 +1540,20 @@ text Foo {
 		},
 		{
 			input: `
+text Foo {
+	format("Hi", "TEST", "NOT_AN_INT")
+}`,
+			expectedError: "line 3: invalid format() maxLineLength 'NOT_AN_INT'. Expected integer",
+		},
+		{
+			input: `
+text Foo {
+	format("Hi", 100, 42)
+}`,
+			expectedError: "line 3: invalid format() fontId '42'. Expected string",
+		},
+		{
+			input: `
 script Foo {
 	msgbox(format("Hi", ))
 }`,
