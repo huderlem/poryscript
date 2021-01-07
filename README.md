@@ -429,7 +429,7 @@ script MyScript {
     msgbox("This is shorter text,\n"
            "but we can still put it\l"
            "on multiple lines.")
-    applymovement(EVENT_OBJ_ID_PLAYER, MyScript_Movement)
+    applymovement(OBJ_EVENT_ID_PLAYER, MyScript_Movement)
     waitmovement(0)
     msgbox(MyScript_LongText)
     release
