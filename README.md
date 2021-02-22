@@ -73,6 +73,8 @@ To automatically convert your Poryscript scripts when compiling a decomp project
 pokeemerald/tools/poryscript/poryscript.exe
 pokeemerald/tools/poryscript/font_widths.json
 ```
+It's also a good idea to add `tools/poryscript` to your `.gitignore` before your next commit.
+
 2. Update the Makefile with these changes (Note, don't add the `+` symbol at the start of the lines. That's just to show the line is being added.):
 ```diff
 + SCRIPT := tools/poryscript/poryscript$(EXE)
@@ -600,7 +602,7 @@ cd your/path/to/poryscript
 go build
 ```
 
-This will create a `poryscript` executable binary in the same directory.
+This will create a `poryscript` executable binary in the same directory. Then you can simply install it into your project by running `./install.sh ../yourprojectname` instead of manually copying the files over, similarly to how agbcc is installed into projects.
 
 ## Running the tests
 
