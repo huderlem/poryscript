@@ -19,9 +19,10 @@ type Statement interface {
 
 // Text holds a label and value for some script text.
 type Text struct {
-	Name     string
-	Value    string
-	IsGlobal bool
+	Name       string
+	Value      string
+	StringType string
+	IsGlobal   bool
 }
 
 // Program represents the root-level Node in any Poryscript AST.
@@ -103,10 +104,11 @@ func (rs *RawStatement) TokenLiteral() string { return rs.Token.Literal }
 // TextStatement is a Poryscript text statement. Text statements are included
 // into the target bytecode script as native text, and can be auto-formatted.
 type TextStatement struct {
-	Token token.Token
-	Name  *Identifier
-	Value string
-	Scope token.Type
+	Token      token.Token
+	Name       *Identifier
+	Value      string
+	StringType string
+	Scope      token.Type
 }
 
 func (ts *TextStatement) statementNode() {}

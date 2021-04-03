@@ -18,7 +18,7 @@ script Route29_EventScript_WaitingMan {
 	# Display message based on time of day.
 	gettime
 	if (var(VAR_TIME) == TIME_NIGHT) {
-		msgbox("I'm waiting for POKéMON that appear\n"
+		msgbox(ascii"I'm waiting for POKéMON that appear\n"
 				"only in the morning.")
 	} else {
 		msgbox("I'm waiting for POKéMON that appear\n"
@@ -171,8 +171,8 @@ Route29_Text_Dude_CatchingTutRejected:
 	.string "POKéMON, you have to walk a lot.$"
 
 Route29_EventScript_WaitingMan_Text_0:
-	.string "I'm waiting for POKéMON that appear\n"
-	.string "only in the morning.$"
+	.ascii "I'm waiting for POKéMON that appear\n"
+	.ascii "only in the morning.\0"
 
 Route29_EventScript_WaitingMan_Text_1:
 	.string "I'm waiting for POKéMON that appear\n"
@@ -253,8 +253,8 @@ Route29_Text_Dude_CatchingTutRejected:
 	.string "POKéMON, you have to walk a lot.$"
 
 Route29_EventScript_WaitingMan_Text_0:
-	.string "I'm waiting for POKéMON that appear\n"
-	.string "only in the morning.$"
+	.ascii "I'm waiting for POKéMON that appear\n"
+	.ascii "only in the morning.\0"
 
 Route29_EventScript_WaitingMan_Text_1:
 	.string "I'm waiting for POKéMON that appear\n"
@@ -1317,7 +1317,7 @@ text MyText {
 	"Hi, I'm first$"
 }
 
-text(local) MyText2 { "Bye!" }
+text(local) MyText2 { custom"Bye!" }
 `
 
 	expectedUnoptimized := `TextFormatLineBreaks::
@@ -1345,7 +1345,7 @@ MyText::
 	.string "Hi, I'm first$"
 
 MyText2:
-	.string "Bye!$"
+	.custom "Bye!"
 `
 
 	expectedOptimized := `TextFormatLineBreaks::
@@ -1373,7 +1373,7 @@ MyText::
 	.string "Hi, I'm first$"
 
 MyText2:
-	.string "Bye!$"
+	.custom "Bye!"
 `
 	l := lexer.New(input)
 	p := parser.New(l, "../font_widths.json", nil)
@@ -1849,7 +1849,7 @@ script MyScript {
 				poryswitch(LANG) {
 					DE: msgbox("Das ist Sapphire")
 					EN {
-						msgbox(format("This is Sapphire"))
+						msgbox(format(ascii"This is Sapphire"))
 					}
 				}
 			}
@@ -1862,7 +1862,7 @@ script MyScript {
 
 text MyText {
 	poryswitch(LANG) {
-		DE: "Deutsch"
+		DE: ascii"Deutsch"
 		EN { "English" }
 		_: "fallback"
 	}
@@ -1924,7 +1924,7 @@ MyScript_Text_0:
 	.string "This is Ruby$"
 
 MyText::
-	.string "Deutsch$"
+	.ascii "Deutsch\0"
 `
 
 	expectedRubyEn := `MapScripts::
@@ -2026,7 +2026,7 @@ MyScript_Text_1:
 	.string "Another sapphire message$"
 
 MyText::
-	.string "Deutsch$"
+	.ascii "Deutsch\0"
 `
 
 	expectedSapphireEn := `MapScripts::
@@ -2074,7 +2074,7 @@ MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_1:
 	.string "sapphire$"
 
 MyScript_Text_0:
-	.string "This is Sapphire$"
+	.ascii "This is Sapphire\0"
 
 MyScript_Text_1:
 	.string "Another sapphire message$"

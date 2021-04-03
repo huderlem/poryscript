@@ -10,10 +10,11 @@ import (
 // Lexer produces tokens from a Poryscript file
 type Lexer struct {
 	input        string
-	position     int  // current position in input (points to current char)
-	readPosition int  // current reading position in input (after current char)
-	ch           byte // current char under examination
-	lineNumber   int  // current line number
+	position     int           // current position in input (points to current char)
+	readPosition int           // current reading position in input (after current char)
+	ch           byte          // current char under examination
+	lineNumber   int           // current line number
+	queuedTokens []token.Token // extra tokens that were read ahead of time
 }
 
 // New initializes a new lexer for the given Poryscript file
@@ -47,6 +48,15 @@ func (l *Lexer) peekChar() byte {
 // NextToken builds the next token of the Poryscript file
 func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
+
+	// Return the next queued token, if there is one.
+	// Tokens can be queued if there are tokens that rely
+	// ok look-ahead functionality to determine their type.
+	if len(l.queuedTokens) > 0 {
+		tok = l.queuedTokens[0]
+		l.queuedTokens = l.queuedTokens[1:]
+		return tok
+	}
 
 	l.skipWhitespace()
 
@@ -121,10 +131,7 @@ func (l *Lexer) NextToken() token.Token {
 	case ':':
 		tok = newToken(token.COLON, l.ch, l.lineNumber)
 	case '"':
-		tok.LineNumber = l.lineNumber
-		tok.Literal = l.readString()
-		tok.Type = token.STRING
-		return tok
+		return l.readStringToken()
 	case '`':
 		tok.LineNumber = l.lineNumber
 		tok.Literal = l.readRaw()
@@ -139,14 +146,14 @@ func (l *Lexer) NextToken() token.Token {
 			l.readChar()
 			l.readChar()
 			tok.Type = token.INT
-			tok.Literal = "0x" + l.readHexNumber()
 			tok.LineNumber = l.lineNumber
+			tok.Literal = "0x" + l.readHexNumber()
 			return tok
 		}
 
 		tok.Type = token.INT
-		tok.Literal = l.readNumber()
 		tok.LineNumber = l.lineNumber
+		tok.Literal = l.readNumber()
 		return tok
 	case 0:
 		tok.Literal = ""
@@ -154,9 +161,17 @@ func (l *Lexer) NextToken() token.Token {
 		tok.LineNumber = l.lineNumber
 	default:
 		if isLetter(l.ch) {
+			tok.LineNumber = l.lineNumber
 			tok.Literal = l.readIdentifier()
 			tok.Type = token.GetIdentType(tok.Literal)
-			tok.LineNumber = l.lineNumber
+			// If the immediately-next character is the start of a
+			// STRING token, then this is a STRINGTYPE token, instead
+			// of an IDENT.
+			if l.ch == '"' {
+				nextToken := l.readStringToken()
+				l.queuedTokens = append(l.queuedTokens, nextToken)
+				tok.Type = token.STRINGTYPE
+			}
 			return tok
 		} else if isDigit(l.ch) || (l.ch == '-' && isDigit(l.peekChar())) {
 			tok.Type = token.INT
@@ -174,6 +189,14 @@ func (l *Lexer) NextToken() token.Token {
 
 	l.readChar()
 	return tok
+}
+
+func (l *Lexer) readStringToken() token.Token {
+	var t token.Token
+	t.LineNumber = l.lineNumber
+	t.Literal = l.readString()
+	t.Type = token.STRING
+	return t
 }
 
 func (l *Lexer) skipWhitespace() {

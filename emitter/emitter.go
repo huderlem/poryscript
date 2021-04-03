@@ -655,7 +655,11 @@ func emitText(text ast.Text) string {
 	}
 	lines := strings.Split(text.Value, "\n")
 	for _, line := range lines {
-		sb.WriteString(fmt.Sprintf("\t.string \"%s\"\n", line))
+		directive := "string"
+		if len(text.StringType) > 0 {
+			directive = text.StringType
+		}
+		sb.WriteString(fmt.Sprintf("\t.%s \"%s\"\n", directive, line))
 	}
 	return sb.String()
 }

@@ -16,10 +16,11 @@ const (
 	EOF     = "EOF"
 
 	// Identifiers and literals
-	IDENT     = "IDENT"
-	INT       = "INT"
-	STRING    = "STRING"
-	RAWSTRING = "RAWSTRING"
+	IDENT      = "IDENT"
+	INT        = "INT"
+	STRING     = "STRING"
+	RAWSTRING  = "RAWSTRING"
+	STRINGTYPE = "STRINGTYPE"
 
 	// Operators
 	ASSIGN = "="

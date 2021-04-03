@@ -46,6 +46,7 @@ func TestNextToken(t *testing.T) {
 		format
 		("Hello\n"
 		"I'm glad to see$")
+		ascii "Regular"braille"WithType"
 		raw RawTest ` + "`" + `
 	step` + "`" + `
 	>`
@@ -139,6 +140,10 @@ func TestNextToken(t *testing.T) {
 		{token.LPAREN, "("},
 		{token.STRING, "Hello\\n\nI'm glad to see$"},
 		{token.RPAREN, ")"},
+		{token.IDENT, "ascii"},
+		{token.STRING, "Regular"},
+		{token.STRINGTYPE, "braille"},
+		{token.STRING, "WithType"},
 		{token.RAW, "raw"},
 		{token.IDENT, "RawTest"},
 		{token.RAWSTRING, "\tstep"},

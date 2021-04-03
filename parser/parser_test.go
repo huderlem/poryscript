@@ -18,7 +18,7 @@ func TestScriptStatements(t *testing.T) {
 	input := `
 script MyScript {
 	lock
-	bufferitemname("Bar", 0, VAR_BUG_CONTEST_PRIZE, "Foo", format("Baz"))
+	bufferitemname("Bar", 0, VAR_BUG_CONTEST_PRIZE, ascii"Foo", format(braille"Baz"))
 	# this is a comment
 	# another comment
 	message() waitstate
@@ -148,7 +148,7 @@ script MyScript {
 
 text MyText {
 	poryswitch(LANG) {
-		DE: "Das ist MAY's Haus."
+		DE: ascii"Das ist MAY's Haus."
 		_: format("formatted")
 		EN {
 			"Two\n"
@@ -206,7 +206,7 @@ movement MyMovement {
 		switches map[string]string
 		text     string
 	}{
-		{map[string]string{"GAME_VERSION": "RUBY", "LANG": "DE"}, "Das ist MAY's Haus.$"},
+		{map[string]string{"GAME_VERSION": "RUBY", "LANG": "DE"}, "Das ist MAY's Haus.\\0"},
 		{map[string]string{"GAME_VERSION": "SAPPHIRE", "LANG": "EN"}, "Two\\n\nLines$"},
 		{map[string]string{"GAME_VERSION": "SAPPHIRE", "LANG": "BLAH"}, "formatted$"},
 	}
@@ -588,15 +588,17 @@ func TestDuplicateTexts(t *testing.T) {
 	input := `
 script Script1 {
 	msgbox("Hello$")
-	msgbox("Goodbye$")
+	msgbox(braille"Goodbye$")
+	msgbox(ascii"StringType$")
 	msgbox("Hello\n"
 		   "Multiline$")
 }
 
 script Script2 {
 	msgbox("Test$")
-	msgbox("Goodbye$")
+	msgbox(braille"Goodbye$")
 	msgbox("Hello$")
+	msgbox("StringType$")
 	msgbox("Hello\n"
 		"Multiline$", MSGBOX_DEFAULT)
 }
@@ -608,15 +610,15 @@ script Script2 {
 		t.Fatalf(err.Error())
 	}
 
-	if len(program.Texts) != 4 {
-		t.Fatalf("len(program.Texts) != 4. Got '%d' instead.", len(program.Texts))
+	if len(program.Texts) != 6 {
+		t.Fatalf("len(program.Texts) != 6. Got '%d' instead.", len(program.Texts))
 	}
 }
 
 func TestTextStatements(t *testing.T) {
 	input := `
 script MyScript1 {
-	msgbox("Test$")
+	msgbox(ascii"Test$")
 	msgbox("Hello$")
 }
 

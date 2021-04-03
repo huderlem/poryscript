@@ -24,7 +24,13 @@ type impText struct {
 	command    *ast.CommandStatement
 	argPos     int
 	text       string
+	stringType string
 	scriptName string
+}
+
+type textKey struct {
+	value   string
+	strType string
 }
 
 // Parser is a Poryscript AST parser.
@@ -34,7 +40,7 @@ type Parser struct {
 	peekToken          token.Token
 	peek2Token         token.Token
 	inlineTexts        []ast.Text
-	inlineTextsSet     map[string]string
+	inlineTextsSet     map[textKey]string
 	inlineTextCounts   map[string]int
 	textStatements     []*ast.TextStatement
 	breakStack         []ast.Statement
@@ -50,7 +56,7 @@ func New(l *lexer.Lexer, fontConfigFilepath string, compileSwitches map[string]s
 	p := &Parser{
 		l:                  l,
 		inlineTexts:        make([]ast.Text, 0),
-		inlineTextsSet:     make(map[string]string),
+		inlineTextsSet:     make(map[textKey]string),
 		inlineTextCounts:   make(map[string]int),
 		textStatements:     make([]*ast.TextStatement, 0),
 		fontConfigFilepath: fontConfigFilepath,
@@ -124,7 +130,7 @@ func getImplicitTextLabel(scriptName string, i int) string {
 // ParseProgram parses a Poryscript file into an AST.
 func (p *Parser) ParseProgram() (*ast.Program, error) {
 	p.inlineTexts = make([]ast.Text, 0)
-	p.inlineTextsSet = make(map[string]string)
+	p.inlineTextsSet = make(map[textKey]string)
 	p.textStatements = make([]*ast.TextStatement, 0)
 	program := &ast.Program{
 		TopLevelStatements: []ast.Statement{},
@@ -149,9 +155,10 @@ func (p *Parser) ParseProgram() (*ast.Program, error) {
 	}
 	for _, textStmt := range p.textStatements {
 		program.Texts = append(program.Texts, ast.Text{
-			Value:    textStmt.Value,
-			Name:     textStmt.Name.Value,
-			IsGlobal: textStmt.Scope == token.GLOBAL,
+			Value:      textStmt.Value,
+			StringType: textStmt.StringType,
+			Name:       textStmt.Name.Value,
+			IsGlobal:   textStmt.Scope == token.GLOBAL,
 		})
 	}
 	names := make(map[string]struct{}, 0)
@@ -209,17 +216,19 @@ func (p *Parser) parseTopLevelStatement() (ast.Statement, error) {
 
 func (p *Parser) addImplicitTexts(implicitTexts []impText) {
 	for _, t := range implicitTexts {
-		if textLabel, ok := p.inlineTextsSet[t.text]; ok {
+		key := textKey{value: t.text, strType: t.stringType}
+		if textLabel, ok := p.inlineTextsSet[key]; ok {
 			t.command.Args[t.argPos] = textLabel
 		} else {
 			textLabel := getImplicitTextLabel(t.scriptName, p.inlineTextCounts[t.scriptName])
 			t.command.Args[t.argPos] = textLabel
 			p.inlineTextCounts[t.scriptName]++
-			p.inlineTextsSet[t.text] = textLabel
+			p.inlineTextsSet[key] = textLabel
 			p.inlineTexts = append(p.inlineTexts, ast.Text{
-				Name:     textLabel,
-				Value:    t.text,
-				IsGlobal: false,
+				Name:       textLabel,
+				Value:      t.text,
+				StringType: t.stringType,
+				IsGlobal:   false,
 			})
 		}
 	}
@@ -399,14 +408,15 @@ func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, []impT
 				numOpenParens--
 				argParts = append(argParts, p.curToken.Literal)
 			} else if p.curToken.Type == token.FORMAT {
-				strValue, err := p.parseFormatStringOperator()
+				strValue, strType, err := p.parseFormatStringOperator()
 				if err != nil {
 					return nil, nil, err
 				}
 				implicitTexts = append(implicitTexts, impText{
 					command:    command,
 					argPos:     len(command.Args),
-					text:       p.formatTextTerminator(strValue),
+					text:       p.formatTextTerminator(strValue, strType),
+					stringType: strType,
 					scriptName: scriptName,
 				})
 				argParts = append(argParts, "")
@@ -414,7 +424,22 @@ func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, []impT
 				implicitTexts = append(implicitTexts, impText{
 					command:    command,
 					argPos:     len(command.Args),
-					text:       p.formatTextTerminator(p.curToken.Literal),
+					text:       p.formatTextTerminator(p.curToken.Literal, ""),
+					scriptName: scriptName,
+				})
+				argParts = append(argParts, "")
+			} else if p.curToken.Type == token.STRINGTYPE {
+				stringType := p.curToken.Literal
+				p.nextToken()
+				if p.curToken.Type != token.STRING {
+					err := fmt.Errorf("line %d: expected a string literal after string type '%s'. Got '%s' instead", p.curToken.LineNumber, stringType, p.curToken.Literal)
+					return nil, nil, err
+				}
+				implicitTexts = append(implicitTexts, impText{
+					command:    command,
+					argPos:     len(command.Args),
+					text:       p.formatTextTerminator(p.curToken.Literal, stringType),
+					stringType: stringType,
 					scriptName: scriptName,
 				})
 				argParts = append(argParts, "")
@@ -471,19 +496,21 @@ func (p *Parser) parseTextStatement() (*ast.TextStatement, error) {
 	p.nextToken()
 
 	var strValue string
+	var strType string
 	if p.curToken.Type == token.PORYSWITCH {
-		strValue, err = p.parsePoryswitchTextStatement()
+		strValue, strType, err = p.parsePoryswitchTextStatement()
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		strValue, err = p.parseTextValue()
+		strValue, strType, err = p.parseTextValue()
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	statement.Value = strValue
+	statement.StringType = strType
 	p.textStatements = append(p.textStatements, statement)
 	if err := p.expectPeek(token.RBRACE); err != nil {
 		return nil, fmt.Errorf("line %d: expected closing curly brace for text. Got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
@@ -491,18 +518,25 @@ func (p *Parser) parseTextStatement() (*ast.TextStatement, error) {
 	return statement, nil
 }
 
-func (p *Parser) parseTextValue() (string, error) {
+func (p *Parser) parseTextValue() (string, string, error) {
 	if p.curToken.Type == token.FORMAT {
 		var err error
-		strValue, err := p.parseFormatStringOperator()
+		strValue, stringType, err := p.parseFormatStringOperator()
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
-		return p.formatTextTerminator(strValue), nil
+		return p.formatTextTerminator(strValue, stringType), stringType, nil
 	} else if p.curToken.Type == token.STRING {
-		return p.formatTextTerminator(p.curToken.Literal), nil
+		return p.formatTextTerminator(p.curToken.Literal, ""), "", nil
+	} else if p.curToken.Type == token.STRINGTYPE {
+		stringType := p.curToken.Literal
+		p.nextToken()
+		if p.curToken.Type != token.STRING {
+			return "", "", fmt.Errorf("line %d: expected a string literal after string type '%s'. Got '%s' instead", p.curToken.LineNumber, stringType, p.curToken.Literal)
+		}
+		return p.formatTextTerminator(p.curToken.Literal, stringType), stringType, nil
 	} else {
-		return "", fmt.Errorf("line %d: body of text statement must be a string or formatted string. Got '%s' instead", p.curToken.LineNumber, p.curToken.Literal)
+		return "", "", fmt.Errorf("line %d: body of text statement must be a string or formatted string. Got '%s' instead", p.curToken.LineNumber, p.curToken.Literal)
 	}
 }
 
@@ -533,58 +567,61 @@ func (p *Parser) parsePoryswitchHeader() (string, string, error) {
 	return switchCase, switchValue, nil
 }
 
-func (p *Parser) parsePoryswitchTextCases() (map[string]string, error) {
+func (p *Parser) parsePoryswitchTextCases() (map[string]string, map[string]string, error) {
 	textCases := make(map[string]string)
+	textStringTypeCases := make(map[string]string)
 	startLineNumber := p.curToken.LineNumber
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.EOF {
-			return nil, fmt.Errorf("line %d: missing closing curly brace for poryswitch statement", startLineNumber)
+			return nil, nil, fmt.Errorf("line %d: missing closing curly brace for poryswitch statement", startLineNumber)
 		}
 		if p.curToken.Type != token.IDENT && p.curToken.Type != token.INT {
-			return nil, fmt.Errorf("line %d: invalid poryswitch case '%s'. Expected a simple identifier", p.curToken.LineNumber, p.curToken.Literal)
+			return nil, nil, fmt.Errorf("line %d: invalid poryswitch case '%s'. Expected a simple identifier", p.curToken.LineNumber, p.curToken.Literal)
 		}
 		caseValue := p.curToken.Literal
 		p.nextToken()
 		if p.curToken.Type == token.COLON || p.curToken.Type == token.LBRACE {
 			usedBrace := p.curToken.Type == token.LBRACE
 			p.nextToken()
-			strValue, err := p.parseTextValue()
+			strValue, strType, err := p.parseTextValue()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			textCases[caseValue] = strValue
+			textStringTypeCases[caseValue] = strType
 			p.nextToken()
 			if usedBrace {
 				if p.curToken.Type != token.RBRACE {
-					return nil, fmt.Errorf("line %d: missing closing curly brace for poryswitch case '%s'", startLineNumber, caseValue)
+					return nil, nil, fmt.Errorf("line %d: missing closing curly brace for poryswitch case '%s'", startLineNumber, caseValue)
 				}
 				p.nextToken()
 			}
 		} else {
-			return nil, fmt.Errorf("line %d: invalid token '%s' after poryswitch case '%s'. Expected ':' or '{'", p.curToken.LineNumber, p.curToken.Literal, caseValue)
+			return nil, nil, fmt.Errorf("line %d: invalid token '%s' after poryswitch case '%s'. Expected ':' or '{'", p.curToken.LineNumber, p.curToken.Literal, caseValue)
 		}
 	}
-	return textCases, nil
+	return textCases, textStringTypeCases, nil
 }
 
-func (p *Parser) parsePoryswitchTextStatement() (string, error) {
+func (p *Parser) parsePoryswitchTextStatement() (string, string, error) {
 	startLineNumber := p.curToken.LineNumber
 	switchCase, switchValue, err := p.parsePoryswitchHeader()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	cases, err := p.parsePoryswitchTextCases()
+	cases, strTypeCases, err := p.parsePoryswitchTextCases()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
+	strTypeValue := strTypeCases[switchValue]
 	strValue, ok := cases[switchValue]
 	if !ok {
 		strValue, ok = cases["_"]
 		if !ok {
-			return "", fmt.Errorf("line %d: no poryswitch case found for '%s=%s', which was specified with the '-s' option", startLineNumber, switchCase, switchValue)
+			return "", "", fmt.Errorf("line %d: no poryswitch case found for '%s=%s', which was specified with the '-s' option", startLineNumber, switchCase, switchValue)
 		}
 	}
-	return strValue, nil
+	return strValue, strTypeValue, nil
 }
 
 func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
@@ -866,12 +903,17 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 	return statement, implicitTexts, nil
 }
 
-func (p *Parser) parseFormatStringOperator() (string, error) {
+func (p *Parser) parseFormatStringOperator() (string, string, error) {
 	if err := p.expectPeek(token.LPAREN); err != nil {
-		return "", fmt.Errorf("line %d: format operator must begin with an open parenthesis '('", p.peekToken.LineNumber)
+		return "", "", fmt.Errorf("line %d: format operator must begin with an open parenthesis '('", p.peekToken.LineNumber)
+	}
+	stringType := ""
+	if p.peekTokenIs(token.STRINGTYPE) {
+		p.nextToken()
+		stringType = p.curToken.Literal
 	}
 	if err := p.expectPeek(token.STRING); err != nil {
-		return "", fmt.Errorf("line %d: invalid format() argument '%s'. Expected a string literal", p.peekToken.LineNumber, p.peekToken.Literal)
+		return "", "", fmt.Errorf("line %d: invalid format() argument '%s'. Expected a string literal", p.peekToken.LineNumber, p.peekToken.Literal)
 	}
 	lineNum := p.curToken.LineNumber
 	rawText := p.curToken.Literal
@@ -887,7 +929,7 @@ func (p *Parser) parseFormatStringOperator() (string, error) {
 			if p.peekTokenIs(token.COMMA) {
 				p.nextToken()
 				if err := p.expectPeek(token.INT); err != nil {
-					return "", fmt.Errorf("line %d: invalid format() maxLineLength '%s'. Expected integer", p.peekToken.LineNumber, p.peekToken.Literal)
+					return "", "", fmt.Errorf("line %d: invalid format() maxLineLength '%s'. Expected integer", p.peekToken.LineNumber, p.peekToken.Literal)
 				}
 				num, _ := strconv.ParseInt(p.curToken.Literal, 0, 64)
 				maxTextLength = int(num)
@@ -899,17 +941,17 @@ func (p *Parser) parseFormatStringOperator() (string, error) {
 			if p.peekTokenIs(token.COMMA) {
 				p.nextToken()
 				if err := p.expectPeek(token.STRING); err != nil {
-					return "", fmt.Errorf("line %d: invalid format() fontId '%s'. Expected string", p.peekToken.LineNumber, p.peekToken.Literal)
+					return "", "", fmt.Errorf("line %d: invalid format() fontId '%s'. Expected string", p.peekToken.LineNumber, p.peekToken.Literal)
 				}
 				fontID = p.curToken.Literal
 				setFontID = true
 			}
 		} else {
-			return "", fmt.Errorf("line %d: invalid format() parameter '%s'. Expected either fontId (string) or maxLineLength (integer)", p.peekToken.LineNumber, p.peekToken.Literal)
+			return "", "", fmt.Errorf("line %d: invalid format() parameter '%s'. Expected either fontId (string) or maxLineLength (integer)", p.peekToken.LineNumber, p.peekToken.Literal)
 		}
 	}
 	if err := p.expectPeek(token.RPAREN); err != nil {
-		return "", fmt.Errorf("line %d: missing closing parenthesis ')' for format()", p.peekToken.LineNumber)
+		return "", "", fmt.Errorf("line %d: missing closing parenthesis ')' for format()", p.peekToken.LineNumber)
 	}
 	if p.fonts == nil {
 		fw, err := LoadFontWidths(p.fontConfigFilepath)
@@ -923,9 +965,9 @@ func (p *Parser) parseFormatStringOperator() (string, error) {
 	}
 	formatted, err := p.fonts.FormatText(rawText, maxTextLength, fontID)
 	if err != nil {
-		return "", fmt.Errorf("line %d: %s", lineNum, err.Error())
+		return "", "", fmt.Errorf("line %d: %s", lineNum, err.Error())
 	}
-	return formatted, nil
+	return formatted, stringType, nil
 }
 
 func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, []impText, error) {
@@ -1411,10 +1453,20 @@ func (p *Parser) parseConditionFlagLikeOperator(expression *ast.OperatorExpressi
 	return nil
 }
 
+var textSuffixes = map[string]string{
+	"":        "$",
+	"ascii":   "\\0",
+	"braille": "$",
+}
+
 // Automatically adds a terminator character to the text, if it doesn't already have one.
-func (p *Parser) formatTextTerminator(text string) string {
-	if !strings.HasSuffix(text, "$") {
-		text += "$"
+func (p *Parser) formatTextTerminator(text string, strType string) string {
+	suffix, ok := textSuffixes[strType]
+	if !ok {
+		return text
+	}
+	if !strings.HasSuffix(text, suffix) {
+		text += suffix
 	}
 	return text
 }

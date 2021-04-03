@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 Nothing, yet.
 
+## [2.10.0] - 2021-04-03
+### Added
+- Added ability to specify custom directives for text. (e.g. `ascii"My ASCII text"` will result in `.ascii "My ASCII text\0"`)
+
 ## [2.9.0] - 2020-09-07
 ### Added
 - Added optional maximum line length parameter to `format()` operator.
@@ -103,7 +107,8 @@ Nothing, yet.
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/poryscript/compare/2.9.0...HEAD
+[Unreleased]: https://github.com/huderlem/poryscript/compare/2.10.0...HEAD
+[2.10.0]: https://github.com/huderlem/poryscript/compare/2.9.0...2.10.0
 [2.9.0]: https://github.com/huderlem/poryscript/compare/2.8.1...2.9.0
 [2.8.1]: https://github.com/huderlem/poryscript/compare/2.8.0...2.8.1
 [2.8.0]: https://github.com/huderlem/poryscript/compare/2.7.2...2.8.0
