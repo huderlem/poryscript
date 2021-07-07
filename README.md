@@ -104,6 +104,12 @@ sound/%.bin: sound/%.aif ; $(AIF) $< $@
 +TOOLDIRS := $(filter-out tools/agbcc tools/binutils tools/poryscript,$(wildcard tools/*))
 ```
 
+3. Update `make_tools.mk` with the same change:
+```diff
+-TOOLDIRS := $(filter-out tools/agbcc tools/binutils,$(wildcard tools/*))
++TOOLDIRS := $(filter-out tools/agbcc tools/binutils tools/poryscript,$(wildcard tools/*))
+```
+
 # Poryscript Syntax (How to Write Scripts)
 
 A single `.pory` file is composed of many top-level statements. The valid top-level statements are `script`, `text`, `movement`, `mapscripts`, and `raw`.
