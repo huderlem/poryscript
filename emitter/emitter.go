@@ -703,6 +703,7 @@ func emitMovementStatement(movementStmt *ast.MovementStatement) string {
 func emitMartStatement(martStmt *ast.MartStatement) string {
 	terminator := "ITEM_NONE"
 	var sb strings.Builder
+	sb.WriteString("\t.align 2\n")
 	if martStmt.Scope == token.GLOBAL {
 		sb.WriteString(fmt.Sprintf("%s::\n", martStmt.Name.Value))
 	} else {

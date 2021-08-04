@@ -1845,6 +1845,7 @@ mart SomeMartItems {
 	return
 
 
+	.align 2
 SomeMartItems:
 	.2byte ITEM_LAVA_COOKIE
 	.2byte ITEM_MOOMOO_MILK
@@ -1872,6 +1873,7 @@ ScriptWithPokemart_Text_1:
 	return
 
 
+	.align 2
 SomeMartItems:
 	.2byte ITEM_LAVA_COOKIE
 	.2byte ITEM_MOOMOO_MILK
@@ -1940,6 +1942,7 @@ mart EarlyTerminatedMartItems {
 	return
 
 
+	.align 2
 EarlyTerminatedMartItems:
 	.2byte ITEM_LAVA_COOKIE
 	.2byte ITEM_MOOMOO_MILK
@@ -1964,6 +1967,7 @@ ScriptWithPokemart_Text_1:
 	return
 
 
+	.align 2
 EarlyTerminatedMartItems:
 	.2byte ITEM_LAVA_COOKIE
 	.2byte ITEM_MOOMOO_MILK
