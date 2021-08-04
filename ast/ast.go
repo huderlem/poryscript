@@ -130,6 +130,20 @@ func (ms *MovementStatement) statementNode() {}
 // TokenLiteral returns a string representation of the movement statement.
 func (ms *MovementStatement) TokenLiteral() string { return ms.Token.Literal }
 
+// MartStatement is a Poryscript mart statement.
+// Mart statements represent item data for the pokemart command.
+type MartStatement struct {
+	Token     token.Token
+	Name      *Identifier
+	MartItems []string
+	Scope     token.Type
+}
+
+func (ps *MartStatement) statementNode() {}
+
+// TokenLiteral returns a string representation of the mart statement.
+func (ps *MartStatement) TokenLiteral() string { return ps.Token.Literal }
+
 // BooleanExpression is a part of a boolean expression.
 type BooleanExpression interface {
 	booleanExpressionNode()

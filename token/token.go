@@ -51,6 +51,7 @@ const (
 	RAW        = "RAW"
 	TEXT       = "TEXT"
 	MOVEMENT   = "MOVEMENT"
+	MART       = "MART"
 	MAPSCRIPTS = "MAPSCRIPTS"
 	FORMAT     = "FORMAT"
 	VAR        = "VAR"
@@ -85,6 +86,7 @@ var keywords = map[string]Type{
 	"raw":        RAW,
 	"text":       TEXT,
 	"movement":   MOVEMENT,
+	"mart":       MART,
 	"mapscripts": MAPSCRIPTS,
 	"format":     FORMAT,
 	"var":        VAR,

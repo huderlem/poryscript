@@ -736,6 +736,59 @@ func testMovement(t *testing.T, stmt ast.Statement, expectedName string, expecte
 	}
 }
 
+func TestMartStatements(t *testing.T) {
+	input := `
+mart NormalMart {
+	ITEM_LAVA_COOKIE
+	ITEM_MOOMOO_MILK
+	ITEM_RARE_CANDY
+	ITEM_LEMONADE
+	ITEM_BERRY_JUICE
+}
+
+mart EmptyMart {
+}
+
+mart EarlyTerminatedMart {
+	ITEM_LAVA_COOKIE
+	ITEM_MOOMOO_MILK
+	ITEM_NONE
+	ITEM_RARE_CANDY
+	ITEM_LEMONADE
+	ITEM_BERRY_JUICE
+}
+`
+	l := lexer.New(input)
+	p := New(l, "", nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if len(program.TopLevelStatements) != 3 {
+		t.Fatalf("len(program.TopLevelStatements) != 3. Got '%d' instead.", len(program.TopLevelStatements))
+	}
+	testMart(t, program.TopLevelStatements[0], "NormalMart", []string{"ITEM_LAVA_COOKIE", "ITEM_MOOMOO_MILK", "ITEM_RARE_CANDY", "ITEM_LEMONADE", "ITEM_BERRY_JUICE"})
+	testMart(t, program.TopLevelStatements[1], "EmptyMart", []string{})
+	// ITEM_NONE only terminates the array early upon emission, not when parsing.
+	testMart(t, program.TopLevelStatements[2], "EarlyTerminatedMart", []string{"ITEM_LAVA_COOKIE", "ITEM_MOOMOO_MILK", "ITEM_NONE", "ITEM_RARE_CANDY", "ITEM_LEMONADE", "ITEM_BERRY_JUICE"})
+}
+
+func testMart(t *testing.T, stmt ast.Statement, expectedName string, expectedItems []string) {
+	martStmt := stmt.(*ast.MartStatement)
+	if martStmt.Name.Value != expectedName {
+		t.Errorf("Incorrect mart name. Got '%s' instead of '%s'", martStmt.Name.Value, expectedName)
+	}
+	if len(martStmt.MartItems) != len(expectedItems) {
+		t.Fatalf("Incorrect number of mart items. Got %d commands instead of %d", len(martStmt.MartItems), len(expectedItems))
+	}
+	for i, cmd := range expectedItems {
+		if martStmt.MartItems[i] != cmd {
+			t.Errorf("Incorrect movement command at index %d. Got '%s' instead of '%s'", i, martStmt.MartItems[i], cmd)
+		}
+	}
+}
+
 func TestMapScriptStatements(t *testing.T) {
 	input := `
 mapscripts MyMap_MapScripts {

@@ -27,6 +27,7 @@ View the [Changelog](https://github.com/huderlem/poryscript/blob/master/CHANGELO
     + [Automatic Text Formatting](#automatic-text-formatting)
     + [Custom Text Encoding](#custom-text-encoding)
   * [`movement` Statement](#movement-statement)
+  * [`mart` Statement](#mart-statement)
   * [`mapscripts` Statement](#mapscripts-statement)
   * [`raw` Statement](#raw-statement)
   * [Comments](#comments)
@@ -112,7 +113,7 @@ sound/%.bin: sound/%.aif ; $(AIF) $< $@
 
 # Poryscript Syntax (How to Write Scripts)
 
-A single `.pory` file is composed of many top-level statements. The valid top-level statements are `script`, `text`, `movement`, `mapscripts`, and `raw`.
+A single `.pory` file is composed of many top-level statements. The valid top-level statements are `script`, `text`, `movement`, `mart`, `mapscripts`, and `raw`.
 ```
 mapscripts MyMap_MapScripts {
     ...
@@ -130,6 +131,11 @@ text MyText {
 movement MyMovement {
     walk_left
     walk_right * 3
+}
+
+mart MyMart {
+    ITEM_POTION
+    ITEM_POKEBALL
 }
 
 raw `
@@ -399,6 +405,56 @@ MyMovement:
 	step_end
 ```
 
+## `mart` Statement
+Use `mart` statements to easily define a list of items for use with the `pokemart` command. Data defined with the `mart` statement is created with local scope, not global. It is not neccesary to add `ITEM_NONE` to the end of the list, but if poryscript encounters it, any items after it will be ignored.
+
+```
+script ScriptWithPokemart {
+	lock
+	message("Welcome to my store.")
+	waitmessage
+	pokemart(MyMartItems)
+	msgbox("Come again soon.")
+	release
+}
+
+mart MyMartItems {
+	ITEM_LAVA_COOKIE
+	ITEM_MOOMOO_MILK
+	ITEM_RARE_CANDY
+	ITEM_LEMONADE
+	ITEM_BERRY_JUICE
+}
+```
+Becomes:
+```
+ScriptWithPokemart::
+	lock
+	message ScriptWithPokemart_Text_0
+	waitmessage
+	pokemart MyMartItems
+	msgbox ScriptWithPokemart_Text_1
+	release
+	return
+
+
+MyMartItems:
+	.2byte ITEM_LAVA_COOKIE
+	.2byte ITEM_MOOMOO_MILK
+	.2byte ITEM_RARE_CANDY
+	.2byte ITEM_LEMONADE
+	.2byte ITEM_BERRY_JUICE
+	.2byte ITEM_NONE
+	release
+	end
+
+ScriptWithPokemart_Text_0:
+	.string "Welcome to my store.$"
+
+ScriptWithPokemart_Text_1:
+	.string "Come again soon.$"
+```
+
 ## `mapscripts` Statement
 Use `mapscripts` to define a set of map script definitions. Scripts can be inlined for convenience, or a label to another script can simply be specified. Some map script types, like `MAP_SCRIPT_ON_FRAME_TABLE`, require a list of comparison variables and scripts to execute when the variable's value is equal to some value. In these cases, you use brackets `[]` to specify that list of scripts. Below is a full example showing map script definitions for a new map called `MyNewCity`:
 ```
@@ -552,6 +608,7 @@ The top-level statements have different default scopes. They are as follows:
 | `script` | Global |
 | `text` | Global |
 | `movement` | Local |
+| `mart` | Local |
 | `mapscripts` | Global |
 
 ## Compile-Time Switches
@@ -561,7 +618,7 @@ Use the `poryswitch` statement to change compiler behavior depending on custom s
 ./poryscript -i script.pory -o script.inc -s GAME_VERSION=RUBY -s LANGUAGE=GERMAN
 ```
 
-The `poryswitch` statement can be embedded into any script section, including `text` and `movement` statements. The underscore `_` case is used as the fallback, if none of the other cases match. Cases that only contain a single statement or command can be started with a colon `:`.  Otherwise, use curly braces to define the case's block.
+The `poryswitch` statement can be embedded into any script section, including `text`, `movement`, and `mart` statements. The underscore `_` case is used as the fallback, if none of the other cases match. Cases that only contain a single statement or command can be started with a colon `:`.  Otherwise, use curly braces to define the case's block.
 
 Here are some examples of compile-time switches. This assumes that two compile-time switches are defined, `GAME_VERSION` and `LANGUAGE`.
 
@@ -598,6 +655,21 @@ movement MyMovement {
         SAPPHIRE {
             walk_right * 2
             walk_left * 4
+        }
+    }
+}
+
+mart MyMart {
+    ITEM_POTION
+    ITEM_POKEBALL
+    poryswitch(GAME_VERSION) {
+        RUBY {
+            ITEM_LAVA_COOKIE
+            ITEM_RED_SCARF
+        }
+        SAPPHIRE {
+            ITEM_FRESH_WATER
+            ITEM_BLUE_SCARF
         }
     }
 }
