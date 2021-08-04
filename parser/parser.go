@@ -211,6 +211,12 @@ func (p *Parser) parseTopLevelStatement() (ast.Statement, error) {
 			return nil, err
 		}
 		return statement, nil
+	case token.MART:
+		statement, err := p.parseMartStatement()
+		if err != nil {
+			return nil, err
+		}
+		return statement, nil
 	case token.MAPSCRIPTS:
 		statement, implicitTexts, err := p.parseMapscriptsStatement()
 		if err != nil {
@@ -764,6 +770,114 @@ func (p *Parser) parsePoryswitchMovementCases() (map[string][]token.Token, error
 		}
 	}
 	return movementCases, nil
+}
+
+func (p *Parser) parseMartStatement() (*ast.MartStatement, error) {
+	statement := &ast.MartStatement{
+		Token:     p.curToken,
+		MartItems: []string{},
+	}
+	scope, err := p.parseScopeModifier(token.LOCAL)
+	if err != nil {
+		return nil, err
+	}
+	statement.Scope = scope
+	if err := p.expectPeek(token.IDENT); err != nil {
+		return nil, fmt.Errorf("line %d: missing name for mart statement", p.curToken.LineNumber)
+	}
+
+	statement.Name = &ast.Identifier{
+		Token: p.curToken,
+		Value: p.curToken.Literal,
+	}
+
+	if err := p.expectPeek(token.LBRACE); err != nil {
+		return nil, fmt.Errorf("line %d: missing opening curly brace for mart '%s'", p.peekToken.LineNumber, statement.Name.Value)
+	}
+	p.nextToken()
+	statement.MartItems, err = p.parseMartValue(true)
+	if err != nil {
+		return nil, err
+	}
+
+	return statement, nil
+}
+
+func (p *Parser) parseMartValue(allowMultiple bool) ([]string, error) {
+	martCommands := make([]string, 0)
+	for p.curToken.Type != token.RBRACE {
+		if p.curToken.Type == token.PORYSWITCH {
+			poryswitchCommands, err := p.parsePoryswitchMartStatement()
+			if err != nil {
+				return nil, err
+			}
+			martCommands = append(martCommands, poryswitchCommands...)
+		} else if p.curToken.Type == token.IDENT {
+			martCommand := p.curToken.Literal
+			p.nextToken()
+			martCommands = append(martCommands, martCommand)
+		} else {
+			return nil, fmt.Errorf("line %d: expected mart item, but got '%s' instead", p.curToken.LineNumber, p.curToken.Literal)
+		}
+		if !allowMultiple {
+			break
+		}
+	}
+	return martCommands, nil
+}
+
+func (p *Parser) parsePoryswitchMartStatement() ([]string, error) {
+	startLineNumber := p.curToken.LineNumber
+	switchCase, switchValue, err := p.parsePoryswitchHeader()
+	if err != nil {
+		return nil, err
+	}
+	cases, err := p.parsePoryswitchMartCases()
+	if err != nil {
+		return nil, err
+	}
+	items, ok := cases[switchValue]
+	if !ok {
+		items, ok = cases["_"]
+		if !ok {
+			return nil, fmt.Errorf("line %d: no poryswitch case found for '%s=%s', which was specified with the '-s' option", startLineNumber, switchCase, switchValue)
+		}
+	}
+	p.nextToken()
+	return items, nil
+}
+
+func (p *Parser) parsePoryswitchMartCases() (map[string][]string, error) {
+	martCases := make(map[string][]string)
+	startLineNumber := p.curToken.LineNumber
+	for p.curToken.Type != token.RBRACE {
+		if p.curToken.Type == token.EOF {
+			return nil, fmt.Errorf("line %d: missing closing curly braces for poryswitch statement", startLineNumber)
+		}
+		if p.curToken.Type != token.IDENT && p.curToken.Type != token.INT {
+			return nil, fmt.Errorf("line %d: invalid poryswitch case '%s'. Expected a simple identifier", p.curToken.LineNumber, p.curToken.Literal)
+		}
+		caseValue := p.curToken.Literal
+		p.nextToken()
+		if p.curToken.Type == token.COLON || p.curToken.Type == token.LBRACE {
+			usedBrace := p.curToken.Type == token.LBRACE
+			p.nextToken()
+			items, err := p.parseMartValue(usedBrace)
+			if err != nil {
+				return nil, err
+			}
+			martCases[caseValue] = items
+			if usedBrace {
+				if p.curToken.Type != token.RBRACE {
+					return nil, fmt.Errorf("line %d: missing closing curly brace for poryswitch case '%s'", startLineNumber, caseValue)
+				}
+				p.nextToken()
+			}
+		} else {
+			return nil, fmt.Errorf("line %d: invalid token '%s' after poryswitch case '%s'. Expected ':' or '{'", p.curToken.LineNumber, p.curToken.Literal, caseValue)
+		}
+	}
+	return martCases, nil
 }
 
 func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText, error) {

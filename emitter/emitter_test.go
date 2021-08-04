@@ -1815,6 +1815,189 @@ ScriptWithMovement_Text_0:
 	}
 }
 
+func TestEmitMartStatements(t *testing.T) {
+	input := `
+script ScriptWithPokemart {
+	lock
+	message("Welcome to my store.")
+	waitmessage
+	pokemart(SomeMartItems)
+	msgbox("Come again soon.")
+	release
+}
+
+mart SomeMartItems {
+	ITEM_LAVA_COOKIE
+	ITEM_MOOMOO_MILK
+	ITEM_RARE_CANDY
+	ITEM_LEMONADE
+	ITEM_BERRY_JUICE
+}
+`
+
+	expectedUnoptimized := `ScriptWithPokemart::
+	lock
+	message ScriptWithPokemart_Text_0
+	waitmessage
+	pokemart SomeMartItems
+	msgbox ScriptWithPokemart_Text_1
+	release
+	return
+
+
+SomeMartItems:
+	.2byte ITEM_LAVA_COOKIE
+	.2byte ITEM_MOOMOO_MILK
+	.2byte ITEM_RARE_CANDY
+	.2byte ITEM_LEMONADE
+	.2byte ITEM_BERRY_JUICE
+	.2byte ITEM_NONE
+	release
+	end
+
+ScriptWithPokemart_Text_0:
+	.string "Welcome to my store.$"
+
+ScriptWithPokemart_Text_1:
+	.string "Come again soon.$"
+`
+
+	expectedOptimized := `ScriptWithPokemart::
+	lock
+	message ScriptWithPokemart_Text_0
+	waitmessage
+	pokemart SomeMartItems
+	msgbox ScriptWithPokemart_Text_1
+	release
+	return
+
+
+SomeMartItems:
+	.2byte ITEM_LAVA_COOKIE
+	.2byte ITEM_MOOMOO_MILK
+	.2byte ITEM_RARE_CANDY
+	.2byte ITEM_LEMONADE
+	.2byte ITEM_BERRY_JUICE
+	.2byte ITEM_NONE
+	release
+	end
+
+ScriptWithPokemart_Text_0:
+	.string "Welcome to my store.$"
+
+ScriptWithPokemart_Text_1:
+	.string "Come again soon.$"
+`
+
+	l := lexer.New(input)
+	p := parser.New(l, "", nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	e := New(program, false)
+	result, _ := e.Emit()
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result, _ = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+	}
+}
+
+func TestEmitMartEarlyTermination(t *testing.T) {
+	input := `
+script ScriptWithPokemart {
+	lock
+	message("We don't sell much here.")
+	waitmessage
+	pokemart(EarlyTerminatedMartItems)
+	msgbox("Come again soon.")
+	release
+}
+
+mart EarlyTerminatedMartItems {
+	ITEM_LAVA_COOKIE
+	ITEM_MOOMOO_MILK
+	ITEM_NONE
+	ITEM_RARE_CANDY
+	ITEM_LEMONADE
+	ITEM_BERRY_JUICE
+}
+`
+
+	expectedUnoptimized := `ScriptWithPokemart::
+	lock
+	message ScriptWithPokemart_Text_0
+	waitmessage
+	pokemart EarlyTerminatedMartItems
+	msgbox ScriptWithPokemart_Text_1
+	release
+	return
+
+
+EarlyTerminatedMartItems:
+	.2byte ITEM_LAVA_COOKIE
+	.2byte ITEM_MOOMOO_MILK
+	.2byte ITEM_NONE
+	release
+	end
+
+ScriptWithPokemart_Text_0:
+	.string "We don't sell much here.$"
+
+ScriptWithPokemart_Text_1:
+	.string "Come again soon.$"
+`
+
+	expectedOptimized := `ScriptWithPokemart::
+	lock
+	message ScriptWithPokemart_Text_0
+	waitmessage
+	pokemart EarlyTerminatedMartItems
+	msgbox ScriptWithPokemart_Text_1
+	release
+	return
+
+
+EarlyTerminatedMartItems:
+	.2byte ITEM_LAVA_COOKIE
+	.2byte ITEM_MOOMOO_MILK
+	.2byte ITEM_NONE
+	release
+	end
+
+ScriptWithPokemart_Text_0:
+	.string "We don't sell much here.$"
+
+ScriptWithPokemart_Text_1:
+	.string "Come again soon.$"
+`
+
+	l := lexer.New(input)
+	p := parser.New(l, "", nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	e := New(program, false)
+	result, _ := e.Emit()
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result, _ = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+	}
+}
+
 func TestEmitPoryswitchStatements(t *testing.T) {
 	input := `
 mapscripts MapScripts {

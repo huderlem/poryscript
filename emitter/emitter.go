@@ -77,6 +77,13 @@ func (e *Emitter) Emit() (string, error) {
 			continue
 		}
 
+		martStmt, ok := stmt.(*ast.MartStatement)
+		if ok {
+			sb.WriteString(emitMartStatement(martStmt))
+			i++
+			continue
+		}
+
 		return "", fmt.Errorf("could not emit unrecognized top-level statement '%s'", stmt.TokenLiteral())
 	}
 
@@ -690,5 +697,23 @@ func emitMovementStatement(movementStmt *ast.MovementStatement) string {
 		}
 	}
 	sb.WriteString(fmt.Sprintf("\t%s\n", terminator))
+	return sb.String()
+}
+
+func emitMartStatement(martStmt *ast.MartStatement) string {
+	terminator := "ITEM_NONE"
+	var sb strings.Builder
+	if martStmt.Scope == token.GLOBAL {
+		sb.WriteString(fmt.Sprintf("%s::\n", martStmt.Name.Value))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s:\n", martStmt.Name.Value))
+	}
+	for _, item := range martStmt.MartItems {
+		if item == terminator {
+			break
+		}
+		sb.WriteString(fmt.Sprintf("\t.2byte %s\n", item))
+	}
+	sb.WriteString("\t.2byte ITEM_NONE\n\trelease\n\tend\n")
 	return sb.String()
 }
