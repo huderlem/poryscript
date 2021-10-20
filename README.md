@@ -184,7 +184,7 @@ Compound boolean expressions are also supported. This means you can use the AND 
     # Group nested conditions together with another set of parentheses.
     if (flag(FLAG_IS_CHAMPION) && !(flag(FLAG_SYS_TOWER_GOLD) || flag(FLAG_SYS_DOME_GOLD))) {
         msgbox("You should try to beat the\n"
-               "Battle Tower or Battle Dome!)
+               "Battle Tower or Battle Dome!")
     }
 ```
 
