@@ -598,7 +598,7 @@ script MyScript {
 
 text MyText {
     poryswitch(LANGUAGE) {
-        GERMAN:  Hallo. Ich spreche Deutsch."
+        GERMAN:  "Hallo. Ich spreche Deutsch."
         ENGLISH: "Hello. I speak English."
     }
 }
