@@ -305,7 +305,7 @@ text MyText {
 A small quality-of-life feature is that Poryscript automatically adds the `$` terminator character to text, so the user doesn't need to manually type it all the time.
 
 ### Automatic Text Formatting
-Text auto-formatting is also supported by Poryscript. The `format()` function can be wrapped around any text, either inline or `text`, and Poryscript will automatically fit the text to the size of the in-game text window by inserting automatic line breaks. You can manually add your own line breaks (`\p`, `\n`, `\l`), and it will still work as expected. A simple example:
+Text auto-formatting is also supported by Poryscript. The `format()` function can be wrapped around any text, either inline or `text`, and Poryscript will automatically fit the text to the size of the in-game text window by inserting automatic line breaks. A simple example:
 ```
 msgbox(format("Hello, this is some long text that I want Poryscript to automatically format for me."))
 ```
@@ -315,7 +315,20 @@ Becomes:
 .string "want Poryscript to automatically\l"
 .string "format for me.$"
 ```
-
+Like other text, formatted text can span multiple lines if you use a new set of quotes for each line. You can also manually add your own line breaks (`\p`, `\n`, `\l`), and it will still work as expected.
+```
+text MyText {
+    format("Hello, are you the real-live legendary {PLAYER} that everyone talks about?\p"
+           "Amazing!\pSo glad to meet you!")
+}
+```
+Becomes:
+```
+.string "Hello, are you the real-live legendary\n"
+.string "{PLAYER} that everyone talks about?\p"
+.string "Amazing!\p"
+.string "So glad to meet you!$"
+```
 The font id can optionally be specified as the second parameter to `format()`.
 ```
 text MyText {
@@ -324,8 +337,8 @@ text MyText {
 ```
 Becomes:
 ```
-.string "Hello, are you the legendary {PLAYER}\n"
-.string "that everyone talks about?\p"
+.string "Hello, are you the real-live legendary\n"
+.string "{PLAYER} that everyone talks about?\p"
 .string "Amazing!\p"
 .string "So glad to meet you!$"
 ```
@@ -585,8 +598,8 @@ script MyScript {
 
 text MyText {
     poryswitch(LANGUAGE) {
-        GERMAN:  msgbox("Hallo. Ich spreche Deutsch.")
-        ENGLISH: msgbox("Hello. I speak English.")
+        GERMAN:  Hallo. Ich spreche Deutsch."
+        ENGLISH: "Hello. I speak English."
     }
 }
 
