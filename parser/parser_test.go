@@ -31,7 +31,7 @@ script MyScript3 {
 		}
 `
 	l := lexer.New(input)
-	p := New(l, "", 0, nil)
+	p := New(l, "../font_widths.json", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -185,7 +185,7 @@ movement MyMovement {
 
 	for _, tt := range scriptTests {
 		l := lexer.New(input)
-		p := New(l, "../font_widths.json", 208, tt.switches)
+		p := New(l, "../font_widths.json", "", 208, tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -213,7 +213,7 @@ movement MyMovement {
 
 	for i, tt := range textTests {
 		l := lexer.New(input)
-		p := New(l, "../font_widths.json", 208, tt.switches)
+		p := New(l, "../font_widths.json", "", 208, tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -236,7 +236,7 @@ movement MyMovement {
 
 	for _, tt := range movementTests {
 		l := lexer.New(input)
-		p := New(l, "../font_widths.json", 208, tt.switches)
+		p := New(l, "../font_widths.json", "", 208, tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -265,7 +265,7 @@ raw ` + "`" + `
 	step_down
 ` + "`"
 	l := lexer.New(input)
-	p := New(l, "", 0, nil)
+	p := New(l, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -358,7 +358,7 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", 0, nil)
+	p := New(l, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -425,7 +425,7 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", 0, nil)
+	p := New(l, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -470,7 +470,7 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", 0, nil)
+	p := New(l, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -547,7 +547,7 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", 0, nil)
+	p := New(l, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -604,7 +604,7 @@ script Script2 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", 0, nil)
+	p := New(l, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -636,7 +636,7 @@ script MyScript1 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", 0, nil)
+	p := New(l, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -666,7 +666,7 @@ text MyText2 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "../font_widths.json", 208, nil)
+	p := New(l, "../font_widths.json", "", 208, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -707,7 +707,7 @@ movement MyMovement3 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", 0, nil)
+	p := New(l, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -761,7 +761,7 @@ mapscripts MyMap_MapScripts {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", 0, nil)
+	p := New(l, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -881,7 +881,7 @@ mapscripts(local) MapScripts2 {}
 mapscripts(global) MapScripts3 {}
 `
 	l := lexer.New(input)
-	p := New(l, "", 0, nil)
+	p := New(l, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -955,7 +955,7 @@ mapscripts MyMapScript {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", 0, nil)
+	p := New(l, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1566,7 +1566,7 @@ script Foo {
 text Foo {
 	format("Hi", "invalidFontID")
 }`,
-			expectedError: "line 3: Unknown fontID 'invalidFontID' used in format(). List of valid fontIDs are '[1_latin]'",
+			expectedError: "line 3: Unknown fontID 'invalidFontID' used in format(). List of valid fontIDs are '[1_latin 1_latin_frlg]'",
 		},
 		{
 			input: `
@@ -1714,7 +1714,7 @@ mapscripts() MyMapScripts {}`,
 
 func testForParseError(t *testing.T, input string, expectedErrorText string) {
 	l := lexer.New(input)
-	p := New(l, "../font_widths.json", 208, nil)
+	p := New(l, "../font_widths.json", "", 208, nil)
 	_, err := p.ParseProgram()
 	if err == nil {
 		t.Fatalf("Expected error '%s', but no error occurred", expectedErrorText)
