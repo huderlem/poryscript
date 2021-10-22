@@ -10,8 +10,7 @@ import (
 
 // FontWidthsConfig holds the pixel widths of characters in various game fonts.
 type FontWidthsConfig struct {
-	Fonts         map[string]map[string]int `json:"fonts"`
-	DefaultFontID string                    `json:"defaultFontId"`
+	Fonts map[string]map[string]int `json:"fonts"`
 }
 
 // LoadFontWidths reads a font width config JSON file.
