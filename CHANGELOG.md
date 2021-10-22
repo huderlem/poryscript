@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Added flag to define default line length parameter.
+- Added flag to define default font from `font_widths.json` 
+
+### Changed
+- Changed default font allocation from a value in `font_widths.json` to be the first valid font
 
 ## [2.10.0] - 2021-04-03
 ### Added
