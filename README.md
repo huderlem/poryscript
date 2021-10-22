@@ -53,6 +53,8 @@ Usage of poryscript:
   -h    show poryscript help information
   -i string
         input poryscript file (leave empty to read from standard input)
+  -l int
+        set default length of line of formatted text (default 208)
   -o string
         output script file (leave empty to write to standard output)
   -optimize

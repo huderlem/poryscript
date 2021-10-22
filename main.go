@@ -35,6 +35,7 @@ type options struct {
 	inputFilepath      string
 	outputFilepath     string
 	fontWidthsFilepath string
+	maxLineLength      int
 	optimize           bool
 	compileSwitches    map[string]string
 }
@@ -45,6 +46,7 @@ func parseOptions() options {
 	inputPtr := flag.String("i", "", "input poryscript file (leave empty to read from standard input)")
 	outputPtr := flag.String("o", "", "output script file (leave empty to write to standard output)")
 	fontsPtr := flag.String("fw", "font_widths.json", "font widths config JSON file")
+	lengthPtr := flag.Int("l", 208, "set default length of line of formatted text")
 	optimizePtr := flag.Bool("optimize", true, "optimize compiled script size (To disable, use '-optimize=false')")
 	compileSwitches := make(mapOption)
 	flag.Var(compileSwitches, "s", "set a compile-time switch. Multiple -s options can be set. Example: -s VERSION=RUBY -s LANGUAGE=GERMAN")
@@ -64,6 +66,7 @@ func parseOptions() options {
 		inputFilepath:      *inputPtr,
 		outputFilepath:     *outputPtr,
 		fontWidthsFilepath: *fontsPtr,
+		maxLineLength:      *lengthPtr,
 		optimize:           *optimizePtr,
 		compileSwitches:    compileSwitches,
 	}
@@ -106,7 +109,7 @@ func main() {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
 	}
 
-	parser := parser.New(lexer.New(input), options.fontWidthsFilepath, options.compileSwitches)
+	parser := parser.New(lexer.New(input), options.fontWidthsFilepath, options.maxLineLength, options.compileSwitches)
 	program, err := parser.ParseProgram()
 	if err != nil {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())

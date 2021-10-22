@@ -47,12 +47,13 @@ type Parser struct {
 	continueStack      []ast.Statement
 	fontConfigFilepath string
 	fonts              *FontWidthsConfig
+	maxLineLength      int
 	compileSwitches    map[string]string
 	constants          map[string]string
 }
 
 // New creates a new Poryscript AST Parser.
-func New(l *lexer.Lexer, fontConfigFilepath string, compileSwitches map[string]string) *Parser {
+func New(l *lexer.Lexer, fontConfigFilepath string, maxLineLength int, compileSwitches map[string]string) *Parser {
 	p := &Parser{
 		l:                  l,
 		inlineTexts:        make([]ast.Text, 0),
@@ -60,6 +61,7 @@ func New(l *lexer.Lexer, fontConfigFilepath string, compileSwitches map[string]s
 		inlineTextCounts:   make(map[string]int),
 		textStatements:     make([]*ast.TextStatement, 0),
 		fontConfigFilepath: fontConfigFilepath,
+		maxLineLength:      maxLineLength,
 		compileSwitches:    compileSwitches,
 		constants:          make(map[string]string),
 	}
@@ -919,7 +921,7 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 	rawText := p.curToken.Literal
 	var fontID string
 	setFontID := false
-	maxTextLength := 208
+	maxTextLength := p.maxLineLength
 	if p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		if p.peekTokenIs(token.STRING) {
