@@ -963,7 +963,13 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 		p.fonts = &fw
 	}
 	if !setFontID {
-		fontID = p.fonts.DefaultFontID
+		defaultFontID := make([]string, len(p.fonts.Fonts))
+		i := 0
+		for k := range p.fonts.Fonts {
+			defaultFontID[i] = k
+			i++
+		}
+		fontID = defaultFontID[0]
 	}
 	formatted, err := p.fonts.FormatText(rawText, maxTextLength, fontID)
 	if err != nil {
