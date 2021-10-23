@@ -48,7 +48,7 @@ func parseOptions() options {
 	outputPtr := flag.String("o", "", "output script file (leave empty to write to standard output)")
 	fontsPtr := flag.String("fw", "font_widths.json", "font widths config JSON file")
 	fontIDPtr := flag.String("f", "", "set default font id (leave empty to use default defined in font widths config file)")
-	lengthPtr := flag.Int("l", 208, "set default line length in pixels for formatted text (default 208)")
+	lengthPtr := flag.Int("l", 208, "set default line length in pixels for formatted text")
 	optimizePtr := flag.Bool("optimize", true, "optimize compiled script size (To disable, use '-optimize=false')")
 	compileSwitches := make(mapOption)
 	flag.Var(compileSwitches, "s", "set a compile-time switch. Multiple -s options can be set. Example: -s VERSION=RUBY -s LANGUAGE=GERMAN")
