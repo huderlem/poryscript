@@ -49,14 +49,14 @@ Poryscript is a command-line program.  It reads an input script and outputs the 
 > ./poryscript -h
 Usage of poryscript:
   -f string
-        set default font (leave empty to use default defined in JSON)
+        set default font id (leave empty to use default defined in font widths config file)
   -fw string
         font widths config JSON file (default "font_widths.json")
   -h    show poryscript help information
   -i string
         input poryscript file (leave empty to read from standard input)
   -l int
-        set default length of line of formatted text (default 208)
+        set default line length in pixels for formatted text (default 208)
   -o string
         output script file (leave empty to write to standard output)
   -optimize
