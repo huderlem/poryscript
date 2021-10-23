@@ -9,9 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added flag to define default line length parameter.
 - Added flag to define default font from `font_widths.json` 
 
-### Changed
-- Changed default font allocation from a value in `font_widths.json` to be the first valid font
-
 ## [2.10.0] - 2021-04-03
 ### Added
 - Added ability to specify custom directives for text. (e.g. `ascii"My ASCII text"` will result in `.ascii "My ASCII text\0"`)
