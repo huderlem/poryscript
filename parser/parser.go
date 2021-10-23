@@ -46,7 +46,7 @@ type Parser struct {
 	breakStack         []ast.Statement
 	continueStack      []ast.Statement
 	fontConfigFilepath string
-	defaultFont        string
+	defaultFontIDFlag  string
 	fonts              *FontWidthsConfig
 	maxLineLength      int
 	compileSwitches    map[string]string
@@ -54,7 +54,7 @@ type Parser struct {
 }
 
 // New creates a new Poryscript AST Parser.
-func New(l *lexer.Lexer, fontConfigFilepath string, defaultFont string, maxLineLength int, compileSwitches map[string]string) *Parser {
+func New(l *lexer.Lexer, fontConfigFilepath string, defaultFontIDFlag string, maxLineLength int, compileSwitches map[string]string) *Parser {
 	p := &Parser{
 		l:                  l,
 		inlineTexts:        make([]ast.Text, 0),
@@ -62,7 +62,7 @@ func New(l *lexer.Lexer, fontConfigFilepath string, defaultFont string, maxLineL
 		inlineTextCounts:   make(map[string]int),
 		textStatements:     make([]*ast.TextStatement, 0),
 		fontConfigFilepath: fontConfigFilepath,
-		defaultFont:        defaultFont,
+		defaultFontIDFlag:  defaultFontIDFlag,
 		maxLineLength:      maxLineLength,
 		compileSwitches:    compileSwitches,
 		constants:          make(map[string]string),
@@ -965,16 +965,10 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 		p.fonts = &fw
 	}
 	if !setFontID {
-		if p.defaultFont != "" {
-			fontID = p.defaultFont
+		if p.defaultFontIDFlag != "" {
+			fontID = p.defaultFontIDFlag
 		} else {
-			defaultFontID := make([]string, len(p.fonts.Fonts))
-			i := 0
-			for k := range p.fonts.Fonts {
-				defaultFontID[i] = k
-				i++
-			}
-			fontID = defaultFontID[0]
+			fontID = p.fonts.DefaultFontID
 		}
 	}
 	formatted, err := p.fonts.FormatText(rawText, maxTextLength, fontID)
