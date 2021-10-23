@@ -46,7 +46,7 @@ type Parser struct {
 	breakStack         []ast.Statement
 	continueStack      []ast.Statement
 	fontConfigFilepath string
-	defaultFontIDFlag  string
+	defaultFontID      string
 	fonts              *FontWidthsConfig
 	maxLineLength      int
 	compileSwitches    map[string]string
@@ -54,7 +54,7 @@ type Parser struct {
 }
 
 // New creates a new Poryscript AST Parser.
-func New(l *lexer.Lexer, fontConfigFilepath string, defaultFontIDFlag string, maxLineLength int, compileSwitches map[string]string) *Parser {
+func New(l *lexer.Lexer, fontConfigFilepath string, defaultFontID string, maxLineLength int, compileSwitches map[string]string) *Parser {
 	p := &Parser{
 		l:                  l,
 		inlineTexts:        make([]ast.Text, 0),
@@ -62,7 +62,7 @@ func New(l *lexer.Lexer, fontConfigFilepath string, defaultFontIDFlag string, ma
 		inlineTextCounts:   make(map[string]int),
 		textStatements:     make([]*ast.TextStatement, 0),
 		fontConfigFilepath: fontConfigFilepath,
-		defaultFontIDFlag:  defaultFontIDFlag,
+		defaultFontID:      defaultFontID,
 		maxLineLength:      maxLineLength,
 		compileSwitches:    compileSwitches,
 		constants:          make(map[string]string),
@@ -922,14 +922,12 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 	lineNum := p.curToken.LineNumber
 	rawText := p.curToken.Literal
 	var fontID string
-	setFontID := false
 	maxTextLength := p.maxLineLength
 	if p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		if p.peekTokenIs(token.STRING) {
 			p.nextToken()
 			fontID = p.curToken.Literal
-			setFontID = true
 			if p.peekTokenIs(token.COMMA) {
 				p.nextToken()
 				if err := p.expectPeek(token.INT); err != nil {
@@ -948,7 +946,6 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 					return "", "", fmt.Errorf("line %d: invalid format() fontId '%s'. Expected string", p.peekToken.LineNumber, p.peekToken.Literal)
 				}
 				fontID = p.curToken.Literal
-				setFontID = true
 			}
 		} else {
 			return "", "", fmt.Errorf("line %d: invalid format() parameter '%s'. Expected either fontId (string) or maxLineLength (integer)", p.peekToken.LineNumber, p.peekToken.Literal)
@@ -964,9 +961,9 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 		}
 		p.fonts = &fw
 	}
-	if !setFontID {
-		if p.defaultFontIDFlag != "" {
-			fontID = p.defaultFontIDFlag
+	if fontID == "" {
+		if p.defaultFontID != "" {
+			fontID = p.defaultFontID
 		} else {
 			fontID = p.fonts.DefaultFontID
 		}

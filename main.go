@@ -35,7 +35,7 @@ type options struct {
 	inputFilepath      string
 	outputFilepath     string
 	fontWidthsFilepath string
-	defaultFontIDFlag  string
+	defaultFontID      string
 	maxLineLength      int
 	optimize           bool
 	compileSwitches    map[string]string
@@ -68,7 +68,7 @@ func parseOptions() options {
 		inputFilepath:      *inputPtr,
 		outputFilepath:     *outputPtr,
 		fontWidthsFilepath: *fontsPtr,
-		defaultFontIDFlag:  *fontIDPtr,
+		defaultFontID:      *fontIDPtr,
 		maxLineLength:      *lengthPtr,
 		optimize:           *optimizePtr,
 		compileSwitches:    compileSwitches,
@@ -112,7 +112,7 @@ func main() {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
 	}
 
-	parser := parser.New(lexer.New(input), options.fontWidthsFilepath, options.defaultFontIDFlag, options.maxLineLength, options.compileSwitches)
+	parser := parser.New(lexer.New(input), options.fontWidthsFilepath, options.defaultFontID, options.maxLineLength, options.compileSwitches)
 	program, err := parser.ParseProgram()
 	if err != nil {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
