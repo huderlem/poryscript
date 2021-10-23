@@ -667,7 +667,7 @@ text MyText2 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "../font_widths.json", "", 208, nil)
+	p := New(l, "../font_widths.json", "1_latin_frlg", 150, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
