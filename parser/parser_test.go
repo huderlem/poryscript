@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/huderlem/poryscript/token"
@@ -996,8 +997,9 @@ func testConstant(t *testing.T, expected, actual string) {
 
 func TestErrors(t *testing.T) {
 	tests := []struct {
-		input         string
-		expectedError string
+		input              string
+		expectedError      string
+		expectedErrorRegex string
 	}{
 		{
 			input: `
@@ -1566,7 +1568,7 @@ script Foo {
 text Foo {
 	format("Hi", "invalidFontID")
 }`,
-			expectedError: "line 3: Unknown fontID 'invalidFontID' used in format(). List of valid fontIDs are '[1_latin 1_latin_frlg]'",
+			expectedErrorRegex: `line 3: Unknown fontID 'invalidFontID' used in format\(\)\. List of valid fontIDs are '\[((1_latin)|(1_latin_frlg)| )+\]'`,
 		},
 		{
 			input: `
@@ -1708,18 +1710,26 @@ mapscripts() MyMapScripts {}`,
 	}
 
 	for _, test := range tests {
-		testForParseError(t, test.input, test.expectedError)
+		testForParseError(t, test.input, test.expectedError, test.expectedErrorRegex)
 	}
 }
 
-func testForParseError(t *testing.T, input string, expectedErrorText string) {
+func testForParseError(t *testing.T, input string, expectedError, expectedErrorRegex string) {
 	l := lexer.New(input)
 	p := New(l, "../font_widths.json", "", 208, nil)
 	_, err := p.ParseProgram()
 	if err == nil {
-		t.Fatalf("Expected error '%s', but no error occurred", expectedErrorText)
+		t.Fatalf("Expected error '%s', but no error occurred", expectedError)
 	}
-	if err.Error() != expectedErrorText {
-		t.Fatalf("Expected error '%s', but got '%s'", expectedErrorText, err.Error())
+	if expectedError != "" {
+		if err.Error() != expectedError {
+			t.Fatalf("Expected error '%s', but got '%s'", expectedError, err.Error())
+		}
+	}
+	if expectedErrorRegex != "" {
+		isMatch, _ := regexp.MatchString(expectedErrorRegex, err.Error())
+		if !isMatch {
+			t.Fatalf("Expected error to match regex '%s', but got '%s'", expectedErrorRegex, err.Error())
+		}
 	}
 }
