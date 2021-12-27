@@ -426,6 +426,9 @@ script Test {
 		message()
 		break
 	} while (var(VAR_1) > value(0x4001 + (4)))
+	while {
+		message()
+	}
 }
 `
 	l := lexer.New(input)
@@ -456,6 +459,11 @@ script Test {
 	breakStmt = doWhileStmt.Consequence.Body.Statements[1].(*ast.BreakStatement)
 	if breakStmt.ScopeStatment != doWhileStmt {
 		t.Fatalf("breakStmt != doWhileStmt")
+	}
+
+	infiniteWhileStmt := scriptStmt.Body.Statements[3].(*ast.WhileStatement)
+	if infiniteWhileStmt.Consequence.Expression != nil {
+		t.Errorf("Expected infinite while statement to have no condition expression")
 	}
 }
 

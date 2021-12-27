@@ -412,9 +412,14 @@ func createWhileStatementChunks(stmt *ast.WhileStatement, i int, curChunk *chunk
 		statements: stmt.Consequence.Body.Statements,
 	}
 
-	var entryChunkID int
-	remainingChunks, _, entryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, returnID, remainingChunks, -1)
-	headerChunk.branchBehavior = &jump{destChunkID: entryChunkID}
+	if stmt.Consequence.Expression == nil {
+		// Infinite while loop.
+		headerChunk.branchBehavior = &jump{destChunkID: consequenceChunk.id}
+	} else {
+		var entryChunkID int
+		remainingChunks, _, entryChunkID = splitBooleanExpressionChunks(stmt.Consequence.Expression, chunkCounter, consequenceChunk.id, returnID, remainingChunks, -1)
+		headerChunk.branchBehavior = &jump{destChunkID: entryChunkID}
+	}
 	remainingChunks = append(remainingChunks, consequenceChunk)
 	remainingChunks = append(remainingChunks, headerChunk)
 

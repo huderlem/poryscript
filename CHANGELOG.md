@@ -6,20 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Added `value()` operator, which can be used on the right-hand side of a `var()` comparison. It will force a `compare_var_to_value` command to be output. This makes it possible to compare values that occupy the same range as vars (`0x4000 <= x <= 0x40FF` and `0x8000 <= x <= 0x8015`).
+- Add `value()` operator, which can be used on the right-hand side of a `var()` comparison. It will force a `compare_var_to_value` command to be output. This makes it possible to compare values that occupy the same range as vars (`0x4000 <= x <= 0x40FF` and `0x8000 <= x <= 0x8015`).
+- Add ability to author inifinite loops using the `while` statement without any boolean expression.
 
 ## [2.11.0] - 2021-10-23
 ### Added
-- Added -l command-line option to define default line length for formatted text.
-- Added -f command-line option to define default font id from `font_widths.json` for formatted text.
+- Add -l command-line option to define default line length for formatted text.
+- Add -f command-line option to define default font id from `font_widths.json` for formatted text.
 
 ## [2.10.0] - 2021-04-03
 ### Added
-- Added ability to specify custom directives for text. (e.g. `ascii"My ASCII text"` will result in `.ascii "My ASCII text\0"`)
+- Add ability to specify custom directives for text. (e.g. `ascii"My ASCII text"` will result in `.ascii "My ASCII text\0"`)
 
 ## [2.9.0] - 2020-09-07
 ### Added
-- Added optional maximum line length parameter to `format()` operator.
+- Add optional maximum line length parameter to `format()` operator.
 
 ## [2.8.1] - 2020-05-06
 ### Fixed

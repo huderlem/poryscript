@@ -980,7 +980,7 @@ func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, []impTex
 	implicitTexts := make([]impText, 0)
 
 	// First if statement condition
-	consequence, stmtTexts, err := p.parseConditionExpression(scriptName)
+	consequence, stmtTexts, err := p.parseConditionExpression(scriptName, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -990,7 +990,7 @@ func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, []impTex
 	// Possibly-many elif conditions
 	for p.peekToken.Type == token.ELSEIF {
 		p.nextToken()
-		consequence, stmtTexts, err := p.parseConditionExpression(scriptName)
+		consequence, stmtTexts, err := p.parseConditionExpression(scriptName, true)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1025,7 +1025,7 @@ func (p *Parser) parseWhileStatement(scriptName string) (*ast.WhileStatement, []
 	p.pushContinueStack(statement)
 
 	// while statement condition
-	consequence, stmtTexts, err := p.parseConditionExpression(scriptName)
+	consequence, stmtTexts, err := p.parseConditionExpression(scriptName, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1206,18 +1206,20 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	return statement, implicitTexts, nil
 }
 
-func (p *Parser) parseConditionExpression(scriptName string) (*ast.ConditionExpression, []impText, error) {
-	if err := p.expectPeek(token.LPAREN); err != nil {
-		return nil, nil, fmt.Errorf("line %d: missing '(' to start boolean expression", p.peekToken.LineNumber)
-	}
-
+func (p *Parser) parseConditionExpression(scriptName string, requireExpression bool) (*ast.ConditionExpression, []impText, error) {
 	expression := &ast.ConditionExpression{}
 	implicitTexts := make([]impText, 0)
-	boolExpression, err := p.parseBooleanExpression(false, false)
-	if err != nil {
-		return nil, nil, err
+
+	if requireExpression || !p.peekTokenIs(token.LBRACE) {
+		if err := p.expectPeek(token.LPAREN); err != nil {
+			return nil, nil, fmt.Errorf("line %d: missing '(' to start boolean expression", p.peekToken.LineNumber)
+		}
+		boolExpression, err := p.parseBooleanExpression(false, false)
+		if err != nil {
+			return nil, nil, err
+		}
+		expression.Expression = boolExpression
 	}
-	expression.Expression = boolExpression
 	if err := p.expectPeek(token.LBRACE); err != nil {
 		return nil, nil, err
 	}

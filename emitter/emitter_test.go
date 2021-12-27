@@ -2145,6 +2145,127 @@ MyText::
 	}
 }
 
+func TestEmitInfiniteWhile(t *testing.T) {
+	input := `
+script MyScript {
+	header
+	while {
+		firstinwhile
+		if (flag(FLAG_1)) {
+			continue
+		} elif (flag(FLAG_2)) {
+			while {
+				otherloop
+				if (flag(FLAG_3)) {
+					break
+				}
+			}
+			aftersecond
+			break
+		}
+		footer
+	}
+	release
+}
+`
+
+	expectedUnoptimized := `MyScript::
+	header
+	goto MyScript_2
+
+MyScript_1:
+	release
+	return
+
+MyScript_2:
+	firstinwhile
+	goto MyScript_8
+
+MyScript_4:
+	footer
+	goto MyScript_2
+
+MyScript_5:
+	goto MyScript_2
+
+MyScript_6:
+	goto MyScript_10
+
+MyScript_7:
+	goto_if_set FLAG_2, MyScript_6
+	goto MyScript_4
+
+MyScript_8:
+	goto_if_set FLAG_1, MyScript_5
+	goto MyScript_7
+
+MyScript_9:
+	aftersecond
+	goto MyScript_1
+
+MyScript_10:
+	otherloop
+	goto MyScript_13
+
+MyScript_12:
+	goto MyScript_9
+
+MyScript_13:
+	goto_if_set FLAG_3, MyScript_12
+	goto MyScript_10
+
+`
+	expectedOptimized := `MyScript::
+	header
+MyScript_2:
+	firstinwhile
+	goto_if_set FLAG_1, MyScript_5
+	goto_if_set FLAG_2, MyScript_6
+	footer
+	goto MyScript_2
+
+MyScript_1:
+	release
+	return
+
+MyScript_5:
+	goto MyScript_2
+
+MyScript_6:
+MyScript_10:
+	otherloop
+	goto_if_set FLAG_3, MyScript_12
+	goto MyScript_10
+
+MyScript_9:
+	aftersecond
+	goto MyScript_1
+
+MyScript_12:
+	goto MyScript_9
+
+`
+
+	l := lexer.New(input)
+	p := parser.New(l, "", "", 0, nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	e := New(program, false)
+	result, _ := e.Emit()
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result, _ = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+	}
+}
+
 // Helper benchmark var to prevent compiler/runtime optimizations.
 // https://dave.cheney.net/2013/06/30/how-to-write-benchmarks-in-go
 var benchResult string

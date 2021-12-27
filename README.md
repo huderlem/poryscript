@@ -203,6 +203,16 @@ Compound boolean expressions are also supported. This means you can use the AND 
     setvar(VAR_QUEST_ACCEPTED, 1)
 ```
 
+The `while` statement can also be written as an infinite loop by omitting the boolean expression. This would be equivalent to `while(true)` in typical programming languages. (Of course, you'll want to `break` out of the infinite loop, or hard-stop the script.)
+```
+    while {
+        msgbox("Want to see this message again?", MSGBOX_YESNO")
+        if (var(VAR_RESULT) == 1) {
+            break
+        }
+    }
+```
+
 `do...while` statements are very similar to `while` statements.  The only difference is that they always execute their body once before checking the condition.
 ```
     # Force player to answer "Yes" to NPC question.
