@@ -273,7 +273,7 @@ One quirk of the Gen 3 decomp scripting engine is that using the `compare` scrip
 if (var(VAR_DAMAGE_DEALT) >= value(0x4000))
 ```
 
-The resulting script be use the `compare_var_to_value` command, rather than the usual `compare` command.
+The resulting script use the `compare_var_to_value` command, rather than the usual `compare` command.
 
 ### Regular Commands
 Regular non-branching commands that take arguments, such as `msgbox`, must wrap their arguments in parentheses. For example:
