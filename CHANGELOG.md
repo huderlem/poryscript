@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+Nothing, yet.
+
+## [2.12.0] - 2021-12-27
 ### Added
 - Add `value()` operator, which can be used on the right-hand side of a `var()` comparison. It will force a `compare_var_to_value` command to be output. This makes it possible to compare values that occupy the same range as vars (`0x4000 <= x <= 0x40FF` and `0x8000 <= x <= 0x8015`).
 - Add ability to author inifinite loops using the `while` statement without any boolean expression.
@@ -114,7 +117,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/poryscript/compare/2.11.0...HEAD
+[Unreleased]: https://github.com/huderlem/poryscript/compare/2.12.0...HEAD
+[2.12.0]: https://github.com/huderlem/poryscript/compare/2.11.0...2.12.0
 [2.11.0]: https://github.com/huderlem/poryscript/compare/2.10.0...2.11.0
 [2.10.0]: https://github.com/huderlem/poryscript/compare/2.9.0...2.10.0
 [2.9.0]: https://github.com/huderlem/poryscript/compare/2.8.1...2.9.0

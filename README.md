@@ -207,7 +207,7 @@ The `while` statement can also be written as an infinite loop by omitting the bo
 ```
     while {
         msgbox("Want to see this message again?", MSGBOX_YESNO")
-        if (var(VAR_RESULT) == 1) {
+        if (var(VAR_RESULT) != 1) {
             break
         }
     }
