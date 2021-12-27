@@ -395,7 +395,7 @@ func TestEmitBreak(t *testing.T) {
 	input := `
 const THRESHOLD = 5
 script MyScript {
-	while (var(VAR_1) < THRESHOLD) {
+	while (var(VAR_1) < value(THRESHOLD)) {
 		first
 		do {
 			if (flag(FLAG_1) == true) {
@@ -429,7 +429,7 @@ MyScript_3:
 	goto MyScript_7
 
 MyScript_4:
-	compare VAR_1, 5
+	compare_var_to_value VAR_1, 5
 	goto_if_lt MyScript_3
 	goto MyScript_1
 
@@ -473,7 +473,7 @@ MyScript_14:
 `
 	expectedOptimized := `MyScript::
 MyScript_2:
-	compare VAR_1, 5
+	compare_var_to_value VAR_1, 5
 	goto_if_lt MyScript_3
 	release
 	return
@@ -525,7 +525,7 @@ const OTHER_TRAINER = TRAINER_FOO
 script MyScript {
 	do {
 		message()
-		if (!flag(FLAG_3) || (var(VAR_44) > 3 && var(VAR_55) <= 5)) {
+		if (!flag(FLAG_3) || (var(VAR_44) > value(0x4000 + (3) + 1) && var(VAR_55) <= 5)) {
 			hey
 		}
 		if (defeated(TRAINER_BLUE) || !defeated(TRAINER_RED) && (defeated(OTHER_TRAINER) == true)) {
@@ -595,7 +595,7 @@ MyScript_15:
 	goto MyScript_17
 
 MyScript_16:
-	compare VAR_44, 3
+	compare_var_to_value VAR_44, ( 0x4000 + ( 3 ) + 1 )
 	goto_if_gt MyScript_15
 	goto MyScript_11
 
@@ -635,7 +635,7 @@ MyScript_23:
 MyScript_3:
 	message
 	goto_if_unset FLAG_3, MyScript_12
-	compare VAR_44, 3
+	compare_var_to_value VAR_44, ( 0x4000 + ( 3 ) + 1 )
 	goto_if_gt MyScript_15
 MyScript_11:
 	checktrainerflag TRAINER_BLUE

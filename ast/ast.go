@@ -149,12 +149,24 @@ func (be *BinaryExpression) String() string {
 	return fmt.Sprintf("(%s) %s (%s)", be.Left.String(), be.Operator, be.Right.String())
 }
 
+// ComparisonValueType denotes whether or not a comparison value is a numeric value,
+// or if it can be interpreted as something other than a raw numeric value. (e.g. the
+// gen 3 decomps' "compare" script command treats values as "vars" if the value is in
+// the range 0x4000 <= x <= 0x40FF).
+type ComparisonValueType int
+
+const (
+	NormalComparison ComparisonValueType = iota
+	StrictValueComparison
+)
+
 // OperatorExpression represents a built-in operator, like flag(FLAG_1) and var(VAR_1).
 type OperatorExpression struct {
 	Operand         string
 	Operator        token.Type
 	ComparisonValue string
-	Type            token.Type
+	ComparisonValueType
+	Type token.Type
 }
 
 func (oe *OperatorExpression) booleanExpressionNode() {}

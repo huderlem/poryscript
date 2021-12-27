@@ -13,7 +13,7 @@ func TestNextToken(t *testing.T) {
 		giveitem_std(VAR_BUG_CONTEST_PRIZE)
 		if (flag(FLAG_TEST) == TRUE) {
 			setvar(VAR_BUG_CONTEST_PRIZE, ITEM_NONE)
-		} elif (var(VAR_TEST) <= 5) {
+		} elif (var(VAR_TEST) <= value(5)) {
 		} else { ##
 		#}
 // >
@@ -99,7 +99,10 @@ func TestNextToken(t *testing.T) {
 		{token.IDENT, "VAR_TEST"},
 		{token.RPAREN, ")"},
 		{token.LTE, "<="},
+		{token.VALUE, "value"},
+		{token.LPAREN, "("},
 		{token.INT, "5"},
+		{token.RPAREN, ")"},
 		{token.RPAREN, ")"},
 		{token.LBRACE, "{"},
 		{token.RBRACE, "}"},

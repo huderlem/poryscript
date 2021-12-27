@@ -154,9 +154,7 @@ func (p *Parser) ParseProgram() (*ast.Program, error) {
 
 	// Build list of Texts from both inline and explicit texts.
 	// Generate error if there are any name clashes.
-	for _, text := range p.inlineTexts {
-		program.Texts = append(program.Texts, text)
-	}
+	program.Texts = append(program.Texts, p.inlineTexts...)
 	for _, textStmt := range p.textStatements {
 		program.Texts = append(program.Texts, ast.Text{
 			Value:      textStmt.Value,
@@ -168,7 +166,7 @@ func (p *Parser) ParseProgram() (*ast.Program, error) {
 	names := make(map[string]struct{}, 0)
 	for _, text := range program.Texts {
 		if _, ok := names[text.Name]; ok {
-			return nil, fmt.Errorf("Duplicate text label '%s'. Choose a unique label that won't clash with the auto-generated text labels", text.Name)
+			return nil, fmt.Errorf("duplicate text label '%s'. Choose a unique label that won't clash with the auto-generated text labels", text.Name)
 		}
 		names[text.Name] = struct{}{}
 	}
@@ -1347,7 +1345,7 @@ func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single boo
 func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 	// Left-side of binary expression must be a special condition statement.
 	usedNotOperator := false
-	operatorExpression := &ast.OperatorExpression{}
+	operatorExpression := &ast.OperatorExpression{ComparisonValueType: ast.NormalComparison}
 	if p.peekTokenIs(token.NOT) {
 		operatorExpression.Operator = token.EQ
 		p.nextToken()
@@ -1421,17 +1419,51 @@ func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) e
 	if p.curToken.Type == token.RPAREN {
 		return fmt.Errorf("line %d: missing comparison value for var operator", p.curToken.LineNumber)
 	}
-	parts := []string{}
-	lineNum := p.curToken.LineNumber
-	for p.curToken.Type != token.RPAREN && p.curToken.Type != token.AND && p.curToken.Type != token.OR {
-		parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
-		p.nextToken()
-		if p.curToken.Type == token.EOF {
-			return fmt.Errorf("line %d: missing ')', '&&' or '||' when evaluating 'var' operator", lineNum)
+
+	if p.curToken.Type == token.VALUE {
+		if err := p.expectPeek(token.LPAREN); err != nil {
+			return err
 		}
+		p.nextToken()
+		expression.ComparisonValueType = ast.StrictValueComparison
+
+		numOpenParens := 0
+		parts := []string{}
+		lineNum := p.curToken.LineNumber
+		for {
+			if p.curToken.Type == token.LPAREN {
+				numOpenParens += 1
+			} else if p.curToken.Type == token.RPAREN {
+				if numOpenParens == 0 {
+					p.nextToken()
+					if len(parts) > 1 {
+						parts = append(parts, ")")
+						parts = append([]string{"("}, parts...)
+					}
+					break
+				}
+				numOpenParens -= 1
+			}
+			parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
+			p.nextToken()
+			if p.curToken.Type == token.EOF {
+				return fmt.Errorf("line %d: missing ')' when evaluating 'value'", lineNum)
+			}
+		}
+		expression.ComparisonValue = strings.Join(parts, " ")
+	} else {
+		parts := []string{}
+		lineNum := p.curToken.LineNumber
+		for p.curToken.Type != token.RPAREN && p.curToken.Type != token.AND && p.curToken.Type != token.OR {
+			parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
+			p.nextToken()
+			if p.curToken.Type == token.EOF {
+				return fmt.Errorf("line %d: missing ')', '&&' or '||' when evaluating 'var' operator", lineNum)
+			}
+		}
+		expression.ComparisonValue = strings.Join(parts, " ")
 	}
 
-	expression.ComparisonValue = strings.Join(parts, " ")
 	return nil
 }
 

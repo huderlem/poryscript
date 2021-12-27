@@ -158,7 +158,11 @@ func renderFlagComparison(sb *strings.Builder, dest *conditionDestination, scrip
 }
 
 func renderVarComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
-	sb.WriteString(fmt.Sprintf("\tcompare %s, %s\n", dest.operatorExpression.Operand, dest.operatorExpression.ComparisonValue))
+	compareCommand := "compare"
+	if dest.operatorExpression.ComparisonValueType == ast.StrictValueComparison {
+		compareCommand = "compare_var_to_value"
+	}
+	sb.WriteString(fmt.Sprintf("\t%s %s, %s\n", compareCommand, dest.operatorExpression.Operand, dest.operatorExpression.ComparisonValue))
 	switch dest.operatorExpression.Operator {
 	case token.EQ:
 		sb.WriteString(fmt.Sprintf("\tgoto_if_eq %s_%d\n", scriptName, dest.id))

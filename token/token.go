@@ -72,6 +72,7 @@ const (
 	LOCAL      = "LOCAL"
 	PORYSWITCH = "PORYSWITCH"
 	CONST      = "CONST"
+	VALUE      = "VALUE"
 )
 
 // If statement comparison types
@@ -108,6 +109,7 @@ var keywords = map[string]Type{
 	"local":      LOCAL,
 	"poryswitch": PORYSWITCH,
 	"const":      CONST,
+	"value":      VALUE,
 }
 
 // GetIdentType looks up the token type for the given identifier

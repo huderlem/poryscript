@@ -257,6 +257,14 @@ When not using implicit truthiness, like in the above examples, they each have d
 | `var` | any value (e.g. `5`, `VAR_TEMP_1`, `VAR_FOO + BASE_OFFSET`) |
 | `defeated` | `TRUE`, `true`, `FALSE`, `false` |
 
+One quirk of the Gen 3 decomp scripting engine is that using the `compare` scripting command with a value in the range `0x4000 <= x <= 0x40FF` or `0x8000 <= x <= 0x8015` will result in comparing agains a `var`, rather than the raw value. To force the comparison against a raw value, like `0x4000`, use the `value()` operator.  For example:
+
+```
+if (var(VAR_DAMAGE_DEALT) >= value(0x4000))
+```
+
+The resulting script be use the `compare_var_to_value` command, rather than the usual `compare` command.
+
 ### Regular Commands
 Regular non-branching commands that take arguments, such as `msgbox`, must wrap their arguments in parentheses. For example:
 ```

@@ -315,7 +315,7 @@ func TestIfStatements(t *testing.T) {
 	input := `
 script Test {
 	if (var(VAR_1) == 1) {
-		if (var(VAR_7) != 1) {
+		if (var(VAR_7) != value(0x4000)) {
 			message()
 		}
 		message()
@@ -367,31 +367,31 @@ script Test {
 
 	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
 	ifStmt := scriptStmt.Body.Statements[0].(*ast.IfStatement)
-	testConditionExpression(t, ifStmt.Consequence.Expression.(*ast.OperatorExpression), token.VAR, "VAR_1", token.EQ, "1")
-	testConditionExpression(t, ifStmt.ElifConsequences[0].Expression.(*ast.OperatorExpression), token.VAR, "VAR_2", token.NEQ, "2")
-	testConditionExpression(t, ifStmt.ElifConsequences[1].Expression.(*ast.OperatorExpression), token.VAR, "VAR_3", token.LT, "3")
-	testConditionExpression(t, ifStmt.ElifConsequences[2].Expression.(*ast.OperatorExpression), token.VAR, "VAR_4", token.LTE, "4")
-	testConditionExpression(t, ifStmt.ElifConsequences[3].Expression.(*ast.OperatorExpression), token.VAR, "VAR_5", token.GT, "5")
-	testConditionExpression(t, ifStmt.ElifConsequences[4].Expression.(*ast.OperatorExpression), token.VAR, "VAR_6", token.GTE, "6")
-	testConditionExpression(t, ifStmt.ElifConsequences[5].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_1", token.EQ, token.TRUE)
-	testConditionExpression(t, ifStmt.ElifConsequences[6].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_2 + BASE", token.EQ, token.FALSE)
-	testConditionExpression(t, ifStmt.ElifConsequences[7].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_3", token.EQ, token.TRUE)
-	testConditionExpression(t, ifStmt.ElifConsequences[8].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_4", token.EQ, token.FALSE)
-	testConditionExpression(t, ifStmt.ElifConsequences[9].Expression.(*ast.OperatorExpression), token.VAR, "VAR_1", token.NEQ, "0")
-	testConditionExpression(t, ifStmt.ElifConsequences[10].Expression.(*ast.OperatorExpression), token.VAR, "VAR_2", token.EQ, "0")
-	testConditionExpression(t, ifStmt.ElifConsequences[11].Expression.(*ast.OperatorExpression), token.DEFEATED, "TRAINER_GARY", token.EQ, token.TRUE)
-	testConditionExpression(t, ifStmt.ElifConsequences[12].Expression.(*ast.OperatorExpression), token.DEFEATED, "TRAINER_BLUE", token.EQ, token.FALSE)
-	testConditionExpression(t, ifStmt.ElifConsequences[13].Expression.(*ast.OperatorExpression), token.DEFEATED, "TRAINER_GERALD", token.EQ, token.TRUE)
-	testConditionExpression(t, ifStmt.ElifConsequences[14].Expression.(*ast.OperatorExpression), token.DEFEATED, "TRAINER_AXLE", token.EQ, token.FALSE)
+	testConditionExpression(t, ifStmt.Consequence.Expression.(*ast.OperatorExpression), token.VAR, "VAR_1", token.EQ, "1", ast.NormalComparison)
+	testConditionExpression(t, ifStmt.ElifConsequences[0].Expression.(*ast.OperatorExpression), token.VAR, "VAR_2", token.NEQ, "2", ast.NormalComparison)
+	testConditionExpression(t, ifStmt.ElifConsequences[1].Expression.(*ast.OperatorExpression), token.VAR, "VAR_3", token.LT, "3", ast.NormalComparison)
+	testConditionExpression(t, ifStmt.ElifConsequences[2].Expression.(*ast.OperatorExpression), token.VAR, "VAR_4", token.LTE, "4", ast.NormalComparison)
+	testConditionExpression(t, ifStmt.ElifConsequences[3].Expression.(*ast.OperatorExpression), token.VAR, "VAR_5", token.GT, "5", ast.NormalComparison)
+	testConditionExpression(t, ifStmt.ElifConsequences[4].Expression.(*ast.OperatorExpression), token.VAR, "VAR_6", token.GTE, "6", ast.NormalComparison)
+	testConditionExpression(t, ifStmt.ElifConsequences[5].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_1", token.EQ, token.TRUE, ast.NormalComparison)
+	testConditionExpression(t, ifStmt.ElifConsequences[6].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_2 + BASE", token.EQ, token.FALSE, ast.NormalComparison)
+	testConditionExpression(t, ifStmt.ElifConsequences[7].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_3", token.EQ, token.TRUE, ast.NormalComparison)
+	testConditionExpression(t, ifStmt.ElifConsequences[8].Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_4", token.EQ, token.FALSE, ast.NormalComparison)
+	testConditionExpression(t, ifStmt.ElifConsequences[9].Expression.(*ast.OperatorExpression), token.VAR, "VAR_1", token.NEQ, "0", ast.NormalComparison)
+	testConditionExpression(t, ifStmt.ElifConsequences[10].Expression.(*ast.OperatorExpression), token.VAR, "VAR_2", token.EQ, "0", ast.NormalComparison)
+	testConditionExpression(t, ifStmt.ElifConsequences[11].Expression.(*ast.OperatorExpression), token.DEFEATED, "TRAINER_GARY", token.EQ, token.TRUE, ast.NormalComparison)
+	testConditionExpression(t, ifStmt.ElifConsequences[12].Expression.(*ast.OperatorExpression), token.DEFEATED, "TRAINER_BLUE", token.EQ, token.FALSE, ast.NormalComparison)
+	testConditionExpression(t, ifStmt.ElifConsequences[13].Expression.(*ast.OperatorExpression), token.DEFEATED, "TRAINER_GERALD", token.EQ, token.TRUE, ast.NormalComparison)
+	testConditionExpression(t, ifStmt.ElifConsequences[14].Expression.(*ast.OperatorExpression), token.DEFEATED, "TRAINER_AXLE", token.EQ, token.FALSE, ast.NormalComparison)
 	nested := ifStmt.Consequence.Body.Statements[0].(*ast.IfStatement)
-	testConditionExpression(t, nested.Consequence.Expression.(*ast.OperatorExpression), token.VAR, "VAR_7", token.NEQ, "1")
+	testConditionExpression(t, nested.Consequence.Expression.(*ast.OperatorExpression), token.VAR, "VAR_7", token.NEQ, "0x4000", ast.StrictValueComparison)
 
 	if len(ifStmt.ElseConsequence.Statements) != 5 {
 		t.Errorf("len(ifStmt.ElseConsequences) should be '%d'. got=%d", 5, len(ifStmt.ElseConsequence.Statements))
 	}
 }
 
-func testConditionExpression(t *testing.T, expression *ast.OperatorExpression, expectedType token.Type, expectedOperand string, expectedOperator token.Type, expectedComparisonValue string) {
+func testConditionExpression(t *testing.T, expression *ast.OperatorExpression, expectedType token.Type, expectedOperand string, expectedOperator token.Type, expectedComparisonValue string, expectedComparisonType ast.ComparisonValueType) {
 	if expression.Type != expectedType {
 		t.Errorf("expression.Type not '%s'. got=%s", expectedType, expression.Type)
 	}
@@ -403,6 +403,9 @@ func testConditionExpression(t *testing.T, expression *ast.OperatorExpression, e
 	}
 	if expression.ComparisonValue != expectedComparisonValue {
 		t.Errorf("expression.ComparisonValue not '%s'. got=%s", expectedComparisonValue, expression.ComparisonValue)
+	}
+	if expression.ComparisonValueType != expectedComparisonType {
+		t.Errorf("expression.ComparisonValueType not '%d'. got=%d", expectedComparisonType, expression.ComparisonValueType)
 	}
 }
 
@@ -422,7 +425,7 @@ script Test {
 	do {
 		message()
 		break
-	} while (var(VAR_1) > 2)
+	} while (var(VAR_1) > value(0x4001 + (4)))
 }
 `
 	l := lexer.New(input)
@@ -434,7 +437,7 @@ script Test {
 
 	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
 	whileStmt := scriptStmt.Body.Statements[0].(*ast.WhileStatement)
-	testConditionExpression(t, whileStmt.Consequence.Expression.(*ast.OperatorExpression), token.VAR, "VAR_1", token.LT, "1")
+	testConditionExpression(t, whileStmt.Consequence.Expression.(*ast.OperatorExpression), token.VAR, "VAR_1", token.LT, "1", ast.NormalComparison)
 	ifStmt := whileStmt.Consequence.Body.Statements[0].(*ast.IfStatement)
 	continueStmt := ifStmt.Consequence.Body.Statements[0].(*ast.ContinueStatement)
 	if continueStmt.LoopStatment != whileStmt {
@@ -442,14 +445,14 @@ script Test {
 	}
 
 	whileStmt = scriptStmt.Body.Statements[1].(*ast.WhileStatement)
-	testConditionExpression(t, whileStmt.Consequence.Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_1", token.EQ, "TRUE")
+	testConditionExpression(t, whileStmt.Consequence.Expression.(*ast.OperatorExpression), token.FLAG, "FLAG_1", token.EQ, "TRUE", ast.NormalComparison)
 	breakStmt := whileStmt.Consequence.Body.Statements[1].(*ast.BreakStatement)
 	if breakStmt.ScopeStatment != whileStmt {
 		t.Fatalf("breakStmt != whileStmt")
 	}
 
 	doWhileStmt := scriptStmt.Body.Statements[2].(*ast.DoWhileStatement)
-	testConditionExpression(t, doWhileStmt.Consequence.Expression.(*ast.OperatorExpression), token.VAR, "VAR_1", token.GT, "2")
+	testConditionExpression(t, doWhileStmt.Consequence.Expression.(*ast.OperatorExpression), token.VAR, "VAR_1", token.GT, "( 0x4001 + ( 4 ) )", ast.StrictValueComparison)
 	breakStmt = doWhileStmt.Consequence.Body.Statements[1].(*ast.BreakStatement)
 	if breakStmt.ScopeStatment != doWhileStmt {
 		t.Fatalf("breakStmt != doWhileStmt")
@@ -459,7 +462,7 @@ script Test {
 func TestCompoundBooleanExpressions(t *testing.T) {
 	input := `
 script Test {
-	if (var(VAR_1) < 1 || flag(FLAG_2) == true && var(VAR_3) > 4) {
+	if (var(VAR_1) < value(1) || flag(FLAG_2) == true && var(VAR_3) > value(4)) {
 		message()
 	}
 	if (var(VAR_1) < 1 && flag(FLAG_2) == true || var(VAR_3) > 4) {
@@ -1456,7 +1459,7 @@ script Script1 {
 text Script1_Text_0 {
 	"MyText$"
 }`,
-			expectedError: "Duplicate text label 'Script1_Text_0'. Choose a unique label that won't clash with the auto-generated text labels",
+			expectedError: "duplicate text label 'Script1_Text_0'. Choose a unique label that won't clash with the auto-generated text labels",
 		},
 		{
 			input: `
@@ -1706,6 +1709,24 @@ mapscripts() MyMapScripts {}`,
 			input: `const FOO = 
 			script MyScript {}`,
 			expectedError: "line 1: missing value for const 'FOO'",
+		},
+		{
+			input: `
+script MyScript {
+	if (var(VAR_1) != value 4)) {
+		foo
+	}
+}`,
+			expectedError: "line 3: expected next token to be '(', got '4' instead",
+		},
+		{
+			input: `
+script MyScript {
+	if (var(VAR_1) != value(4 {
+		foo
+	}
+}`,
+			expectedError: "line 3: missing ')' when evaluating 'value'",
 		},
 	}
 
