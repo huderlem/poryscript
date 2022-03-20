@@ -5,9 +5,12 @@ type Type string
 
 // Token represents a single token in the Poryscript lexer.
 type Token struct {
-	Type       Type
-	Literal    string
-	LineNumber int
+	Type           Type
+	Literal        string
+	LineNumber     int
+	StartCharIndex int
+	EndLineNumber  int
+	EndCharIndex   int
 }
 
 // Token types

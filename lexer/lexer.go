@@ -14,6 +14,7 @@ type Lexer struct {
 	readPosition int           // current reading position in input (after current char)
 	ch           byte          // current char under examination
 	lineNumber   int           // current line number
+	charNumber   int           // current char position of the current line
 	queuedTokens []token.Token // extra tokens that were read ahead of time
 }
 
@@ -33,8 +34,10 @@ func (l *Lexer) readChar() {
 	}
 	l.position = l.readPosition
 	l.readPosition++
+	l.charNumber++
 	if prevCh == '\n' {
 		l.lineNumber++
+		l.charNumber = 1
 	}
 }
 
@@ -69,101 +72,158 @@ func (l *Lexer) NextToken() token.Token {
 
 	switch l.ch {
 	case '*':
-		tok = newToken(token.MUL, l.ch, l.lineNumber)
+		tok = newToken(token.MUL, l.ch, l.lineNumber, l.charNumber)
 	case '=':
 		if l.peekChar() == '=' {
 			ch := l.ch
 			l.readChar()
-			tok = token.Token{Type: token.EQ, Literal: string(ch) + string(l.ch), LineNumber: l.lineNumber}
+			tok = token.Token{
+				Type:           token.EQ,
+				Literal:        string(ch) + string(l.ch),
+				LineNumber:     l.lineNumber,
+				EndLineNumber:  l.lineNumber,
+				StartCharIndex: l.charNumber - 2,
+				EndCharIndex:   l.charNumber,
+			}
 		} else {
-			tok = newToken(token.ASSIGN, l.ch, l.lineNumber)
+			tok = newToken(token.ASSIGN, l.ch, l.lineNumber, l.charNumber)
 		}
 	case '!':
 		if l.peekChar() == '=' {
 			ch := l.ch
 			l.readChar()
-			tok = token.Token{Type: token.NEQ, Literal: string(ch) + string(l.ch), LineNumber: l.lineNumber}
+			tok = token.Token{
+				Type:           token.NEQ,
+				Literal:        string(ch) + string(l.ch),
+				LineNumber:     l.lineNumber,
+				EndLineNumber:  l.lineNumber,
+				StartCharIndex: l.charNumber - 2,
+				EndCharIndex:   l.charNumber,
+			}
 		} else {
-			tok = newToken(token.NOT, l.ch, l.lineNumber)
+			tok = newToken(token.NOT, l.ch, l.lineNumber, l.charNumber)
 		}
 	case '<':
 		if l.peekChar() == '=' {
 			ch := l.ch
 			l.readChar()
-			tok = token.Token{Type: token.LTE, Literal: string(ch) + string(l.ch), LineNumber: l.lineNumber}
+			tok = token.Token{
+				Type:           token.LTE,
+				Literal:        string(ch) + string(l.ch),
+				LineNumber:     l.lineNumber,
+				EndLineNumber:  l.lineNumber,
+				StartCharIndex: l.charNumber - 2,
+				EndCharIndex:   l.charNumber,
+			}
 		} else {
-			tok = newToken(token.LT, l.ch, l.lineNumber)
+			tok = newToken(token.LT, l.ch, l.lineNumber, l.charNumber)
 		}
 	case '>':
 		if l.peekChar() == '=' {
 			ch := l.ch
 			l.readChar()
-			tok = token.Token{Type: token.GTE, Literal: string(ch) + string(l.ch), LineNumber: l.lineNumber}
+			tok = token.Token{
+				Type:           token.GTE,
+				Literal:        string(ch) + string(l.ch),
+				LineNumber:     l.lineNumber,
+				EndLineNumber:  l.lineNumber,
+				StartCharIndex: l.charNumber - 2,
+				EndCharIndex:   l.charNumber,
+			}
 		} else {
-			tok = newToken(token.GT, l.ch, l.lineNumber)
+			tok = newToken(token.GT, l.ch, l.lineNumber, l.charNumber)
 		}
 	case '&':
 		if l.peekChar() == '&' {
 			ch := l.ch
 			l.readChar()
-			tok = token.Token{Type: token.AND, Literal: string(ch) + string(l.ch), LineNumber: l.lineNumber}
+			tok = token.Token{
+				Type:           token.AND,
+				Literal:        string(ch) + string(l.ch),
+				LineNumber:     l.lineNumber,
+				EndLineNumber:  l.lineNumber,
+				StartCharIndex: l.charNumber - 2,
+				EndCharIndex:   l.charNumber,
+			}
 		} else {
-			tok = newToken(token.ILLEGAL, l.ch, l.lineNumber)
+			tok = newToken(token.ILLEGAL, l.ch, l.lineNumber, l.charNumber)
 		}
 	case '|':
 		if l.peekChar() == '|' {
 			ch := l.ch
 			l.readChar()
-			tok = token.Token{Type: token.OR, Literal: string(ch) + string(l.ch), LineNumber: l.lineNumber}
+			tok = token.Token{
+				Type:           token.OR,
+				Literal:        string(ch) + string(l.ch),
+				LineNumber:     l.lineNumber,
+				EndLineNumber:  l.lineNumber,
+				StartCharIndex: l.charNumber - 2,
+				EndCharIndex:   l.charNumber,
+			}
 		} else {
-			tok = newToken(token.ILLEGAL, l.ch, l.lineNumber)
+			tok = newToken(token.ILLEGAL, l.ch, l.lineNumber, l.charNumber)
 		}
 	case '(':
-		tok = newToken(token.LPAREN, l.ch, l.lineNumber)
+		tok = newToken(token.LPAREN, l.ch, l.lineNumber, l.charNumber)
 	case ')':
-		tok = newToken(token.RPAREN, l.ch, l.lineNumber)
+		tok = newToken(token.RPAREN, l.ch, l.lineNumber, l.charNumber)
 	case '[':
-		tok = newToken(token.LBRACKET, l.ch, l.lineNumber)
+		tok = newToken(token.LBRACKET, l.ch, l.lineNumber, l.charNumber)
 	case ']':
-		tok = newToken(token.RBRACKET, l.ch, l.lineNumber)
+		tok = newToken(token.RBRACKET, l.ch, l.lineNumber, l.charNumber)
 	case ',':
-		tok = newToken(token.COMMA, l.ch, l.lineNumber)
+		tok = newToken(token.COMMA, l.ch, l.lineNumber, l.charNumber)
 	case ':':
-		tok = newToken(token.COLON, l.ch, l.lineNumber)
+		tok = newToken(token.COLON, l.ch, l.lineNumber, l.charNumber)
 	case '"':
 		return l.readStringToken()
 	case '`':
+		tok.StartCharIndex = l.charNumber - 1
 		tok.LineNumber = l.lineNumber
 		tok.Literal = l.readRaw()
 		tok.Type = token.RAWSTRING
+		tok.EndCharIndex = l.charNumber
+		tok.EndLineNumber = l.lineNumber
 		return tok
 	case '{':
-		tok = newToken(token.LBRACE, l.ch, l.lineNumber)
+		tok = newToken(token.LBRACE, l.ch, l.lineNumber, l.charNumber)
 	case '}':
-		tok = newToken(token.RBRACE, l.ch, l.lineNumber)
+		tok = newToken(token.RBRACE, l.ch, l.lineNumber, l.charNumber)
 	case '0':
 		if l.peekChar() == 'x' {
 			l.readChar()
 			l.readChar()
+			tok.StartCharIndex = l.charNumber - 3
 			tok.Type = token.INT
 			tok.LineNumber = l.lineNumber
 			tok.Literal = "0x" + l.readHexNumber()
+			tok.EndLineNumber = l.lineNumber
+			tok.EndCharIndex = l.charNumber - 1
 			return tok
 		}
 
+		tok.StartCharIndex = l.charNumber - 1
 		tok.Type = token.INT
 		tok.LineNumber = l.lineNumber
 		tok.Literal = l.readNumber()
+		tok.EndLineNumber = l.lineNumber
+		tok.EndCharIndex = l.charNumber - 1
 		return tok
 	case 0:
+		tok.StartCharIndex = l.charNumber - 1
 		tok.Literal = ""
 		tok.Type = token.EOF
 		tok.LineNumber = l.lineNumber
+		tok.EndLineNumber = l.lineNumber
+		tok.EndCharIndex = l.charNumber - 1
 	default:
 		if isLetter(l.ch) {
+			tok.StartCharIndex = l.charNumber - 1
 			tok.LineNumber = l.lineNumber
 			tok.Literal = l.readIdentifier()
 			tok.Type = token.GetIdentType(tok.Literal)
+			tok.EndLineNumber = l.lineNumber
+			tok.EndCharIndex = l.charNumber - 1
 			// If the immediately-next character is the start of a
 			// STRING token, then this is a STRINGTYPE token, instead
 			// of an IDENT.
@@ -174,6 +234,7 @@ func (l *Lexer) NextToken() token.Token {
 			}
 			return tok
 		} else if isDigit(l.ch) || (l.ch == '-' && isDigit(l.peekChar())) {
+			tok.StartCharIndex = l.charNumber - 1
 			tok.Type = token.INT
 			tok.LineNumber = l.lineNumber
 			if l.ch == '-' {
@@ -182,9 +243,11 @@ func (l *Lexer) NextToken() token.Token {
 			} else {
 				tok.Literal = l.readNumber()
 			}
+			tok.EndLineNumber = l.lineNumber
+			tok.EndCharIndex = l.charNumber - 1
 			return tok
 		}
-		tok = newToken(token.ILLEGAL, l.ch, l.lineNumber)
+		tok = newToken(token.ILLEGAL, l.ch, l.lineNumber, l.charNumber)
 	}
 
 	l.readChar()
@@ -193,8 +256,9 @@ func (l *Lexer) NextToken() token.Token {
 
 func (l *Lexer) readStringToken() token.Token {
 	var t token.Token
+	t.StartCharIndex = l.charNumber - 1
 	t.LineNumber = l.lineNumber
-	t.Literal = l.readString()
+	t.Literal, t.EndLineNumber, t.EndCharIndex = l.readString()
 	t.Type = token.STRING
 	return t
 }
@@ -218,8 +282,15 @@ func (l *Lexer) skipNewlineWhitespace() {
 	}
 }
 
-func newToken(tokenType token.Type, ch byte, lineNumber int) token.Token {
-	return token.Token{Type: tokenType, Literal: string(ch), LineNumber: lineNumber}
+func newToken(tokenType token.Type, ch byte, lineNumber int, charNumber int) token.Token {
+	return token.Token{
+		Type:           tokenType,
+		Literal:        string(ch),
+		LineNumber:     lineNumber,
+		EndLineNumber:  lineNumber,
+		StartCharIndex: charNumber - 1,
+		EndCharIndex:   charNumber,
+	}
 }
 
 func (l *Lexer) readIdentifier() string {
@@ -230,8 +301,9 @@ func (l *Lexer) readIdentifier() string {
 	return l.input[start:l.position]
 }
 
-func (l *Lexer) readString() string {
+func (l *Lexer) readString() (string, int, int) {
 	var sb strings.Builder
+	var endLine, endChar int
 	for l.ch == '"' {
 		if sb.Len() > 0 {
 			sb.WriteString("\n")
@@ -242,9 +314,11 @@ func (l *Lexer) readString() string {
 			l.readChar()
 		}
 		l.readChar()
+		endLine = l.lineNumber
+		endChar = l.charNumber
 		l.skipWhitespace()
 	}
-	return sb.String()
+	return sb.String(), endLine, endChar - 1
 }
 
 func (l *Lexer) readRaw() string {
