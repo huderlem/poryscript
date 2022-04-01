@@ -35,42 +35,51 @@ type textKey struct {
 
 // Parser is a Poryscript AST parser.
 type Parser struct {
-	l                  *lexer.Lexer
-	curToken           token.Token
-	peekToken          token.Token
-	peek2Token         token.Token
-	inlineTexts        []ast.Text
-	inlineTextsSet     map[textKey]string
-	inlineTextCounts   map[string]int
-	textStatements     []*ast.TextStatement
-	breakStack         []ast.Statement
-	continueStack      []ast.Statement
-	fontConfigFilepath string
-	defaultFontID      string
-	fonts              *FontWidthsConfig
-	maxLineLength      int
-	compileSwitches    map[string]string
-	constants          map[string]string
+	l                       *lexer.Lexer
+	curToken                token.Token
+	peekToken               token.Token
+	peek2Token              token.Token
+	inlineTexts             []ast.Text
+	inlineTextsSet          map[textKey]string
+	inlineTextCounts        map[string]int
+	textStatements          []*ast.TextStatement
+	breakStack              []ast.Statement
+	continueStack           []ast.Statement
+	fontConfigFilepath      string
+	defaultFontID           string
+	fonts                   *FontWidthsConfig
+	maxLineLength           int
+	compileSwitches         map[string]string
+	constants               map[string]string
+	enableEnvironmentErrors bool
 }
 
 // New creates a new Poryscript AST Parser.
 func New(l *lexer.Lexer, fontConfigFilepath string, defaultFontID string, maxLineLength int, compileSwitches map[string]string) *Parser {
 	p := &Parser{
-		l:                  l,
-		inlineTexts:        make([]ast.Text, 0),
-		inlineTextsSet:     make(map[textKey]string),
-		inlineTextCounts:   make(map[string]int),
-		textStatements:     make([]*ast.TextStatement, 0),
-		fontConfigFilepath: fontConfigFilepath,
-		defaultFontID:      defaultFontID,
-		maxLineLength:      maxLineLength,
-		compileSwitches:    compileSwitches,
-		constants:          make(map[string]string),
+		l:                       l,
+		inlineTexts:             make([]ast.Text, 0),
+		inlineTextsSet:          make(map[textKey]string),
+		inlineTextCounts:        make(map[string]int),
+		textStatements:          make([]*ast.TextStatement, 0),
+		fontConfigFilepath:      fontConfigFilepath,
+		defaultFontID:           defaultFontID,
+		maxLineLength:           maxLineLength,
+		compileSwitches:         compileSwitches,
+		constants:               make(map[string]string),
+		enableEnvironmentErrors: true,
 	}
 	// Read three tokens, so curToken, peekToken, and peek2Token are all set.
 	p.nextToken()
 	p.nextToken()
 	p.nextToken()
+	return p
+}
+
+// New creates a new Poryscript AST Parser.
+func NewLintParser(l *lexer.Lexer) *Parser {
+	p := New(l, "", "", 0, nil)
+	p.enableEnvironmentErrors = false
 	return p
 }
 
@@ -124,7 +133,7 @@ func (p *Parser) expectPeek(expectedType token.Type) error {
 		return nil
 	}
 
-	return fmt.Errorf("line %d: expected next token to be '%s', got '%s' instead", p.peekToken.LineNumber, expectedType, p.peekToken.Literal)
+	return NewParseError(p.peekToken, fmt.Sprintf("expected next token to be '%s', got '%s' instead", expectedType, p.peekToken.Literal))
 }
 
 func getImplicitTextLabel(scriptName string, i int) string {
@@ -161,12 +170,13 @@ func (p *Parser) ParseProgram() (*ast.Program, error) {
 			StringType: textStmt.StringType,
 			Name:       textStmt.Name.Value,
 			IsGlobal:   textStmt.Scope == token.GLOBAL,
+			Token:      textStmt.Token,
 		})
 	}
 	names := make(map[string]struct{}, 0)
 	for _, text := range program.Texts {
 		if _, ok := names[text.Name]; ok {
-			return nil, fmt.Errorf("duplicate text label '%s'. Choose a unique label that won't clash with the auto-generated text labels", text.Name)
+			return nil, NewParseError(text.Token, fmt.Sprintf("duplicate text label '%s'. Choose a unique label that won't clash with the auto-generated text labels", text.Name))
 		}
 		names[text.Name] = struct{}{}
 	}
@@ -213,7 +223,7 @@ func (p *Parser) parseTopLevelStatement() (ast.Statement, error) {
 		return nil, err
 	}
 
-	return nil, fmt.Errorf("line %d: could not parse top-level statement for '%s'", p.curToken.LineNumber, p.curToken.Literal)
+	return nil, NewParseError(p.curToken, fmt.Sprintf("could not parse top-level statement for '%s'", p.curToken.Literal))
 }
 
 func (p *Parser) addImplicitTexts(implicitTexts []impText) {
@@ -243,11 +253,11 @@ func (p *Parser) parseScopeModifier(defaultScope token.Type) (token.Type, error)
 	}
 	p.nextToken()
 	if !p.peekTokenIs(token.GLOBAL) && !p.peekTokenIs(token.LOCAL) {
-		return scope, fmt.Errorf("line %d: scope modifier must be 'global' or 'local', but got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+		return scope, NewParseError(p.peekToken, fmt.Sprintf("scope modifier must be 'global' or 'local', but got '%s' instead", p.peekToken.Literal))
 	}
 	p.nextToken()
 	if !p.peekTokenIs(token.RPAREN) {
-		return scope, fmt.Errorf("line %d: missing ')' after scope modifier. Got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+		return scope, NewParseError(p.curToken, fmt.Sprintf("missing ')' after scope modifier. Got '%s' instead", p.peekToken.Literal))
 	}
 	scope = p.curToken.Type
 	p.nextToken()
@@ -262,7 +272,7 @@ func (p *Parser) parseScriptStatement() (*ast.ScriptStatement, []impText, error)
 	}
 	statement.Scope = scope
 	if err := p.expectPeek(token.IDENT); err != nil {
-		return nil, nil, fmt.Errorf("line %d: missing name for script", p.curToken.LineNumber)
+		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing name for script")
 	}
 
 	statement.Name = &ast.Identifier{
@@ -271,12 +281,13 @@ func (p *Parser) parseScriptStatement() (*ast.ScriptStatement, []impText, error)
 	}
 
 	if err := p.expectPeek(token.LBRACE); err != nil {
-		return nil, nil, fmt.Errorf("line %d: missing opening curly brace for script '%s'", p.curToken.LineNumber, statement.Name.Value)
+		return nil, nil, NewRangeParseError(statement.Token, p.peekToken, fmt.Sprintf("missing opening curly brace for script '%s'", statement.Name.Value))
 	}
 
+	braceToken := p.curToken
 	p.nextToken()
 
-	blockStmt, implicitTexts, err := p.parseBlockStatement(statement.Name.Value)
+	blockStmt, implicitTexts, err := p.parseBlockStatement(statement.Name.Value, braceToken)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -284,7 +295,7 @@ func (p *Parser) parseScriptStatement() (*ast.ScriptStatement, []impText, error)
 	return statement, implicitTexts, nil
 }
 
-func (p *Parser) parseBlockStatement(scriptName string) (*ast.BlockStatement, []impText, error) {
+func (p *Parser) parseBlockStatement(scriptName string, startToken token.Token) (*ast.BlockStatement, []impText, error) {
 	block := &ast.BlockStatement{
 		Token:      p.curToken,
 		Statements: []ast.Statement{},
@@ -293,7 +304,7 @@ func (p *Parser) parseBlockStatement(scriptName string) (*ast.BlockStatement, []
 
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.EOF {
-			return nil, nil, fmt.Errorf("line %d: missing closing curly brace for block statement", block.Token.LineNumber)
+			return nil, nil, NewParseError(startToken, "missing closing curly brace for block statement")
 		}
 
 		statements, stmtTexts, err := p.parseStatement(scriptName)
@@ -309,7 +320,7 @@ func (p *Parser) parseBlockStatement(scriptName string) (*ast.BlockStatement, []
 	return block, implicitTexts, nil
 }
 
-func (p *Parser) parseSwitchBlockStatement(scriptName string) (*ast.BlockStatement, []impText, error) {
+func (p *Parser) parseSwitchBlockStatement(scriptName string, startToken token.Token) (*ast.BlockStatement, []impText, error) {
 	block := &ast.BlockStatement{
 		Token:      p.curToken,
 		Statements: []ast.Statement{},
@@ -318,7 +329,7 @@ func (p *Parser) parseSwitchBlockStatement(scriptName string) (*ast.BlockStateme
 
 	for p.curToken.Type != token.RBRACE && p.curToken.Type != token.CASE && p.curToken.Type != token.DEFAULT {
 		if p.curToken.Type == token.EOF {
-			return nil, nil, fmt.Errorf("line %d: missing end for switch case body", block.Token.LineNumber)
+			return nil, nil, NewRangeParseError(startToken, p.curToken, "missing end for switch case body")
 		}
 
 		statements, stmtTexts, err := p.parseStatement(scriptName)
@@ -366,7 +377,7 @@ func (p *Parser) parseStatement(scriptName string) ([]ast.Statement, []impText, 
 		stmts, implicitTexts, err = p.parsePoryswitchStatement(scriptName)
 		statements = append(statements, stmts...)
 	default:
-		err = fmt.Errorf("line %d: could not parse statement for '%s'", p.curToken.LineNumber, p.curToken.Literal)
+		err = NewParseError(p.curToken, fmt.Sprintf("could not parse statement for '%s'", p.curToken.Literal))
 	}
 
 	if err != nil {
@@ -395,8 +406,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, []impT
 		numOpenParens := 0
 		for !(p.curToken.Type == token.RPAREN && numOpenParens == 0) {
 			if p.curToken.Type == token.EOF {
-				err := fmt.Errorf("line %d: missing closing parenthesis for command '%s'", command.Token.LineNumber, command.Name.TokenLiteral())
-				return nil, nil, err
+				return nil, nil, NewParseError(command.Token, fmt.Sprintf("missing closing parenthesis for command '%s'", command.Name.TokenLiteral()))
 			}
 
 			if p.curToken.Type == token.COMMA {
@@ -434,8 +444,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, []impT
 				stringType := p.curToken.Literal
 				p.nextToken()
 				if p.curToken.Type != token.STRING {
-					err := fmt.Errorf("line %d: expected a string literal after string type '%s'. Got '%s' instead", p.curToken.LineNumber, stringType, p.curToken.Literal)
-					return nil, nil, err
+					return nil, nil, NewParseError(p.curToken, fmt.Sprintf("expected a string literal after string type '%s'. Got '%s' instead", stringType, p.curToken.Literal))
 				}
 				implicitTexts = append(implicitTexts, impText{
 					command:    command,
@@ -467,7 +476,7 @@ func (p *Parser) parseRawStatement() (*ast.RawStatement, error) {
 	}
 
 	if err := p.expectPeek(token.RAWSTRING); err != nil {
-		return nil, fmt.Errorf("line %d: raw statement must begin with a backtick character '`'", p.curToken.LineNumber)
+		return nil, NewRangeParseError(p.curToken, p.peekToken, "raw statement must begin with a backtick character '`'")
 	}
 
 	statement.Value = p.curToken.Literal
@@ -484,7 +493,7 @@ func (p *Parser) parseTextStatement() (*ast.TextStatement, error) {
 	}
 	statement.Scope = scope
 	if err := p.expectPeek(token.IDENT); err != nil {
-		return nil, fmt.Errorf("line %d: missing name for text statement", p.curToken.LineNumber)
+		return nil, NewRangeParseError(statement.Token, p.peekToken, "missing name for text statement")
 	}
 
 	statement.Name = &ast.Identifier{
@@ -493,7 +502,7 @@ func (p *Parser) parseTextStatement() (*ast.TextStatement, error) {
 	}
 
 	if err := p.expectPeek(token.LBRACE); err != nil {
-		return nil, fmt.Errorf("line %d: missing opening curly brace for text '%s'", p.peekToken.LineNumber, statement.Name.Value)
+		return nil, NewRangeParseError(statement.Token, p.peekToken, fmt.Sprintf("missing opening curly brace for text '%s'", statement.Name.Value))
 	}
 	p.nextToken()
 
@@ -515,7 +524,7 @@ func (p *Parser) parseTextStatement() (*ast.TextStatement, error) {
 	statement.StringType = strType
 	p.textStatements = append(p.textStatements, statement)
 	if err := p.expectPeek(token.RBRACE); err != nil {
-		return nil, fmt.Errorf("line %d: expected closing curly brace for text. Got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+		return nil, NewParseError(p.peekToken, fmt.Sprintf("expected closing curly brace for text. Got '%s' instead", p.peekToken.Literal))
 	}
 	return statement, nil
 }
@@ -534,36 +543,36 @@ func (p *Parser) parseTextValue() (string, string, error) {
 		stringType := p.curToken.Literal
 		p.nextToken()
 		if p.curToken.Type != token.STRING {
-			return "", "", fmt.Errorf("line %d: expected a string literal after string type '%s'. Got '%s' instead", p.curToken.LineNumber, stringType, p.curToken.Literal)
+			return "", "", NewParseError(p.curToken, fmt.Sprintf("expected a string literal after string type '%s'. Got '%s' instead", stringType, p.curToken.Literal))
 		}
 		return p.formatTextTerminator(p.curToken.Literal, stringType), stringType, nil
 	} else {
-		return "", "", fmt.Errorf("line %d: body of text statement must be a string or formatted string. Got '%s' instead", p.curToken.LineNumber, p.curToken.Literal)
+		return "", "", NewParseError(p.curToken, fmt.Sprintf("body of text statement must be a string or formatted string. Got '%s' instead", p.curToken.Literal))
 	}
 }
 
 func (p *Parser) parsePoryswitchHeader() (string, string, error) {
-	if len(p.compileSwitches) == 0 {
-		return "", "", fmt.Errorf("line %d: poryswitch used, but no compile switches were specified with the '-s' option", p.curToken.LineNumber)
+	if len(p.compileSwitches) == 0 && p.enableEnvironmentErrors {
+		return "", "", NewParseError(p.curToken, "poryswitch used, but no compile switches were specified with the '-s' option")
 	}
 	if err := p.expectPeek(token.LPAREN); err != nil {
-		return "", "", fmt.Errorf("line %d: expected opening parenthesis for poryswitch value. Got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+		return "", "", NewParseError(p.peekToken, fmt.Sprintf("expected opening parenthesis for poryswitch value. Got '%s' instead", p.peekToken.Literal))
 	}
 	if err := p.expectPeek(token.IDENT); err != nil {
-		return "", "", fmt.Errorf("line %d: expected poryswitch identifier value. Got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+		return "", "", NewParseError(p.peekToken, fmt.Sprintf("expected poryswitch identifier value. Got '%s' instead", p.peekToken.Literal))
 	}
 	switchCase := p.curToken.Literal
 	var switchValue string
 	var ok bool
-	if switchValue, ok = p.compileSwitches[switchCase]; !ok {
-		return "", "", fmt.Errorf("line %d: no poryswitch for '%s' was specified with the '-s' option", p.curToken.LineNumber, switchCase)
+	if switchValue, ok = p.compileSwitches[switchCase]; p.enableEnvironmentErrors && !ok {
+		return "", "", NewParseError(p.curToken, fmt.Sprintf("no poryswitch for '%s' was specified with the '-s' option", switchCase))
 	}
 
 	if err := p.expectPeek(token.RPAREN); err != nil {
-		return "", "", fmt.Errorf("line %d: expected closing parenthesis for poryswitch value. Got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+		return "", "", NewParseError(p.peekToken, fmt.Sprintf("expected closing parenthesis for poryswitch value. Got '%s' instead", p.peekToken.Literal))
 	}
 	if err := p.expectPeek(token.LBRACE); err != nil {
-		return "", "", fmt.Errorf("line %d: expected opening curly brace for poryswitch statement. Got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+		return "", "", NewParseError(p.peekToken, fmt.Sprintf("expected opening curly brace for poryswitch statement. Got '%s' instead", p.peekToken.Literal))
 	}
 	p.nextToken()
 	return switchCase, switchValue, nil
@@ -572,13 +581,13 @@ func (p *Parser) parsePoryswitchHeader() (string, string, error) {
 func (p *Parser) parsePoryswitchTextCases() (map[string]string, map[string]string, error) {
 	textCases := make(map[string]string)
 	textStringTypeCases := make(map[string]string)
-	startLineNumber := p.curToken.LineNumber
+	startToken := p.curToken
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.EOF {
-			return nil, nil, fmt.Errorf("line %d: missing closing curly brace for poryswitch statement", startLineNumber)
+			return nil, nil, NewParseError(startToken, "missing closing curly brace for poryswitch statement")
 		}
 		if p.curToken.Type != token.IDENT && p.curToken.Type != token.INT {
-			return nil, nil, fmt.Errorf("line %d: invalid poryswitch case '%s'. Expected a simple identifier", p.curToken.LineNumber, p.curToken.Literal)
+			return nil, nil, NewParseError(p.curToken, fmt.Sprintf("invalid poryswitch case '%s'. Expected a simple identifier", p.curToken.Literal))
 		}
 		caseValue := p.curToken.Literal
 		p.nextToken()
@@ -594,19 +603,19 @@ func (p *Parser) parsePoryswitchTextCases() (map[string]string, map[string]strin
 			p.nextToken()
 			if usedBrace {
 				if p.curToken.Type != token.RBRACE {
-					return nil, nil, fmt.Errorf("line %d: missing closing curly brace for poryswitch case '%s'", startLineNumber, caseValue)
+					return nil, nil, NewParseError(startToken, fmt.Sprintf("missing closing curly brace for poryswitch case '%s'", caseValue))
 				}
 				p.nextToken()
 			}
 		} else {
-			return nil, nil, fmt.Errorf("line %d: invalid token '%s' after poryswitch case '%s'. Expected ':' or '{'", p.curToken.LineNumber, p.curToken.Literal, caseValue)
+			return nil, nil, NewParseError(p.curToken, fmt.Sprintf("invalid token '%s' after poryswitch case '%s'. Expected ':' or '{'", p.curToken.Literal, caseValue))
 		}
 	}
 	return textCases, textStringTypeCases, nil
 }
 
 func (p *Parser) parsePoryswitchTextStatement() (string, string, error) {
-	startLineNumber := p.curToken.LineNumber
+	startToken := p.curToken
 	switchCase, switchValue, err := p.parsePoryswitchHeader()
 	if err != nil {
 		return "", "", err
@@ -620,7 +629,7 @@ func (p *Parser) parsePoryswitchTextStatement() (string, string, error) {
 	if !ok {
 		strValue, ok = cases["_"]
 		if !ok {
-			return "", "", fmt.Errorf("line %d: no poryswitch case found for '%s=%s', which was specified with the '-s' option", startLineNumber, switchCase, switchValue)
+			return "", "", NewParseError(startToken, fmt.Sprintf("no poryswitch case found for '%s=%s', which was specified with the '-s' option", switchCase, switchValue))
 		}
 	}
 	return strValue, strTypeValue, nil
@@ -637,7 +646,7 @@ func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
 	}
 	statement.Scope = scope
 	if err := p.expectPeek(token.IDENT); err != nil {
-		return nil, fmt.Errorf("line %d: missing name for movement statement", p.curToken.LineNumber)
+		return nil, NewRangeParseError(statement.Token, p.peekToken, "missing name for movement statement")
 	}
 
 	statement.Name = &ast.Identifier{
@@ -646,7 +655,7 @@ func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
 	}
 
 	if err := p.expectPeek(token.LBRACE); err != nil {
-		return nil, fmt.Errorf("line %d: missing opening curly brace for movement '%s'", p.peekToken.LineNumber, statement.Name.Value)
+		return nil, NewRangeParseError(statement.Token, p.peekToken, fmt.Sprintf("missing opening curly brace for movement '%s'", statement.Name.Value))
 	}
 	p.nextToken()
 	statement.MovementCommands, err = p.parseMovementValue(true)
@@ -672,17 +681,17 @@ func (p *Parser) parseMovementValue(allowMultiple bool) ([]string, error) {
 			if p.curToken.Type == token.MUL {
 				p.nextToken()
 				if p.curToken.Type != token.INT {
-					return nil, fmt.Errorf("line %d: expected mulplier number for movement command, but got '%s' instead", p.curToken.LineNumber, p.curToken.Literal)
+					return nil, NewParseError(p.curToken, fmt.Sprintf("expected mulplier number for movement command, but got '%s' instead", p.curToken.Literal))
 				}
 				num, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
 				if err != nil {
-					return nil, fmt.Errorf("line %d: invalid movement mulplier integer '%s': %s", p.curToken.LineNumber, p.curToken.Literal, err.Error())
+					return nil, NewParseError(p.curToken, fmt.Sprintf("invalid movement mulplier integer '%s': %s", p.curToken.Literal, err.Error()))
 				}
 				if num <= 0 {
-					return nil, fmt.Errorf("line %d: movement mulplier must be a positive integer, but got '%s' instead", p.curToken.LineNumber, p.curToken.Literal)
+					return nil, NewParseError(p.curToken, fmt.Sprintf("movement mulplier must be a positive integer, but got '%s' instead", p.curToken.Literal))
 				}
 				if num > 9999 {
-					return nil, fmt.Errorf("line %d: movement mulplier '%s' is too large. Maximum is 9999", p.curToken.LineNumber, p.curToken.Literal)
+					return nil, NewParseError(p.curToken, fmt.Sprintf("movement mulplier '%s' is too large. Maximum is 9999", p.curToken.Literal))
 				}
 				var i int64
 				for i = 0; i < num; i++ {
@@ -694,7 +703,7 @@ func (p *Parser) parseMovementValue(allowMultiple bool) ([]string, error) {
 				movementCommands = append(movementCommands, moveCommand)
 			}
 		} else {
-			return nil, fmt.Errorf("line %d: expected movement command, but got '%s' instead", p.curToken.LineNumber, p.curToken.Literal)
+			return nil, NewParseError(p.curToken, fmt.Sprintf("expected movement command, but got '%s' instead", p.curToken.Literal))
 		}
 		if !allowMultiple {
 			break
@@ -704,7 +713,7 @@ func (p *Parser) parseMovementValue(allowMultiple bool) ([]string, error) {
 }
 
 func (p *Parser) parsePoryswitchMovementStatement() ([]string, error) {
-	startLineNumber := p.curToken.LineNumber
+	startToken := p.curToken
 	switchCase, switchValue, err := p.parsePoryswitchHeader()
 	if err != nil {
 		return nil, err
@@ -717,7 +726,7 @@ func (p *Parser) parsePoryswitchMovementStatement() ([]string, error) {
 	if !ok {
 		movements, ok = cases["_"]
 		if !ok {
-			return nil, fmt.Errorf("line %d: no poryswitch case found for '%s=%s', which was specified with the '-s' option", startLineNumber, switchCase, switchValue)
+			return nil, NewParseError(startToken, fmt.Sprintf("no poryswitch case found for '%s=%s', which was specified with the '-s' option", switchCase, switchValue))
 		}
 	}
 	p.nextToken()
@@ -726,13 +735,13 @@ func (p *Parser) parsePoryswitchMovementStatement() ([]string, error) {
 
 func (p *Parser) parsePoryswitchMovementCases() (map[string][]string, error) {
 	movementCases := make(map[string][]string)
-	startLineNumber := p.curToken.LineNumber
+	startToken := p.curToken
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.EOF {
-			return nil, fmt.Errorf("line %d: missing closing curly braces for poryswitch statement", startLineNumber)
+			return nil, NewParseError(startToken, "missing closing curly braces for poryswitch statement")
 		}
 		if p.curToken.Type != token.IDENT && p.curToken.Type != token.INT {
-			return nil, fmt.Errorf("line %d: invalid poryswitch case '%s'. Expected a simple identifier", p.curToken.LineNumber, p.curToken.Literal)
+			return nil, NewParseError(p.curToken, fmt.Sprintf("invalid poryswitch case '%s'. Expected a simple identifier", p.curToken.Literal))
 		}
 		caseValue := p.curToken.Literal
 		p.nextToken()
@@ -746,12 +755,12 @@ func (p *Parser) parsePoryswitchMovementCases() (map[string][]string, error) {
 			movementCases[caseValue] = movements
 			if usedBrace {
 				if p.curToken.Type != token.RBRACE {
-					return nil, fmt.Errorf("line %d: missing closing curly brace for poryswitch case '%s'", startLineNumber, caseValue)
+					return nil, NewParseError(p.curToken, fmt.Sprintf("missing closing curly brace for poryswitch case '%s'", caseValue))
 				}
 				p.nextToken()
 			}
 		} else {
-			return nil, fmt.Errorf("line %d: invalid token '%s' after poryswitch case '%s'. Expected ':' or '{'", p.curToken.LineNumber, p.curToken.Literal, caseValue)
+			return nil, NewParseError(p.curToken, fmt.Sprintf("invalid token '%s' after poryswitch case '%s'. Expected ':' or '{'", p.curToken.Literal, caseValue))
 		}
 	}
 	return movementCases, nil
@@ -762,8 +771,9 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 	if err != nil {
 		return nil, nil, err
 	}
+	mapscriptsToken := p.curToken
 	if err := p.expectPeek(token.IDENT); err != nil {
-		return nil, nil, fmt.Errorf("line %d: missing name for mapscripts statement", p.curToken.LineNumber)
+		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing name for mapscripts statement")
 	}
 
 	statement := &ast.MapScriptsStatement{
@@ -779,19 +789,19 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 	implicitTexts := make([]impText, 0)
 
 	if err := p.expectPeek(token.LBRACE); err != nil {
-		return nil, nil, fmt.Errorf("line %d: missing opening curly brace for mapscripts '%s'", p.peekToken.LineNumber, statement.Name.Value)
+		return nil, nil, NewRangeParseError(mapscriptsToken, p.peekToken, fmt.Sprintf("missing opening curly brace for mapscripts '%s'", statement.Name.Value))
 	}
 	p.nextToken()
 
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type != token.IDENT {
-			return nil, nil, fmt.Errorf("line %d: expected map script type, but got '%s' instead", p.curToken.LineNumber, p.curToken.Literal)
+			return nil, nil, NewParseError(p.curToken, fmt.Sprintf("expected map script type, but got '%s' instead", p.curToken.Literal))
 		}
 		mapScriptType := p.curToken.Literal
 		p.nextToken()
 		if p.curToken.Type == token.COLON {
 			if err := p.expectPeek(token.IDENT); err != nil {
-				return nil, nil, fmt.Errorf("line %d: expected map script label after ':', but got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+				return nil, nil, NewParseError(p.peekToken, fmt.Sprintf("expected map script label after ':', but got '%s' instead", p.peekToken.Literal))
 			}
 			statement.MapScripts = append(statement.MapScripts, ast.MapScript{
 				Type:   mapScriptType,
@@ -800,9 +810,10 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 			})
 			p.nextToken()
 		} else if p.curToken.Type == token.LBRACE {
+			braceToken := p.curToken
 			p.nextToken()
 			scriptName := fmt.Sprintf("%s_%s", statement.Name.Value, mapScriptType)
-			blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName)
+			blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName, braceToken)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -825,7 +836,7 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 			i := 0
 			for p.curToken.Type != token.RBRACKET {
 				var sb strings.Builder
-				startLineNumber := p.curToken.LineNumber
+				startToken := p.curToken
 				for p.curToken.Type != token.COMMA {
 					if sb.Len() != 0 {
 						sb.WriteByte(' ')
@@ -833,16 +844,16 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 					sb.WriteString(p.tryReplaceWithConstant(p.curToken.Literal))
 					p.nextToken()
 					if p.curToken.Type == token.EOF {
-						return nil, nil, fmt.Errorf("line %d: missing ',' to specify map script table entry comparison value", startLineNumber)
+						return nil, nil, NewParseError(startToken, "missing ',' to specify map script table entry comparison value")
 					}
 				}
 				conditionValue := sb.String()
 				if len(conditionValue) == 0 {
-					return nil, nil, fmt.Errorf("line %d: expected condition for map script table entry, but it was empty", p.curToken.LineNumber)
+					return nil, nil, NewParseError(startToken, "expected condition for map script table entry, but it was empty")
 				}
 				p.nextToken()
+				endToken := p.curToken
 				sb.Reset()
-				startLineNumber = p.curToken.LineNumber
 				for p.curToken.Type != token.COLON && p.curToken.Type != token.LBRACE {
 					if sb.Len() != 0 {
 						sb.WriteByte(' ')
@@ -850,17 +861,17 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 					sb.WriteString(p.tryReplaceWithConstant(p.curToken.Literal))
 					p.nextToken()
 					if p.curToken.Type == token.EOF {
-						return nil, nil, fmt.Errorf("line %d: missing ':' or '{' to specify map script table entry", startLineNumber)
+						return nil, nil, NewRangeParseError(startToken, endToken, "missing ':' or '{' to specify map script table entry")
 					}
 				}
 				comparisonValue := sb.String()
 				if len(comparisonValue) == 0 {
-					return nil, nil, fmt.Errorf("line %d: expected comparison value for map script table entry, but it was empty", p.curToken.LineNumber)
+					return nil, nil, NewRangeParseError(startToken, p.curToken, "expected comparison value for map script table entry, but it was empty")
 				}
 
 				if p.curToken.Type == token.COLON {
 					if err := p.expectPeek(token.IDENT); err != nil {
-						return nil, nil, fmt.Errorf("line %d: expected map script label after ':', but got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+						return nil, nil, NewParseError(p.peekToken, fmt.Sprintf("expected map script label after ':', but got '%s' instead", p.peekToken.Literal))
 					}
 					tableEntries = append(tableEntries, ast.TableMapScriptEntry{
 						Condition:  conditionValue,
@@ -870,9 +881,10 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 					})
 					p.nextToken()
 				} else if p.curToken.Type == token.LBRACE {
+					braceToken := p.curToken
 					p.nextToken()
 					scriptName := fmt.Sprintf("%s_%s_%d", statement.Name.Value, mapScriptType, i)
-					blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName)
+					blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName, braceToken)
 					if err != nil {
 						return nil, nil, err
 					}
@@ -907,7 +919,7 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 
 func (p *Parser) parseFormatStringOperator() (string, string, error) {
 	if err := p.expectPeek(token.LPAREN); err != nil {
-		return "", "", fmt.Errorf("line %d: format operator must begin with an open parenthesis '('", p.peekToken.LineNumber)
+		return "", "", NewRangeParseError(p.curToken, p.peekToken, "format operator must begin with an open parenthesis '('")
 	}
 	stringType := ""
 	if p.peekTokenIs(token.STRINGTYPE) {
@@ -915,21 +927,22 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 		stringType = p.curToken.Literal
 	}
 	if err := p.expectPeek(token.STRING); err != nil {
-		return "", "", fmt.Errorf("line %d: invalid format() argument '%s'. Expected a string literal", p.peekToken.LineNumber, p.peekToken.Literal)
+		return "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() argument '%s'. Expected a string literal", p.peekToken.Literal))
 	}
-	lineNum := p.curToken.LineNumber
 	rawText := p.curToken.Literal
 	var fontID string
+	var fontIdToken token.Token
 	maxTextLength := p.maxLineLength
 	if p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		if p.peekTokenIs(token.STRING) {
 			p.nextToken()
 			fontID = p.curToken.Literal
+			fontIdToken = p.curToken
 			if p.peekTokenIs(token.COMMA) {
 				p.nextToken()
 				if err := p.expectPeek(token.INT); err != nil {
-					return "", "", fmt.Errorf("line %d: invalid format() maxLineLength '%s'. Expected integer", p.peekToken.LineNumber, p.peekToken.Literal)
+					return "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() maxLineLength '%s'. Expected integer", p.peekToken.Literal))
 				}
 				num, _ := strconv.ParseInt(p.curToken.Literal, 0, 64)
 				maxTextLength = int(num)
@@ -941,20 +954,21 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 			if p.peekTokenIs(token.COMMA) {
 				p.nextToken()
 				if err := p.expectPeek(token.STRING); err != nil {
-					return "", "", fmt.Errorf("line %d: invalid format() fontId '%s'. Expected string", p.peekToken.LineNumber, p.peekToken.Literal)
+					return "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() fontId '%s'. Expected string", p.peekToken.Literal))
 				}
 				fontID = p.curToken.Literal
+				fontIdToken = p.curToken
 			}
 		} else {
-			return "", "", fmt.Errorf("line %d: invalid format() parameter '%s'. Expected either fontId (string) or maxLineLength (integer)", p.peekToken.LineNumber, p.peekToken.Literal)
+			return "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() parameter '%s'. Expected either fontId (string) or maxLineLength (integer)", p.peekToken.Literal))
 		}
 	}
 	if err := p.expectPeek(token.RPAREN); err != nil {
-		return "", "", fmt.Errorf("line %d: missing closing parenthesis ')' for format()", p.peekToken.LineNumber)
+		return "", "", NewParseError(p.peekToken, "missing closing parenthesis ')' for format()")
 	}
 	if p.fonts == nil {
 		fw, err := LoadFontWidths(p.fontConfigFilepath)
-		if err != nil {
+		if err != nil && p.enableEnvironmentErrors {
 			log.Printf("PORYSCRIPT WARNING: Failed to load fonts JSON config file. Text auto-formatting will not work. Please specify a valid font config filepath with -fw option. '%s'\n", err.Error())
 		}
 		p.fonts = &fw
@@ -967,8 +981,8 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 		}
 	}
 	formatted, err := p.fonts.FormatText(rawText, maxTextLength, fontID)
-	if err != nil {
-		return "", "", fmt.Errorf("line %d: %s", lineNum, err.Error())
+	if err != nil && p.enableEnvironmentErrors {
+		return "", "", NewParseError(fontIdToken, err.Error())
 	}
 	return formatted, stringType, nil
 }
@@ -1002,10 +1016,11 @@ func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, []impTex
 	if p.peekToken.Type == token.ELSE {
 		p.nextToken()
 		if err := p.expectPeek(token.LBRACE); err != nil {
-			return nil, nil, fmt.Errorf("line %d: missing opening curly brace of else statement", p.curToken.LineNumber)
+			return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing opening curly brace of else statement")
 		}
+		braceToken := p.curToken
 		p.nextToken()
-		blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName)
+		blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName, braceToken)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1048,10 +1063,11 @@ func (p *Parser) parseDoWhileStatement(scriptName string) (*ast.DoWhileStatement
 	expression := &ast.ConditionExpression{}
 
 	if err := p.expectPeek(token.LBRACE); err != nil {
-		return nil, nil, fmt.Errorf("line %d: missing opening curly brace of do...while statement", p.curToken.LineNumber)
+		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing opening curly brace of do...while statement")
 	}
+	braceToken := p.curToken
 	p.nextToken()
-	blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName)
+	blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName, braceToken)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1061,10 +1077,10 @@ func (p *Parser) parseDoWhileStatement(scriptName string) (*ast.DoWhileStatement
 	p.popContinueStack()
 
 	if err := p.expectPeek(token.WHILE); err != nil {
-		return nil, nil, fmt.Errorf("line %d: missing 'while' after body of do...while statement", p.curToken.LineNumber)
+		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing 'while' after body of do...while statement")
 	}
 	if err := p.expectPeek(token.LPAREN); err != nil {
-		return nil, nil, fmt.Errorf("line %d: missing '(' to start condition for do...while statement", p.curToken.LineNumber)
+		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing '(' to start condition for do...while statement")
 	}
 
 	boolExpression, err := p.parseBooleanExpression(false, false)
@@ -1082,7 +1098,7 @@ func (p *Parser) parseBreakStatement(scriptName string) (*ast.BreakStatement, er
 	}
 
 	if p.peekBreakStack() == nil {
-		return nil, fmt.Errorf("line %d: 'break' statement outside of any break-able scope", p.curToken.LineNumber)
+		return nil, NewParseError(p.curToken, "'break' statement outside of any break-able scope")
 	}
 	statement.ScopeStatment = p.peekBreakStack()
 
@@ -1095,12 +1111,12 @@ func (p *Parser) parseContinueStatement(scriptName string) (*ast.ContinueStateme
 	}
 
 	if p.peekContinueStack() == nil {
-		return nil, fmt.Errorf("line %d: 'continue' statement outside of any continue-able scope", p.curToken.LineNumber)
+		return nil, NewParseError(p.curToken, "'continue' statement outside of any continue-able scope")
 	}
 	statement.LoopStatment = p.peekContinueStack()
 
 	if p.peekToken.Type != token.RBRACE {
-		return nil, fmt.Errorf("line %d: 'continue' must be the last statement in block scope", p.peekToken.LineNumber)
+		return nil, NewParseError(p.curToken, "'continue' must be the last statement in block scope")
 	}
 
 	return statement, nil
@@ -1113,23 +1129,23 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	}
 	implicitTexts := make([]impText, 0)
 	p.pushBreakStack(statement)
-	originalLineNumber := p.curToken.LineNumber
+	originalToken := p.curToken
 
 	if err := p.expectPeek(token.LPAREN); err != nil {
-		return nil, nil, fmt.Errorf("line %d: missing opening parenthesis of switch statement operand", p.curToken.LineNumber)
+		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing opening parenthesis of switch statement operand")
 	}
 	if err := p.expectPeek(token.VAR); err != nil {
-		return nil, nil, fmt.Errorf("line %d: invalid switch statement operand '%s'. Must be 'var`", p.peekToken.LineNumber, p.peekToken.Literal)
+		return nil, nil, NewParseError(p.peekToken, fmt.Sprintf("invalid switch statement operand '%s'. Must be 'var`", p.peekToken.Literal))
 	}
 	if err := p.expectPeek(token.LPAREN); err != nil {
-		return nil, nil, fmt.Errorf("line %d: missing '(' after var operator. Got '%s` instead", p.peekToken.LineNumber, p.peekToken.Literal)
+		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, fmt.Sprintf("missing '(' after var operator. Got '%s` instead", p.peekToken.Literal))
 	}
 
 	p.nextToken()
 	parts := []string{}
 	for p.curToken.Type != token.RPAREN {
 		if p.curToken.Type == token.EOF {
-			return nil, nil, fmt.Errorf("line %d: missing closing parenthesis of switch statement value", originalLineNumber)
+			return nil, nil, NewParseError(originalToken, "missing closing parenthesis of switch statement value")
 		}
 		parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 		p.nextToken()
@@ -1138,32 +1154,33 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	statement.Operand = strings.Join(parts, " ")
 
 	if err := p.expectPeek(token.LBRACE); err != nil {
-		return nil, nil, fmt.Errorf("line %d: missing opening curly brace of switch statement", p.curToken.LineNumber)
+		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing opening curly brace of switch statement")
 	}
+	braceToken := p.curToken
 	p.nextToken()
 
 	// Parse each of the switch cases, including "default".
 	caseValues := make(map[string]bool)
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.CASE {
-			caseLineNum := p.curToken.LineNumber
+			caseToken := p.curToken
 			p.nextToken()
 			parts := []string{}
 			for p.curToken.Type != token.COLON {
 				parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 				p.nextToken()
 				if p.curToken.Type == token.EOF {
-					return nil, nil, fmt.Errorf("line %d: missing `:` after 'case'", caseLineNum)
+					return nil, nil, NewParseError(caseToken, "missing `:` after 'case'")
 				}
 			}
 			caseValue := strings.Join(parts, " ")
 			if caseValues[caseValue] {
-				return nil, nil, fmt.Errorf("line %d: duplicate switch cases detected for case '%s'", p.curToken.LineNumber, caseValue)
+				return nil, nil, NewRangeParseError(caseToken, p.curToken, fmt.Sprintf("duplicate switch cases detected for case '%s'", caseValue))
 			}
 			caseValues[caseValue] = true
 			p.nextToken()
 
-			body, stmtTexts, err := p.parseSwitchBlockStatement(scriptName)
+			body, stmtTexts, err := p.parseSwitchBlockStatement(scriptName, braceToken)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1174,13 +1191,13 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 			})
 		} else if p.curToken.Type == token.DEFAULT {
 			if statement.DefaultCase != nil {
-				return nil, nil, fmt.Errorf("line %d: multiple `default` cases found in switch statement. Only one `default` case is allowed", p.peekToken.LineNumber)
+				return nil, nil, NewParseError(p.curToken, "multiple `default` cases found in switch statement. Only one `default` case is allowed")
 			}
 			if err := p.expectPeek(token.COLON); err != nil {
-				return nil, nil, fmt.Errorf("line %d: missing `:` after default", p.curToken.LineNumber)
+				return nil, nil, NewParseError(p.curToken, "missing `:` after default")
 			}
 			p.nextToken()
-			body, stmtTexts, err := p.parseSwitchBlockStatement(scriptName)
+			body, stmtTexts, err := p.parseSwitchBlockStatement(scriptName, braceToken)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1193,14 +1210,14 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 				Body: body,
 			}
 		} else {
-			return nil, nil, fmt.Errorf("line %d: invalid start of switch case '%s'. Expected 'case' or 'default'", p.curToken.LineNumber, p.curToken.Literal)
+			return nil, nil, NewParseError(p.curToken, fmt.Sprintf("invalid start of switch case '%s'. Expected 'case' or 'default'", p.curToken.Literal))
 		}
 	}
 
 	p.popBreakStack()
 
 	if len(statement.Cases) == 0 && statement.DefaultCase == nil {
-		return nil, nil, fmt.Errorf("line %d: switch statement has no cases or default case", originalLineNumber)
+		return nil, nil, NewRangeParseError(statement.Token, p.curToken, "switch statement has no cases or default case")
 	}
 
 	return statement, implicitTexts, nil
@@ -1212,7 +1229,7 @@ func (p *Parser) parseConditionExpression(scriptName string, requireExpression b
 
 	if requireExpression || !p.peekTokenIs(token.LBRACE) {
 		if err := p.expectPeek(token.LPAREN); err != nil {
-			return nil, nil, fmt.Errorf("line %d: missing '(' to start boolean expression", p.peekToken.LineNumber)
+			return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing '(' to start boolean expression")
 		}
 		boolExpression, err := p.parseBooleanExpression(false, false)
 		if err != nil {
@@ -1223,9 +1240,10 @@ func (p *Parser) parseConditionExpression(scriptName string, requireExpression b
 	if err := p.expectPeek(token.LBRACE); err != nil {
 		return nil, nil, err
 	}
+	braceToken := p.curToken
 	p.nextToken()
 
-	blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName)
+	blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName, braceToken)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1242,6 +1260,7 @@ func (p *Parser) parseBooleanExpression(single bool, negated bool) (ast.BooleanE
 		// If a NOT operator is used before a nested expression, distribute
 		// it to the nested expression (i.e. De Morgan's law).
 		p.nextToken()
+		openToken := p.curToken
 		if nested {
 			negatedNested = negated
 		} else if negatedNested {
@@ -1253,7 +1272,7 @@ func (p *Parser) parseBooleanExpression(single bool, negated bool) (ast.BooleanE
 			return nil, err
 		}
 		if p.curToken.Type != token.RPAREN {
-			return nil, fmt.Errorf("line %d: missing closing ')' for nested boolean expression", p.curToken.LineNumber)
+			return nil, NewRangeParseError(openToken, p.curToken, "missing closing ')' for nested boolean expression")
 		}
 		if p.peekTokenIs(token.AND) || p.peekTokenIs(token.OR) {
 			p.nextToken()
@@ -1355,25 +1374,25 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 	}
 
 	if !p.peekTokenIs(token.VAR) && !p.peekTokenIs(token.FLAG) && !p.peekTokenIs(token.DEFEATED) {
-		return nil, fmt.Errorf("line %d: left side of binary expression must be var(), flag(), or defeated() operator. Instead, found '%s'", p.curToken.LineNumber, p.peekToken.Literal)
+		return nil, NewParseError(p.peekToken, fmt.Sprintf("left side of binary expression must be var(), flag(), or defeated() operator. Instead, found '%s'", p.peekToken.Literal))
 	}
 	p.nextToken()
-	operatorExpression.Type = p.curToken.Type
+	operatorToken := p.curToken
+	operatorExpression.Type = operatorToken.Type
 
 	if err := p.expectPeek(token.LPAREN); err != nil {
-		return nil, fmt.Errorf("line %d: missing opening parenthesis for condition operator '%s'", p.curToken.LineNumber, operatorExpression.Type)
+		return nil, NewRangeParseError(operatorToken, p.peekToken, fmt.Sprintf("missing opening parenthesis for condition operator '%s'", operatorExpression.Type))
 	}
 	if p.peekToken.Type == token.RPAREN {
-		return nil, fmt.Errorf("line %d: missing value for condition operator '%s'", p.curToken.LineNumber, operatorExpression.Type)
+		return nil, NewRangeParseError(operatorToken, p.peekToken, fmt.Sprintf("missing value for condition operator '%s'", operatorExpression.Type))
 	}
 	p.nextToken()
 	parts := []string{}
-	lineNum := p.curToken.LineNumber
 	for p.curToken.Type != token.RPAREN {
 		parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 		p.nextToken()
 		if p.curToken.Type == token.EOF {
-			return nil, fmt.Errorf("line %d: missing closing ')' for condition operator value", lineNum)
+			return nil, NewParseError(operatorToken, "missing closing ')' for condition operator value")
 		}
 	}
 	operatorExpression.Operand = strings.Join(parts, " ")
@@ -1415,14 +1434,16 @@ func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) e
 		expression.ComparisonValue = "0"
 		return nil
 	}
-	expression.Operator = p.curToken.Type
+	operatorToken := p.curToken
+	expression.Operator = operatorToken.Type
 	p.nextToken()
 
 	if p.curToken.Type == token.RPAREN {
-		return fmt.Errorf("line %d: missing comparison value for var operator", p.curToken.LineNumber)
+		return NewRangeParseError(operatorToken, p.curToken, "missing comparison value for var operator")
 	}
 
 	if p.curToken.Type == token.VALUE {
+		valueToken := p.curToken
 		if err := p.expectPeek(token.LPAREN); err != nil {
 			return err
 		}
@@ -1431,7 +1452,6 @@ func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) e
 
 		numOpenParens := 0
 		parts := []string{}
-		lineNum := p.curToken.LineNumber
 		for {
 			if p.curToken.Type == token.LPAREN {
 				numOpenParens += 1
@@ -1449,18 +1469,18 @@ func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) e
 			parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 			p.nextToken()
 			if p.curToken.Type == token.EOF {
-				return fmt.Errorf("line %d: missing ')' when evaluating 'value'", lineNum)
+				return NewParseError(valueToken, "missing ')' when evaluating 'value'")
 			}
 		}
 		expression.ComparisonValue = strings.Join(parts, " ")
 	} else {
 		parts := []string{}
-		lineNum := p.curToken.LineNumber
+		startToken := p.curToken
 		for p.curToken.Type != token.RPAREN && p.curToken.Type != token.AND && p.curToken.Type != token.OR {
 			parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 			p.nextToken()
 			if p.curToken.Type == token.EOF {
-				return fmt.Errorf("line %d: missing ')', '&&' or '||' when evaluating 'var' operator", lineNum)
+				return NewRangeParseError(startToken, p.curToken, "missing ')', '&&' or '||' when evaluating 'var' operator")
 			}
 		}
 		expression.ComparisonValue = strings.Join(parts, " ")
@@ -1477,15 +1497,16 @@ func (p *Parser) parseConditionFlagLikeOperator(expression *ast.OperatorExpressi
 		return nil
 	}
 
-	expression.Operator = p.curToken.Type
+	operatorToken := p.curToken
+	expression.Operator = operatorToken.Type
 	p.nextToken()
 
 	if p.curToken.Type == token.RPAREN {
-		return fmt.Errorf("line %d: missing comparison value for %s operator", p.curToken.LineNumber, operatorName)
+		return NewRangeParseError(operatorToken, p.curToken, fmt.Sprintf("missing comparison value for %s operator", operatorName))
 	}
 
 	if p.curToken.Type != token.TRUE && p.curToken.Type != token.FALSE {
-		return fmt.Errorf("line %d: invalid %s comparison value '%s'. Only TRUE and FALSE are allowed", p.curToken.LineNumber, operatorName, p.curToken.Literal)
+		return NewParseError(p.curToken, fmt.Sprintf("invalid %s comparison value '%s'. Only TRUE and FALSE are allowed", operatorName, p.curToken.Literal))
 	}
 	expression.ComparisonValue = string(p.curToken.Type)
 	p.nextToken()
@@ -1511,7 +1532,7 @@ func (p *Parser) formatTextTerminator(text string, strType string) string {
 }
 
 func (p *Parser) parsePoryswitchStatement(scriptName string) ([]ast.Statement, []impText, error) {
-	startLineNumber := p.curToken.LineNumber
+	startToken := p.curToken
 	switchCase, switchValue, err := p.parsePoryswitchHeader()
 	if err != nil {
 		return nil, nil, err
@@ -1524,14 +1545,14 @@ func (p *Parser) parsePoryswitchStatement(scriptName string) ([]ast.Statement, [
 	if !ok {
 		statements, ok = cases["_"]
 		if !ok {
-			return nil, nil, fmt.Errorf("line %d: no poryswitch case found for '%s=%s', which was specified with the '-s' option", startLineNumber, switchCase, switchValue)
+			return nil, nil, NewParseError(startToken, fmt.Sprintf("no poryswitch case found for '%s=%s', which was specified with the '-s' option", switchCase, switchValue))
 		}
 	}
 	implicitTexts, ok := caseTexts[switchValue]
 	if !ok {
 		implicitTexts, ok = caseTexts["_"]
 		if !ok {
-			return nil, nil, fmt.Errorf("line %d: no poryswitch case found for '%s=%s', which was specified with the '-s' option", startLineNumber, switchCase, switchValue)
+			return nil, nil, NewParseError(startToken, fmt.Sprintf("no poryswitch case found for '%s=%s', which was specified with the '-s' option", switchCase, switchValue))
 		}
 	}
 	return statements, implicitTexts, nil
@@ -1540,15 +1561,15 @@ func (p *Parser) parsePoryswitchStatement(scriptName string) ([]ast.Statement, [
 func (p *Parser) parsePoryswitchStatementCases(scriptName string) (map[string][]ast.Statement, map[string][]impText, error) {
 	statementCases := make(map[string][]ast.Statement)
 	implicitTexts := make(map[string][]impText)
-	startLineNumber := p.curToken.LineNumber
+	startToken := p.curToken
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.EOF {
-			return nil, nil, fmt.Errorf("line %d: missing closing curly braces for poryswitch statement", startLineNumber)
+			return nil, nil, NewParseError(startToken, "missing closing curly braces for poryswitch statement")
 		}
 		if p.curToken.Type != token.IDENT && p.curToken.Type != token.INT {
-			return nil, nil, fmt.Errorf("line %d: invalid poryswitch case '%s'. Expected a simple identifier", p.curToken.LineNumber, p.curToken.Literal)
+			return nil, nil, NewParseError(p.curToken, fmt.Sprintf("invalid poryswitch case '%s'. Expected a simple identifier", p.curToken.Literal))
 		}
-		caseValue := p.curToken.Literal
+		caseToken := p.curToken
 		p.nextToken()
 		if p.curToken.Type == token.COLON || p.curToken.Type == token.LBRACE {
 			usedBrace := p.curToken.Type == token.LBRACE
@@ -1557,16 +1578,16 @@ func (p *Parser) parsePoryswitchStatementCases(scriptName string) (map[string][]
 			if err != nil {
 				return nil, nil, err
 			}
-			statementCases[caseValue] = statements
-			implicitTexts[caseValue] = stmtTexts
+			statementCases[caseToken.Literal] = statements
+			implicitTexts[caseToken.Literal] = stmtTexts
 			if usedBrace {
 				if p.curToken.Type != token.RBRACE {
-					return nil, nil, fmt.Errorf("line %d: missing closing curly brace for poryswitch case '%s'", startLineNumber, caseValue)
+					return nil, nil, NewParseError(caseToken, fmt.Sprintf("missing closing curly brace for poryswitch case '%s'", caseToken.Literal))
 				}
 				p.nextToken()
 			}
 		} else {
-			return nil, nil, fmt.Errorf("line %d: invalid token '%s' after poryswitch case '%s'. Expected ':' or '{'", p.curToken.LineNumber, p.curToken.Literal, caseValue)
+			return nil, nil, NewParseError(p.curToken, fmt.Sprintf("invalid token '%s' after poryswitch case '%s'. Expected ':' or '{'", p.curToken.Literal, caseToken.Literal))
 		}
 	}
 	return statementCases, implicitTexts, nil
@@ -1601,17 +1622,18 @@ func (p *Parser) parsePoryswitchStatements(scriptName string, allowMultiple bool
 }
 
 func (p *Parser) parseConstant() error {
-	initialLineNumber := p.curToken.LineNumber
+	initialToken := p.curToken
 	if err := p.expectPeek(token.IDENT); err != nil {
-		return fmt.Errorf("line %d: expected identifier after const, but got '%s' instead", p.peekToken.LineNumber, p.peekToken.Literal)
+		return NewParseError(p.peekToken, fmt.Sprintf("expected identifier after const, but got '%s' instead", p.peekToken.Literal))
 	}
 	constName := p.curToken.Literal
 	if _, ok := p.constants[constName]; ok {
-		return fmt.Errorf("line %d: duplicate const '%s'. Must use unique const names", p.curToken.LineNumber, constName)
+		return NewParseError(p.curToken, fmt.Sprintf("duplicate const '%s'. Must use unique const names", constName))
 	}
 	if err := p.expectPeek(token.ASSIGN); err != nil {
-		return fmt.Errorf("line %d: missing equals sign after const name '%s'", p.peekToken.LineNumber, constName)
+		return NewParseError(p.curToken, fmt.Sprintf("missing equals sign after const name '%s'", constName))
 	}
+	equalsToken := p.curToken
 
 	var sb strings.Builder
 	for {
@@ -1627,7 +1649,7 @@ func (p *Parser) parseConstant() error {
 	}
 
 	if sb.Len() == 0 {
-		return fmt.Errorf("line %d: missing value for const '%s'", initialLineNumber, constName)
+		return NewRangeParseError(initialToken, equalsToken, fmt.Sprintf("missing value for const '%s'", constName))
 	}
 	p.constants[constName] = sb.String()
 	return nil

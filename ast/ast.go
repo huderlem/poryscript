@@ -23,6 +23,7 @@ type Text struct {
 	Value      string
 	StringType string
 	IsGlobal   bool
+	Token      token.Token
 }
 
 // Program represents the root-level Node in any Poryscript AST.

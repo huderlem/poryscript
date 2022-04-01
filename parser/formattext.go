@@ -41,7 +41,7 @@ func (fw *FontWidthsConfig) FormatText(text string, maxWidth int, fontID string)
 			validFontIDs[i] = k
 			i++
 		}
-		return "", fmt.Errorf("Unknown fontID '%s' used in format(). List of valid fontIDs are '%s'", fontID, validFontIDs)
+		return "", fmt.Errorf("unknown fontID '%s' used in format(). List of valid fontIDs are '%s'", fontID, validFontIDs)
 	}
 
 	text = strings.ReplaceAll(text, "\n", " ")
