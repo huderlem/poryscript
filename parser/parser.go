@@ -638,7 +638,7 @@ func (p *Parser) parsePoryswitchTextStatement() (string, string, error) {
 func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
 	statement := &ast.MovementStatement{
 		Token:            p.curToken,
-		MovementCommands: []string{},
+		MovementCommands: []token.Token{},
 	}
 	scope, err := p.parseScopeModifier(token.LOCAL)
 	if err != nil {
@@ -666,8 +666,8 @@ func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
 	return statement, nil
 }
 
-func (p *Parser) parseMovementValue(allowMultiple bool) ([]string, error) {
-	movementCommands := make([]string, 0)
+func (p *Parser) parseMovementValue(allowMultiple bool) ([]token.Token, error) {
+	movementCommands := make([]token.Token, 0)
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.PORYSWITCH {
 			poryswitchCommands, err := p.parsePoryswitchMovementStatement()
@@ -676,7 +676,7 @@ func (p *Parser) parseMovementValue(allowMultiple bool) ([]string, error) {
 			}
 			movementCommands = append(movementCommands, poryswitchCommands...)
 		} else if p.curToken.Type == token.IDENT {
-			moveCommand := p.curToken.Literal
+			moveCommand := p.curToken
 			p.nextToken()
 			if p.curToken.Type == token.MUL {
 				p.nextToken()
@@ -712,7 +712,7 @@ func (p *Parser) parseMovementValue(allowMultiple bool) ([]string, error) {
 	return movementCommands, nil
 }
 
-func (p *Parser) parsePoryswitchMovementStatement() ([]string, error) {
+func (p *Parser) parsePoryswitchMovementStatement() ([]token.Token, error) {
 	startToken := p.curToken
 	switchCase, switchValue, err := p.parsePoryswitchHeader()
 	if err != nil {
@@ -733,8 +733,8 @@ func (p *Parser) parsePoryswitchMovementStatement() ([]string, error) {
 	return movements, nil
 }
 
-func (p *Parser) parsePoryswitchMovementCases() (map[string][]string, error) {
-	movementCases := make(map[string][]string)
+func (p *Parser) parsePoryswitchMovementCases() (map[string][]token.Token, error) {
+	movementCases := make(map[string][]token.Token)
 	startToken := p.curToken
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.EOF {

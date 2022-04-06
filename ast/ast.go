@@ -14,6 +14,7 @@ type Node interface {
 // Statement is an interface that represents a statement node in a Poryscript AST.
 type Statement interface {
 	Node
+	AllChildren() []Statement
 	statementNode()
 }
 
@@ -49,6 +50,10 @@ type ScriptStatement struct {
 	Scope token.Type
 }
 
+func (ss *ScriptStatement) AllChildren() []Statement {
+	return append([]Statement{ss.Body}, ss.Body.AllChildren()...)
+}
+
 func (ss *ScriptStatement) statementNode() {}
 
 // TokenLiteral returns a string representation of the script statement.
@@ -59,6 +64,14 @@ func (ss *ScriptStatement) TokenLiteral() string { return ss.Token.Literal }
 type BlockStatement struct {
 	Token      token.Token
 	Statements []Statement
+}
+
+func (bs *BlockStatement) AllChildren() []Statement {
+	children := bs.Statements
+	for _, s := range bs.Statements {
+		children = append(children, s.AllChildren()...)
+	}
+	return children
 }
 
 func (bs *BlockStatement) statementNode() {}
@@ -72,6 +85,10 @@ type CommandStatement struct {
 	Token token.Token
 	Name  *Identifier
 	Args  []string
+}
+
+func (cs *CommandStatement) AllChildren() []Statement {
+	return []Statement{}
 }
 
 func (cs *CommandStatement) statementNode() {}
@@ -97,6 +114,10 @@ type RawStatement struct {
 	Value string
 }
 
+func (rs *RawStatement) AllChildren() []Statement {
+	return []Statement{}
+}
+
 func (rs *RawStatement) statementNode() {}
 
 // TokenLiteral returns a string representation of the raw statement.
@@ -112,6 +133,10 @@ type TextStatement struct {
 	Scope      token.Type
 }
 
+func (ts *TextStatement) AllChildren() []Statement {
+	return []Statement{}
+}
+
 func (ts *TextStatement) statementNode() {}
 
 // TokenLiteral returns a string representation of the text statement.
@@ -122,8 +147,12 @@ func (ts *TextStatement) TokenLiteral() string { return ts.Token.Literal }
 type MovementStatement struct {
 	Token            token.Token
 	Name             *Identifier
-	MovementCommands []string
+	MovementCommands []token.Token
 	Scope            token.Type
+}
+
+func (ms *MovementStatement) AllChildren() []Statement {
+	return []Statement{}
 }
 
 func (ms *MovementStatement) statementNode() {}
@@ -191,6 +220,25 @@ type IfStatement struct {
 	ElseConsequence  *BlockStatement
 }
 
+func (is *IfStatement) AllChildren() []Statement {
+	children := []Statement{}
+	if is.Consequence != nil {
+		children = append(children, is.Consequence.Body)
+		children = append(children, is.Consequence.Body.AllChildren()...)
+	}
+	for _, c := range is.ElifConsequences {
+		if c != nil {
+			children = append(children, c.Body)
+			children = append(children, c.Body.AllChildren()...)
+		}
+	}
+	if is.ElseConsequence != nil {
+		children = append(children, is.ElseConsequence)
+		children = append(children, is.ElseConsequence.AllChildren()...)
+	}
+	return children
+}
+
 func (is *IfStatement) statementNode() {}
 
 // TokenLiteral returns a string representation of the if statement.
@@ -200,6 +248,13 @@ func (is *IfStatement) TokenLiteral() string { return is.Token.Literal }
 type WhileStatement struct {
 	Token       token.Token
 	Consequence *ConditionExpression
+}
+
+func (ws *WhileStatement) AllChildren() []Statement {
+	if ws.Consequence == nil {
+		return []Statement{}
+	}
+	return append([]Statement{ws.Consequence.Body}, ws.Consequence.Body.AllChildren()...)
 }
 
 func (ws *WhileStatement) statementNode() {}
@@ -213,6 +268,13 @@ type DoWhileStatement struct {
 	Consequence *ConditionExpression
 }
 
+func (dws *DoWhileStatement) AllChildren() []Statement {
+	if dws.Consequence == nil {
+		return []Statement{}
+	}
+	return append([]Statement{dws.Consequence.Body}, dws.Consequence.Body.AllChildren()...)
+}
+
 func (dws *DoWhileStatement) statementNode() {}
 
 // TokenLiteral returns a string representation of the do...while statement.
@@ -224,6 +286,10 @@ type BreakStatement struct {
 	ScopeStatment Statement
 }
 
+func (bs *BreakStatement) AllChildren() []Statement {
+	return []Statement{}
+}
+
 func (bs *BreakStatement) statementNode() {}
 
 // TokenLiteral returns a string representation of the break statement.
@@ -233,6 +299,10 @@ func (bs *BreakStatement) TokenLiteral() string { return bs.Token.Literal }
 type ContinueStatement struct {
 	Token        token.Token
 	LoopStatment Statement
+}
+
+func (cs *ContinueStatement) AllChildren() []Statement {
+	return []Statement{}
 }
 
 func (cs *ContinueStatement) statementNode() {}
@@ -255,10 +325,25 @@ type SwitchStatement struct {
 	DefaultCase *SwitchCase
 }
 
-func (cs *SwitchStatement) statementNode() {}
+func (ss *SwitchStatement) AllChildren() []Statement {
+	children := []Statement{}
+	for _, c := range ss.Cases {
+		if c != nil && c.Body != nil {
+			children = append(children, c.Body)
+			children = append(children, c.Body.AllChildren()...)
+		}
+	}
+	if ss.DefaultCase != nil && ss.DefaultCase.Body != nil {
+		children = append(children, ss.DefaultCase.Body)
+		children = append(children, ss.DefaultCase.Body.AllChildren()...)
+	}
+	return children
+}
+
+func (ss *SwitchStatement) statementNode() {}
 
 // TokenLiteral returns a string representation of the switch statement.
-func (cs *SwitchStatement) TokenLiteral() string { return cs.Token.Literal }
+func (ss *SwitchStatement) TokenLiteral() string { return ss.Token.Literal }
 
 // MapScript is a single map script with either an inline script implementation or a symbol.
 type MapScript struct {
@@ -290,6 +375,25 @@ type MapScriptsStatement struct {
 	MapScripts      []MapScript
 	TableMapScripts []TableMapScript
 	Scope           token.Type
+}
+
+func (ss *MapScriptsStatement) AllChildren() []Statement {
+	children := []Statement{}
+	for _, script := range ss.MapScripts {
+		if script.Script != nil {
+			children = append(children, script.Script)
+			children = append(children, script.Script.AllChildren()...)
+		}
+	}
+	for _, table := range ss.TableMapScripts {
+		for _, entry := range table.Entries {
+			if entry.Script != nil {
+				children = append(children, entry.Script)
+				children = append(children, entry.Script.AllChildren()...)
+			}
+		}
+	}
+	return children
 }
 
 func (ms *MapScriptsStatement) statementNode() {}
