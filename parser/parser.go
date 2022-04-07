@@ -628,7 +628,7 @@ func (p *Parser) parsePoryswitchTextStatement() (string, string, error) {
 	strValue, ok := cases[switchValue]
 	if !ok {
 		strValue, ok = cases["_"]
-		if !ok {
+		if !ok && p.enableEnvironmentErrors {
 			return "", "", NewParseError(startToken, fmt.Sprintf("no poryswitch case found for '%s=%s', which was specified with the '-s' option", switchCase, switchValue))
 		}
 	}
@@ -725,7 +725,7 @@ func (p *Parser) parsePoryswitchMovementStatement() ([]token.Token, error) {
 	movements, ok := cases[switchValue]
 	if !ok {
 		movements, ok = cases["_"]
-		if !ok {
+		if !ok && p.enableEnvironmentErrors {
 			return nil, NewParseError(startToken, fmt.Sprintf("no poryswitch case found for '%s=%s', which was specified with the '-s' option", switchCase, switchValue))
 		}
 	}
@@ -1544,14 +1544,14 @@ func (p *Parser) parsePoryswitchStatement(scriptName string) ([]ast.Statement, [
 	statements, ok := cases[switchValue]
 	if !ok {
 		statements, ok = cases["_"]
-		if !ok {
+		if !ok && p.enableEnvironmentErrors {
 			return nil, nil, NewParseError(startToken, fmt.Sprintf("no poryswitch case found for '%s=%s', which was specified with the '-s' option", switchCase, switchValue))
 		}
 	}
 	implicitTexts, ok := caseTexts[switchValue]
 	if !ok {
 		implicitTexts, ok = caseTexts["_"]
-		if !ok {
+		if !ok && p.enableEnvironmentErrors {
 			return nil, nil, NewParseError(startToken, fmt.Sprintf("no poryswitch case found for '%s=%s', which was specified with the '-s' option", switchCase, switchValue))
 		}
 	}
