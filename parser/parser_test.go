@@ -1020,7 +1020,7 @@ func TestErrors(t *testing.T) {
 script Script1 {
 	break
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, CharEnd: 6, Message: "'break' statement outside of any break-able scope"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, Utf8CharStart: 1, CharEnd: 6, Utf8CharEnd: 6, Message: "'break' statement outside of any break-able scope"},
 			expectedErrorMsg: "line 3: 'break' statement outside of any break-able scope",
 		},
 		{
@@ -1032,7 +1032,7 @@ script Script1 {
 	}
 	break
 }`,
-			expectedError:    ParseError{LineNumberStart: 7, LineNumberEnd: 7, CharStart: 1, CharEnd: 6, Message: "'break' statement outside of any break-able scope"},
+			expectedError:    ParseError{LineNumberStart: 7, LineNumberEnd: 7, CharStart: 1, Utf8CharStart: 1, CharEnd: 6, Utf8CharEnd: 6, Message: "'break' statement outside of any break-able scope"},
 			expectedErrorMsg: "line 7: 'break' statement outside of any break-able scope",
 		},
 		{
@@ -1044,7 +1044,7 @@ script Script1 {
 	}
 	continue
 }`,
-			expectedError:    ParseError{LineNumberStart: 7, LineNumberEnd: 7, CharStart: 1, CharEnd: 9, Message: "'continue' statement outside of any continue-able scope"},
+			expectedError:    ParseError{LineNumberStart: 7, LineNumberEnd: 7, CharStart: 1, Utf8CharStart: 1, CharEnd: 9, Utf8CharEnd: 9, Message: "'continue' statement outside of any continue-able scope"},
 			expectedErrorMsg: "line 7: 'continue' statement outside of any continue-able scope",
 		},
 		{
@@ -1058,7 +1058,7 @@ script Script1 {
 		continue
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 8, LineNumberEnd: 8, CharStart: 2, CharEnd: 10, Message: "'continue' statement outside of any continue-able scope"},
+			expectedError:    ParseError{LineNumberStart: 8, LineNumberEnd: 8, CharStart: 2, Utf8CharStart: 2, CharEnd: 10, Utf8CharEnd: 10, Message: "'continue' statement outside of any continue-able scope"},
 			expectedErrorMsg: "line 8: 'continue' statement outside of any continue-able scope",
 		},
 		{
@@ -1067,14 +1067,14 @@ script Script1 {}
 raw ` + "``" + `
 invalid
 `,
-			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 0, CharEnd: 7, Message: "could not parse top-level statement for 'invalid'"},
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 0, Utf8CharStart: 0, CharEnd: 7, Utf8CharEnd: 7, Message: "could not parse top-level statement for 'invalid'"},
 			expectedErrorMsg: "line 4: could not parse top-level statement for 'invalid'",
 		},
 		{
 			input: `
 raw "stuff"
 `,
-			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 0, CharEnd: 11, Message: "raw statement must begin with a backtick character '`'"},
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 0, Utf8CharStart: 0, CharEnd: 11, Utf8CharEnd: 11, Message: "raw statement must begin with a backtick character '`'"},
 			expectedErrorMsg: "line 2: raw statement must begin with a backtick character '`'",
 		},
 		{
@@ -1082,7 +1082,7 @@ raw "stuff"
 script {
 	foo
 }`,
-			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 0, CharEnd: 8, Message: "missing name for script"},
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 0, Utf8CharStart: 0, CharEnd: 8, Utf8CharEnd: 8, Message: "missing name for script"},
 			expectedErrorMsg: "line 2: missing name for script",
 		},
 		{
@@ -1090,7 +1090,7 @@ script {
 script MyScript
 	foo
 }`,
-			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 3, CharStart: 0, CharEnd: 4, Message: "missing opening curly brace for script 'MyScript'"},
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 3, CharStart: 0, Utf8CharStart: 0, CharEnd: 4, Utf8CharEnd: 4, Message: "missing opening curly brace for script 'MyScript'"},
 			expectedErrorMsg: "line 2: missing opening curly brace for script 'MyScript'",
 		},
 		{
@@ -1099,7 +1099,7 @@ script MyScript {
 	if (var(VAR_1)) {
 	foo
 }`,
-			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 16, CharEnd: 17, Message: "missing closing curly brace for block statement"},
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 16, Utf8CharStart: 16, CharEnd: 17, Utf8CharEnd: 17, Message: "missing closing curly brace for block statement"},
 			expectedErrorMsg: "line 2: missing closing curly brace for block statement",
 		},
 		{
@@ -1108,7 +1108,7 @@ script MyScript {
 	switch (var(VAR_1)) {
 	case 1: foo
 `,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 5, CharStart: 21, CharEnd: 0, Message: "missing end for switch case body"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 5, CharStart: 21, Utf8CharStart: 21, CharEnd: 0, Utf8CharEnd: 0, Message: "missing end for switch case body"},
 			expectedErrorMsg: "line 3: missing end for switch case body",
 		},
 		{
@@ -1117,7 +1117,7 @@ script MyScript {
 	foo
 	<
 }`,
-			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 1, CharEnd: 2, Message: "could not parse statement for '<'"},
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 1, Utf8CharStart: 1, CharEnd: 2, Utf8CharEnd: 2, Message: "could not parse statement for '<'"},
 			expectedErrorMsg: "line 4: could not parse statement for '<'",
 		},
 		{
@@ -1129,7 +1129,7 @@ script MyScript {
 		bar
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 6, CharStart: 3, CharEnd: 5, Message: "missing opening curly brace of else statement"},
+			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 6, CharStart: 3, Utf8CharStart: 3, CharEnd: 5, Utf8CharEnd: 5, Message: "missing opening curly brace of else statement"},
 			expectedErrorMsg: "line 5: missing opening curly brace of else statement",
 		},
 		{
@@ -1139,7 +1139,7 @@ script MyScript {
 		foo
 	while (flag(FLAG_1))
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 4, CharStart: 1, CharEnd: 5, Message: "missing opening curly brace of do...while statement"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 4, CharStart: 1, Utf8CharStart: 1, CharEnd: 5, Utf8CharEnd: 5, Message: "missing opening curly brace of do...while statement"},
 			expectedErrorMsg: "line 3: missing opening curly brace of do...while statement",
 		},
 		{
@@ -1149,7 +1149,7 @@ script MyScript {
 		foo
 	} (flag(FLAG_1))
 }`,
-			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 1, CharEnd: 4, Message: "missing 'while' after body of do...while statement"},
+			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 1, Utf8CharStart: 1, CharEnd: 4, Utf8CharEnd: 4, Message: "missing 'while' after body of do...while statement"},
 			expectedErrorMsg: "line 5: missing 'while' after body of do...while statement",
 		},
 		{
@@ -1159,7 +1159,7 @@ script MyScript {
 		foo
 	} while flag(FLAG_1)
 }`,
-			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 3, CharEnd: 13, Message: "missing '(' to start condition for do...while statement"},
+			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 3, Utf8CharStart: 3, CharEnd: 13, Utf8CharEnd: 13, Message: "missing '(' to start condition for do...while statement"},
 			expectedErrorMsg: "line 5: missing '(' to start condition for do...while statement",
 		},
 		{
@@ -1170,7 +1170,7 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, CharEnd: 10, Message: "'continue' must be the last statement in block scope"},
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, Utf8CharStart: 2, CharEnd: 10, Utf8CharEnd: 10, Message: "'continue' must be the last statement in block scope"},
 			expectedErrorMsg: "line 4: 'continue' must be the last statement in block scope",
 		},
 		{
@@ -1181,7 +1181,7 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, CharEnd: 12, Message: "missing opening parenthesis of switch statement operand"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, Utf8CharStart: 1, CharEnd: 12, Utf8CharEnd: 12, Message: "missing opening parenthesis of switch statement operand"},
 			expectedErrorMsg: "line 3: missing opening parenthesis of switch statement operand",
 		},
 		{
@@ -1192,19 +1192,19 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 9, CharEnd: 13, Message: "invalid switch statement operand 'flag'. Must be 'var`"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 9, Utf8CharStart: 9, CharEnd: 13, Utf8CharEnd: 13, Message: "invalid switch statement operand 'flag'. Must be 'var`"},
 			expectedErrorMsg: "line 3: invalid switch statement operand 'flag'. Must be 'var`",
 		},
 		{
 			input: `
 script MyScript {
-	switch (var FLAG_1) {
+	switch (var FLéG_1) {
 	case 1:
 		foo
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 9, CharEnd: 19, Message: "missing '(' after var operator. Got 'FLAG_1` instead"},
-			expectedErrorMsg: "line 3: missing '(' after var operator. Got 'FLAG_1` instead",
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 9, Utf8CharStart: 9, CharEnd: 20, Utf8CharEnd: 19, Message: "missing '(' after var operator. Got 'FLéG_1` instead"},
+			expectedErrorMsg: "line 3: missing '(' after var operator. Got 'FLéG_1` instead",
 		},
 		{
 			input: `
@@ -1214,7 +1214,7 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 4, CharStart: 20, CharEnd: 5, Message: "missing opening curly brace of switch statement"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 4, CharStart: 20, Utf8CharStart: 20, CharEnd: 5, Utf8CharEnd: 5, Message: "missing opening curly brace of switch statement"},
 			expectedErrorMsg: "line 3: missing opening curly brace of switch statement",
 		},
 		{
@@ -1228,7 +1228,7 @@ script MyScript {
 		bar
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 7, LineNumberEnd: 7, CharStart: 1, CharEnd: 8, Message: "duplicate switch cases detected for case '1'"},
+			expectedError:    ParseError{LineNumberStart: 7, LineNumberEnd: 7, CharStart: 1, Utf8CharStart: 1, CharEnd: 8, Utf8CharEnd: 8, Message: "duplicate switch cases detected for case '1'"},
 			expectedErrorMsg: "line 7: duplicate switch cases detected for case '1'",
 		},
 		{
@@ -1241,7 +1241,7 @@ script MyScript {
 		baz
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 6, LineNumberEnd: 6, CharStart: 1, CharEnd: 8, Message: "missing `:` after default"},
+			expectedError:    ParseError{LineNumberStart: 6, LineNumberEnd: 6, CharStart: 1, Utf8CharStart: 1, CharEnd: 8, Utf8CharEnd: 8, Message: "missing `:` after default"},
 			expectedErrorMsg: "line 6: missing `:` after default",
 		},
 		{
@@ -1253,7 +1253,7 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 1, CharEnd: 5, Message: "missing `:` after 'case'"},
+			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 1, Utf8CharStart: 1, CharEnd: 5, Utf8CharEnd: 5, Message: "missing `:` after 'case'"},
 			expectedErrorMsg: "line 5: missing `:` after 'case'",
 		},
 		{
@@ -1262,7 +1262,7 @@ script MyScript {
 	switch (var(FLAG_1)) {
 		foo
 	}`,
-			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, CharEnd: 5, Message: "invalid start of switch case 'foo'. Expected 'case' or 'default'"},
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, Utf8CharStart: 2, CharEnd: 5, Utf8CharEnd: 5, Message: "invalid start of switch case 'foo'. Expected 'case' or 'default'"},
 			expectedErrorMsg: "line 4: invalid start of switch case 'foo'. Expected 'case' or 'default'",
 		},
 		{
@@ -1270,7 +1270,7 @@ script MyScript {
 script MyScript {
 	switch (var(FLAG_1)) {
 	}`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 4, CharStart: 1, CharEnd: 2, Message: "switch statement has no cases or default case"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 4, CharStart: 1, Utf8CharStart: 1, CharEnd: 2, Utf8CharEnd: 2, Message: "switch statement has no cases or default case"},
 			expectedErrorMsg: "line 3: switch statement has no cases or default case",
 		},
 		{
@@ -1278,7 +1278,7 @@ script MyScript {
 script MyScript {
 	if var(FLAG_1)) {
 	}`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, CharEnd: 7, Message: "missing '(' to start boolean expression"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, Utf8CharStart: 1, CharEnd: 7, Utf8CharEnd: 7, Message: "missing '(' to start boolean expression"},
 			expectedErrorMsg: "line 3: missing '(' to start boolean expression",
 		},
 		{
@@ -1286,7 +1286,7 @@ script MyScript {
 script MyScript {
 	if (var(FLAG_1) ||) {
 	}`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 19, CharEnd: 20, Message: "left side of binary expression must be var(), flag(), or defeated() operator. Instead, found ')'"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 19, Utf8CharStart: 19, CharEnd: 20, Utf8CharEnd: 20, Message: "left side of binary expression must be var(), flag(), or defeated() operator. Instead, found ')'"},
 			expectedErrorMsg: "line 3: left side of binary expression must be var(), flag(), or defeated() operator. Instead, found ')'",
 		},
 		{
@@ -1295,7 +1295,7 @@ script MyScript {
 	if (var(FLAG_1))
 		foo
 	}`,
-			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, CharEnd: 5, Message: "expected next token to be '{', got 'foo' instead"},
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, Utf8CharStart: 2, CharEnd: 5, Utf8CharEnd: 5, Message: "expected next token to be '{', got 'foo' instead"},
 			expectedErrorMsg: "line 4: expected next token to be '{', got 'foo' instead",
 		},
 		{
@@ -1304,7 +1304,7 @@ script MyScript {
 	if (var(FLAG_1) && (var(VAR_1) == 1 {
 		foo
 	}`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 5, CharStart: 35, CharEnd: 2, Message: "missing ')', '&&' or '||' when evaluating 'var' operator"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 5, CharStart: 35, Utf8CharStart: 35, CharEnd: 2, Utf8CharEnd: 2, Message: "missing ')', '&&' or '||' when evaluating 'var' operator"},
 			expectedErrorMsg: "line 3: missing ')', '&&' or '||' when evaluating 'var' operator",
 		},
 		{
@@ -1313,7 +1313,7 @@ script MyScript {
 	if (var{FLAG_1) {
 		foo
 	}`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 5, CharEnd: 9, Message: "missing opening parenthesis for condition operator 'VAR'"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 5, Utf8CharStart: 5, CharEnd: 9, Utf8CharEnd: 9, Message: "missing opening parenthesis for condition operator 'VAR'"},
 			expectedErrorMsg: "line 3: missing opening parenthesis for condition operator 'VAR'",
 		},
 		{
@@ -1322,7 +1322,7 @@ script MyScript {
 	if (flag{FLAG_1) {
 		foo
 	}`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 5, CharEnd: 10, Message: "missing opening parenthesis for condition operator 'FLAG'"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 5, Utf8CharStart: 5, CharEnd: 10, Utf8CharEnd: 10, Message: "missing opening parenthesis for condition operator 'FLAG'"},
 			expectedErrorMsg: "line 3: missing opening parenthesis for condition operator 'FLAG'",
 		},
 		{
@@ -1331,7 +1331,7 @@ script MyScript {
 	if (flag()) {
 		foo
 	}`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 5, CharEnd: 11, Message: "missing value for condition operator 'FLAG'"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 5, Utf8CharStart: 5, CharEnd: 11, Utf8CharEnd: 11, Message: "missing value for condition operator 'FLAG'"},
 			expectedErrorMsg: "line 3: missing value for condition operator 'FLAG'",
 		},
 		{
@@ -1340,7 +1340,7 @@ script MyScript {
 	foo(sdfa
 	bar()
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, CharEnd: 4, Message: "missing closing parenthesis for command 'foo'"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, Utf8CharStart: 1, CharEnd: 4, Utf8CharEnd: 4, Message: "missing closing parenthesis for command 'foo'"},
 			expectedErrorMsg: "line 3: missing closing parenthesis for command 'foo'",
 		},
 		{
@@ -1352,7 +1352,7 @@ script MyScript {
 		bar
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 9, CharEnd: 12, Message: "left side of binary expression must be var(), flag(), or defeated() operator. Instead, found 'fla'"},
+			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 9, Utf8CharStart: 9, CharEnd: 12, Utf8CharEnd: 12, Message: "left side of binary expression must be var(), flag(), or defeated() operator. Instead, found 'fla'"},
 			expectedErrorMsg: "line 5: left side of binary expression must be var(), flag(), or defeated() operator. Instead, found 'fla'",
 		},
 		{
@@ -1364,7 +1364,7 @@ script MyScript {
 		else
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 6, LineNumberEnd: 6, CharStart: 2, CharEnd: 6, Message: "could not parse statement for 'else'"},
+			expectedError:    ParseError{LineNumberStart: 6, LineNumberEnd: 6, CharStart: 2, Utf8CharStart: 2, CharEnd: 6, Utf8CharEnd: 6, Message: "could not parse statement for 'else'"},
 			expectedErrorMsg: "line 6: could not parse statement for 'else'",
 		},
 		{
@@ -1375,7 +1375,7 @@ script MyScript {
 		break
 	} while (flag(FLAG_1))
 }`,
-			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, CharEnd: 10, Message: "'continue' must be the last statement in block scope"},
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, Utf8CharStart: 2, CharEnd: 10, Utf8CharEnd: 10, Message: "'continue' must be the last statement in block scope"},
 			expectedErrorMsg: "line 4: 'continue' must be the last statement in block scope",
 		},
 		{
@@ -1385,7 +1385,7 @@ script MyScript {
 		continue
 	} while (flag(FLAG_1) == 45)
 }`,
-			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 26, CharEnd: 28, Message: "invalid flag comparison value '45'. Only TRUE and FALSE are allowed"},
+			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 26, Utf8CharStart: 26, CharEnd: 28, Utf8CharEnd: 28, Message: "invalid flag comparison value '45'. Only TRUE and FALSE are allowed"},
 			expectedErrorMsg: "line 5: invalid flag comparison value '45'. Only TRUE and FALSE are allowed",
 		},
 		{
@@ -1400,7 +1400,7 @@ script MyScript {
 		baz
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 8, LineNumberEnd: 8, CharStart: 1, CharEnd: 8, Message: "multiple `default` cases found in switch statement. Only one `default` case is allowed"},
+			expectedError:    ParseError{LineNumberStart: 8, LineNumberEnd: 8, CharStart: 1, Utf8CharStart: 1, CharEnd: 8, Utf8CharEnd: 8, Message: "multiple `default` cases found in switch statement. Only one `default` case is allowed"},
 			expectedErrorMsg: "line 8: multiple `default` cases found in switch statement. Only one `default` case is allowed",
 		},
 		{
@@ -1414,7 +1414,7 @@ script MyScript {
 		continue
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 8, LineNumberEnd: 8, CharStart: 2, CharEnd: 10, Message: "'continue' statement outside of any continue-able scope"},
+			expectedError:    ParseError{LineNumberStart: 8, LineNumberEnd: 8, CharStart: 2, Utf8CharStart: 2, CharEnd: 10, Utf8CharEnd: 10, Message: "'continue' statement outside of any continue-able scope"},
 			expectedErrorMsg: "line 8: 'continue' statement outside of any continue-able scope",
 		},
 		{
@@ -1424,7 +1424,7 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 8, CharEnd: 23, Message: "missing closing ')' for nested boolean expression"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 8, Utf8CharStart: 8, CharEnd: 23, Utf8CharEnd: 23, Message: "missing closing ')' for nested boolean expression"},
 			expectedErrorMsg: "line 3: missing closing ')' for nested boolean expression",
 		},
 		{
@@ -1434,7 +1434,7 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 8, CharEnd: 12, Message: "missing closing ')' for condition operator value"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 8, Utf8CharStart: 8, CharEnd: 12, Utf8CharEnd: 12, Message: "missing closing ')' for condition operator value"},
 			expectedErrorMsg: "line 3: missing closing ')' for condition operator value",
 		},
 		{
@@ -1444,7 +1444,7 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 21, CharEnd: 25, Message: "missing comparison value for flag operator"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 21, Utf8CharStart: 21, CharEnd: 25, Utf8CharEnd: 25, Message: "missing comparison value for flag operator"},
 			expectedErrorMsg: "line 3: missing comparison value for flag operator",
 		},
 		{
@@ -1454,7 +1454,7 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 19, CharEnd: 23, Message: "missing comparison value for var operator"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 19, Utf8CharStart: 19, CharEnd: 23, Utf8CharEnd: 23, Message: "missing comparison value for var operator"},
 			expectedErrorMsg: "line 3: missing comparison value for var operator",
 		},
 		{
@@ -1464,7 +1464,7 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 27, CharEnd: 31, Message: "missing comparison value for defeated operator"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 27, Utf8CharStart: 27, CharEnd: 31, Utf8CharEnd: 31, Message: "missing comparison value for defeated operator"},
 			expectedErrorMsg: "line 3: missing comparison value for defeated operator",
 		},
 		{
@@ -1474,7 +1474,7 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 51, CharEnd: 57, Message: "missing value for condition operator 'FLAG'"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 51, Utf8CharStart: 51, CharEnd: 57, Utf8CharEnd: 57, Message: "missing value for condition operator 'FLAG'"},
 			expectedErrorMsg: "line 3: missing value for condition operator 'FLAG'",
 		},
 		{
@@ -1482,7 +1482,7 @@ script MyScript {
 text {
 	"MyText$"
 }`,
-			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 0, CharEnd: 6, Message: "missing name for text statement"},
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 0, Utf8CharStart: 0, CharEnd: 6, Utf8CharEnd: 6, Message: "missing name for text statement"},
 			expectedErrorMsg: "line 2: missing name for text statement",
 		},
 		{
@@ -1490,7 +1490,7 @@ text {
 text Text1
 	"MyText$"
 }`,
-			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 3, CharStart: 0, CharEnd: 10, Message: "missing opening curly brace for text 'Text1'"},
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 3, CharStart: 0, Utf8CharStart: 0, CharEnd: 10, Utf8CharEnd: 10, Message: "missing opening curly brace for text 'Text1'"},
 			expectedErrorMsg: "line 2: missing opening curly brace for text 'Text1'",
 		},
 		{
@@ -1499,7 +1499,7 @@ text Text1 {
 	nottext
 	"MyText$"
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, CharEnd: 8, Message: "body of text statement must be a string or formatted string. Got 'nottext' instead"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, Utf8CharStart: 1, CharEnd: 8, Utf8CharEnd: 8, Message: "body of text statement must be a string or formatted string. Got 'nottext' instead"},
 			expectedErrorMsg: "line 3: body of text statement must be a string or formatted string. Got 'nottext' instead",
 		},
 		{
@@ -1508,7 +1508,7 @@ text Text1 {
 	"MyText$"
 	notcurlybrace
 }`,
-			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 1, CharEnd: 14, Message: "expected closing curly brace for text. Got 'notcurlybrace' instead"},
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 1, Utf8CharStart: 1, CharEnd: 14, Utf8CharEnd: 14, Message: "expected closing curly brace for text. Got 'notcurlybrace' instead"},
 			expectedErrorMsg: "line 4: expected closing curly brace for text. Got 'notcurlybrace' instead",
 		},
 		{
@@ -1519,7 +1519,7 @@ script Script1 {
 text Script1_Text_0 {
 	"MyText$"
 }`,
-			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 0, CharEnd: 4, Message: "duplicate text label 'Script1_Text_0'. Choose a unique label that won't clash with the auto-generated text labels"},
+			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 0, Utf8CharStart: 0, CharEnd: 4, Utf8CharEnd: 4, Message: "duplicate text label 'Script1_Text_0'. Choose a unique label that won't clash with the auto-generated text labels"},
 			expectedErrorMsg: "line 5: duplicate text label 'Script1_Text_0'. Choose a unique label that won't clash with the auto-generated text labels",
 		},
 		{
@@ -1527,7 +1527,7 @@ text Script1_Text_0 {
 movement {
 
 }`,
-			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 0, CharEnd: 10, Message: "missing name for movement statement"},
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 0, Utf8CharStart: 0, CharEnd: 10, Utf8CharEnd: 10, Message: "missing name for movement statement"},
 			expectedErrorMsg: "line 2: missing name for movement statement",
 		},
 		{
@@ -1535,7 +1535,7 @@ movement {
 movement Foo
 	walk_up
 }`,
-			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 3, CharStart: 0, CharEnd: 8, Message: "missing opening curly brace for movement 'Foo'"},
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 3, CharStart: 0, Utf8CharStart: 0, CharEnd: 8, Utf8CharEnd: 8, Message: "missing opening curly brace for movement 'Foo'"},
 			expectedErrorMsg: "line 2: missing opening curly brace for movement 'Foo'",
 		},
 		{
@@ -1543,7 +1543,7 @@ movement Foo
 movement Foo {
 	+
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, CharEnd: 2, Message: "expected movement command, but got '+' instead"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, Utf8CharStart: 1, CharEnd: 2, Utf8CharEnd: 2, Message: "expected movement command, but got '+' instead"},
 			expectedErrorMsg: "line 3: expected movement command, but got '+' instead",
 		},
 		{
@@ -1551,7 +1551,7 @@ movement Foo {
 movement Foo {
 	walk_up * walk_down
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 11, CharEnd: 20, Message: "expected mulplier number for movement command, but got 'walk_down' instead"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 11, Utf8CharStart: 11, CharEnd: 20, Utf8CharEnd: 20, Message: "expected mulplier number for movement command, but got 'walk_down' instead"},
 			expectedErrorMsg: "line 3: expected mulplier number for movement command, but got 'walk_down' instead",
 		},
 		{
@@ -1559,7 +1559,7 @@ movement Foo {
 movement Foo {
 	walk_up * 999999999999999999999999999999999
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 11, CharEnd: 44, Message: "invalid movement mulplier integer '999999999999999999999999999999999': strconv.ParseInt: parsing \"999999999999999999999999999999999\": value out of range"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 11, Utf8CharStart: 11, CharEnd: 44, Utf8CharEnd: 44, Message: "invalid movement mulplier integer '999999999999999999999999999999999': strconv.ParseInt: parsing \"999999999999999999999999999999999\": value out of range"},
 			expectedErrorMsg: "line 3: invalid movement mulplier integer '999999999999999999999999999999999': strconv.ParseInt: parsing \"999999999999999999999999999999999\": value out of range",
 		},
 		{
@@ -1567,7 +1567,7 @@ movement Foo {
 movement Foo {
 	walk_up * 10000
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 11, CharEnd: 16, Message: "movement mulplier '10000' is too large. Maximum is 9999"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 11, Utf8CharStart: 11, CharEnd: 16, Utf8CharEnd: 16, Message: "movement mulplier '10000' is too large. Maximum is 9999"},
 			expectedErrorMsg: "line 3: movement mulplier '10000' is too large. Maximum is 9999",
 		},
 		{
@@ -1575,7 +1575,7 @@ movement Foo {
 movement Foo {
 	walk_up * 0
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 11, CharEnd: 12, Message: "movement mulplier must be a positive integer, but got '0' instead"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 11, Utf8CharStart: 11, CharEnd: 12, Utf8CharEnd: 12, Message: "movement mulplier must be a positive integer, but got '0' instead"},
 			expectedErrorMsg: "line 3: movement mulplier must be a positive integer, but got '0' instead",
 		},
 		{
@@ -1583,7 +1583,7 @@ movement Foo {
 movement Foo {
 	walk_up * -2
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 11, CharEnd: 13, Message: "movement mulplier must be a positive integer, but got '-2' instead"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 11, Utf8CharStart: 11, CharEnd: 13, Utf8CharEnd: 13, Message: "movement mulplier must be a positive integer, but got '-2' instead"},
 			expectedErrorMsg: "line 3: movement mulplier must be a positive integer, but got '-2' instead",
 		},
 		{
@@ -1591,7 +1591,7 @@ movement Foo {
 text Foo {
 	format asdf
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, CharEnd: 12, Message: "format operator must begin with an open parenthesis '('"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, Utf8CharStart: 1, CharEnd: 12, Utf8CharEnd: 12, Message: "format operator must begin with an open parenthesis '('"},
 			expectedErrorMsg: "line 3: format operator must begin with an open parenthesis '('",
 		},
 		{
@@ -1599,7 +1599,7 @@ text Foo {
 text Foo {
 	format()
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 8, CharEnd: 9, Message: "invalid format() argument ')'. Expected a string literal"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 8, Utf8CharStart: 8, CharEnd: 9, Utf8CharEnd: 9, Message: "invalid format() argument ')'. Expected a string literal"},
 			expectedErrorMsg: "line 3: invalid format() argument ')'. Expected a string literal",
 		},
 		{
@@ -1607,7 +1607,7 @@ text Foo {
 text Foo {
 	format("Hi", )
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 14, CharEnd: 15, Message: "invalid format() parameter ')'. Expected either fontId (string) or maxLineLength (integer)"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 14, Utf8CharStart: 14, CharEnd: 15, Utf8CharEnd: 15, Message: "invalid format() parameter ')'. Expected either fontId (string) or maxLineLength (integer)"},
 			expectedErrorMsg: "line 3: invalid format() parameter ')'. Expected either fontId (string) or maxLineLength (integer)",
 		},
 		{
@@ -1615,7 +1615,7 @@ text Foo {
 text Foo {
 	format("Hi"
 }`,
-			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 0, CharEnd: 1, Message: "missing closing parenthesis ')' for format()"},
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 0, Utf8CharStart: 0, CharEnd: 1, Utf8CharEnd: 1, Message: "missing closing parenthesis ')' for format()"},
 			expectedErrorMsg: "line 4: missing closing parenthesis ')' for format()",
 		},
 		{
@@ -1623,7 +1623,7 @@ text Foo {
 text Foo {
 	format("Hi", "TEST", "NOT_AN_INT")
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 22, CharEnd: 34, Message: "invalid format() maxLineLength 'NOT_AN_INT'. Expected integer"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 22, Utf8CharStart: 22, CharEnd: 34, Utf8CharEnd: 34, Message: "invalid format() maxLineLength 'NOT_AN_INT'. Expected integer"},
 			expectedErrorMsg: "line 3: invalid format() maxLineLength 'NOT_AN_INT'. Expected integer",
 		},
 		{
@@ -1631,7 +1631,7 @@ text Foo {
 text Foo {
 	format("Hi", 100, 42)
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 19, CharEnd: 21, Message: "invalid format() fontId '42'. Expected string"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 19, Utf8CharStart: 19, CharEnd: 21, Utf8CharEnd: 21, Message: "invalid format() fontId '42'. Expected string"},
 			expectedErrorMsg: "line 3: invalid format() fontId '42'. Expected string",
 		},
 		{
@@ -1639,7 +1639,7 @@ text Foo {
 script Foo {
 	msgbox(format("Hi", ))
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 21, CharEnd: 22, Message: "invalid format() parameter ')'. Expected either fontId (string) or maxLineLength (integer)"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 21, Utf8CharStart: 21, CharEnd: 22, Utf8CharEnd: 22, Message: "invalid format() parameter ')'. Expected either fontId (string) or maxLineLength (integer)"},
 			expectedErrorMsg: "line 3: invalid format() parameter ')'. Expected either fontId (string) or maxLineLength (integer)",
 		},
 		{
@@ -1647,21 +1647,21 @@ script Foo {
 text Foo {
 	format("Hi", "invalidFontID")
 }`,
-			expectedError:      ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 14, CharEnd: 29},
+			expectedError:      ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 14, Utf8CharStart: 14, CharEnd: 29, Utf8CharEnd: 29},
 			expectedErrorRegex: `line 3: unknown fontID 'invalidFontID' used in format\(\)\. List of valid fontIDs are '\[((1_latin)|(1_latin_frlg)| )+\]'`,
 		},
 		{
 			input: `
 mapscripts {
 }`,
-			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 0, CharEnd: 12, Message: "missing name for mapscripts statement"},
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 0, Utf8CharStart: 0, CharEnd: 12, Utf8CharEnd: 12, Message: "missing name for mapscripts statement"},
 			expectedErrorMsg: "line 2: missing name for mapscripts statement",
 		},
 		{
 			input: `
 mapscripts MyMapScripts
 }`,
-			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 3, CharStart: 0, CharEnd: 1, Message: "missing opening curly brace for mapscripts 'MyMapScripts'"},
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 3, CharStart: 0, Utf8CharStart: 0, CharEnd: 1, Utf8CharEnd: 1, Message: "missing opening curly brace for mapscripts 'MyMapScripts'"},
 			expectedErrorMsg: "line 2: missing opening curly brace for mapscripts 'MyMapScripts'",
 		},
 		{
@@ -1669,7 +1669,7 @@ mapscripts MyMapScripts
 mapscripts MyMapScripts {
 	+
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, CharEnd: 2, Message: "expected map script type, but got '+' instead"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, Utf8CharStart: 1, CharEnd: 2, Utf8CharEnd: 2, Message: "expected map script type, but got '+' instead"},
 			expectedErrorMsg: "line 3: expected map script type, but got '+' instead",
 		},
 		{
@@ -1677,7 +1677,7 @@ mapscripts MyMapScripts {
 mapscripts MyMapScripts {
 	SOME_TYPE: 5
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 12, CharEnd: 13, Message: "expected map script label after ':', but got '5' instead"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 12, Utf8CharStart: 12, CharEnd: 13, Utf8CharEnd: 13, Message: "expected map script label after ':', but got '5' instead"},
 			expectedErrorMsg: "line 3: expected map script label after ':', but got '5' instead",
 		},
 		{
@@ -1687,7 +1687,7 @@ mapscripts MyMapScripts {
 		if (sdf)
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 6, CharEnd: 9, Message: "left side of binary expression must be var(), flag(), or defeated() operator. Instead, found 'sdf'"},
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 6, Utf8CharStart: 6, CharEnd: 9, Utf8CharEnd: 9, Message: "left side of binary expression must be var(), flag(), or defeated() operator. Instead, found 'sdf'"},
 			expectedErrorMsg: "line 4: left side of binary expression must be var(), flag(), or defeated() operator. Instead, found 'sdf'",
 		},
 		{
@@ -1697,7 +1697,7 @@ mapscripts MyMapScripts {
 		VAR_TEMP
 	]
 }`,
-			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, CharEnd: 10, Message: "missing ',' to specify map script table entry comparison value"},
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, Utf8CharStart: 2, CharEnd: 10, Utf8CharEnd: 10, Message: "missing ',' to specify map script table entry comparison value"},
 			expectedErrorMsg: "line 4: missing ',' to specify map script table entry comparison value",
 		},
 		{
@@ -1707,7 +1707,7 @@ mapscripts MyMapScripts {
 		VAR_TEMP, : Foo
 	]
 }`,
-			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, CharEnd: 13, Message: "expected comparison value for map script table entry, but it was empty"},
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, Utf8CharStart: 2, CharEnd: 13, Utf8CharEnd: 13, Message: "expected comparison value for map script table entry, but it was empty"},
 			expectedErrorMsg: "line 4: expected comparison value for map script table entry, but it was empty",
 		},
 		{
@@ -1717,7 +1717,7 @@ mapscripts MyMapScripts {
 		VAR_TEMP, FOO
 	]
 }`,
-			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, CharEnd: 15, Message: "missing ':' or '{' to specify map script table entry"},
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, Utf8CharStart: 2, CharEnd: 15, Utf8CharEnd: 15, Message: "missing ':' or '{' to specify map script table entry"},
 			expectedErrorMsg: "line 4: missing ':' or '{' to specify map script table entry",
 		},
 		{
@@ -1727,7 +1727,7 @@ mapscripts MyMapScripts {
 		, FOO: Foo Script
 	]
 }`,
-			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, CharEnd: 3, Message: "expected condition for map script table entry, but it was empty"},
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 2, Utf8CharStart: 2, CharEnd: 3, Utf8CharEnd: 3, Message: "expected condition for map script table entry, but it was empty"},
 			expectedErrorMsg: "line 4: expected condition for map script table entry, but it was empty",
 		},
 		{
@@ -1737,7 +1737,7 @@ mapscripts MyMapScripts {
 		VAR_TEMP, 1: 5
 	]
 }`,
-			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 15, CharEnd: 16, Message: "expected map script label after ':', but got '5' instead"},
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 15, Utf8CharStart: 15, CharEnd: 16, Utf8CharEnd: 16, Message: "expected map script label after ':', but got '5' instead"},
 			expectedErrorMsg: "line 4: expected map script label after ':', but got '5' instead",
 		},
 		{
@@ -1749,63 +1749,63 @@ mapscripts MyMapScripts {
 		}
 	]
 }`,
-			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 3, CharEnd: 9, Message: "missing closing parenthesis for command 'msgbox'"},
+			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 3, Utf8CharStart: 3, CharEnd: 9, Utf8CharEnd: 9, Message: "missing closing parenthesis for command 'msgbox'"},
 			expectedErrorMsg: "line 5: missing closing parenthesis for command 'msgbox'",
 		},
 		{
 			input: `
 script(asdf) MyScript {}`,
-			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 7, CharEnd: 11, Message: "scope modifier must be 'global' or 'local', but got 'asdf' instead"},
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 7, Utf8CharStart: 7, CharEnd: 11, Utf8CharEnd: 11, Message: "scope modifier must be 'global' or 'local', but got 'asdf' instead"},
 			expectedErrorMsg: "line 2: scope modifier must be 'global' or 'local', but got 'asdf' instead",
 		},
 		{
 			input: `
 script(local MyScript {}`,
-			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 7, CharEnd: 12, Message: "missing ')' after scope modifier. Got 'MyScript' instead"},
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 7, Utf8CharStart: 7, CharEnd: 12, Utf8CharEnd: 12, Message: "missing ')' after scope modifier. Got 'MyScript' instead"},
 			expectedErrorMsg: "line 2: missing ')' after scope modifier. Got 'MyScript' instead",
 		},
 		{
 			input: `
 text(local MyText {"test"}`,
-			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 5, CharEnd: 10, Message: "missing ')' after scope modifier. Got 'MyText' instead"},
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 5, Utf8CharStart: 5, CharEnd: 10, Utf8CharEnd: 10, Message: "missing ')' after scope modifier. Got 'MyText' instead"},
 			expectedErrorMsg: "line 2: missing ')' after scope modifier. Got 'MyText' instead",
 		},
 		{
 			input: `
 movement() MyMovement {walk_left}`,
-			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 9, CharEnd: 10, Message: "scope modifier must be 'global' or 'local', but got ')' instead"},
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 9, Utf8CharStart: 9, CharEnd: 10, Utf8CharEnd: 10, Message: "scope modifier must be 'global' or 'local', but got ')' instead"},
 			expectedErrorMsg: "line 2: scope modifier must be 'global' or 'local', but got ')' instead",
 		},
 		{
 			input: `
 mapscripts() MyMapScripts {}`,
-			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 11, CharEnd: 12, Message: "scope modifier must be 'global' or 'local', but got ')' instead"},
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 11, Utf8CharStart: 11, CharEnd: 12, Utf8CharEnd: 12, Message: "scope modifier must be 'global' or 'local', but got ')' instead"},
 			expectedErrorMsg: "line 2: scope modifier must be 'global' or 'local', but got ')' instead",
 		},
 		{
 			input:            `const 45`,
-			expectedError:    ParseError{LineNumberStart: 1, LineNumberEnd: 1, CharStart: 6, CharEnd: 8, Message: "expected identifier after const, but got '45' instead"},
+			expectedError:    ParseError{LineNumberStart: 1, LineNumberEnd: 1, CharStart: 6, Utf8CharStart: 6, CharEnd: 8, Utf8CharEnd: 8, Message: "expected identifier after const, but got '45' instead"},
 			expectedErrorMsg: "line 1: expected identifier after const, but got '45' instead",
 		},
 		{
 			input:            `const FOO`,
-			expectedError:    ParseError{LineNumberStart: 1, LineNumberEnd: 1, CharStart: 6, CharEnd: 9, Message: "missing equals sign after const name 'FOO'"},
+			expectedError:    ParseError{LineNumberStart: 1, LineNumberEnd: 1, CharStart: 6, Utf8CharStart: 6, CharEnd: 9, Utf8CharEnd: 9, Message: "missing equals sign after const name 'FOO'"},
 			expectedErrorMsg: "line 1: missing equals sign after const name 'FOO'",
 		},
 		{
 			input:            `const FOO = 4 const FOO = 5`,
-			expectedError:    ParseError{LineNumberStart: 1, LineNumberEnd: 1, CharStart: 20, CharEnd: 23, Message: "duplicate const 'FOO'. Must use unique const names"},
+			expectedError:    ParseError{LineNumberStart: 1, LineNumberEnd: 1, CharStart: 20, Utf8CharStart: 20, CharEnd: 23, Utf8CharEnd: 23, Message: "duplicate const 'FOO'. Must use unique const names"},
 			expectedErrorMsg: "line 1: duplicate const 'FOO'. Must use unique const names",
 		},
 		{
 			input:            `const FOO = `,
-			expectedError:    ParseError{LineNumberStart: 1, LineNumberEnd: 1, CharStart: 0, CharEnd: 11, Message: "missing value for const 'FOO'"},
+			expectedError:    ParseError{LineNumberStart: 1, LineNumberEnd: 1, CharStart: 0, Utf8CharStart: 0, CharEnd: 11, Utf8CharEnd: 11, Message: "missing value for const 'FOO'"},
 			expectedErrorMsg: "line 1: missing value for const 'FOO'",
 		},
 		{
 			input: `const FOO =
 script MyScript {}`,
-			expectedError:    ParseError{LineNumberStart: 1, LineNumberEnd: 1, CharStart: 0, CharEnd: 11, Message: "missing value for const 'FOO'"},
+			expectedError:    ParseError{LineNumberStart: 1, LineNumberEnd: 1, CharStart: 0, Utf8CharStart: 0, CharEnd: 11, Utf8CharEnd: 11, Message: "missing value for const 'FOO'"},
 			expectedErrorMsg: "line 1: missing value for const 'FOO'",
 		},
 		{
@@ -1815,7 +1815,7 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 25, CharEnd: 26, Message: "expected next token to be '(', got '4' instead"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 25, Utf8CharStart: 25, CharEnd: 26, Utf8CharEnd: 26, Message: "expected next token to be '(', got '4' instead"},
 			expectedErrorMsg: "line 3: expected next token to be '(', got '4' instead",
 		},
 		{
@@ -1825,7 +1825,7 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 19, CharEnd: 24, Message: "missing ')' when evaluating 'value'"},
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 19, Utf8CharStart: 19, CharEnd: 24, Utf8CharEnd: 24, Message: "missing ')' when evaluating 'value'"},
 			expectedErrorMsg: "line 3: missing ')' when evaluating 'value'",
 		},
 	}
