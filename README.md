@@ -146,7 +146,7 @@ MyLocalText:
 The `script` statement creates a global script containing script commands and control flow logic.  Here is an example:
 ```
 script MyScript {
-    # Show a different message, depending on the badges the player owns.
+    # Show a different message, depending on the state of different flags.
     lock
     faceplayer
     if (flag(FLAG_RECEIVED_TOP_PRIZE)) {
