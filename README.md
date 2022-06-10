@@ -113,6 +113,34 @@ sound/%.bin: sound/%.aif ; $(AIF) $< $@
 -TOOLDIRS := $(filter-out tools/agbcc tools/binutils,$(wildcard tools/*))
 +TOOLDIRS := $(filter-out tools/agbcc tools/binutils tools/poryscript,$(wildcard tools/*))
 ```
+Convert all of your projects old map `scripts.inc` files into new `scripts.pory` files while maintaining the old scripts:
+
+1. Create a file in your `/pokeemerald/` directory named `convert_inc.sh` using `touch convert_inc.sh` in your terminal or VSCode/text editor. 
+2. Now copy the following script into the file:
+```
+#!/bin/bash
+
+for directory in data/maps/* ; do
+	pory_exists=$(find $directory -name $"scripts.pory" | wc -l)
+	if [[ $pory_exists -eq 0 ]]; 
+	then
+		inc_exists=$(find $directory -name $"scripts.inc" | wc -l)
+		if [[ $inc_exists -ne 0 ]]; 
+		then
+			echo "Converting: $directory/scripts.inc"
+			touch "$directory/scripts.pory"
+			echo 'raw `' >> "$directory/scripts.pory"
+			cat "$directory/scripts.inc" >> "$directory/scripts.pory"
+			echo '`' >> "$directory/scripts.pory"
+		fi
+	fi
+	
+done
+```
+3. Next run `chmod 777 convert_inc.sh` to make the script executable. 
+
+Finally you can run the command in your pokeemerald directory by using `./convert_inc.sh` or `bash convert_inc.sh` in the console. This script will iterate through all your `/data/map/` directories, take the `scripts.inc` files inside them, and convert them into `scripts.pory` files by adding a `raw` tag around the old scripts. convert_inc.sh will skip over any directories that already have scripts.pory files in them, so that it will not overwrite any maps that you have already switched over to poryscript.
+
 
 # Poryscript Syntax (How to Write Scripts)
 
