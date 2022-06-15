@@ -15,6 +15,7 @@ View the [Changelog](https://github.com/huderlem/poryscript/blob/master/CHANGELO
 
 **Table of Contents**
 - [Usage](#usage)
+  * [Convert Existing Scripts](#convert-existing-scripts)
 - [Poryscript Syntax (How to Write Scripts)](#poryscript-syntax-how-to-write-scripts)
   * [`script` Statement](#script-statement)
     + [Boolean Expressions](#boolean-expressions)
@@ -113,34 +114,40 @@ sound/%.bin: sound/%.aif ; $(AIF) $< $@
 -TOOLDIRS := $(filter-out tools/agbcc tools/binutils,$(wildcard tools/*))
 +TOOLDIRS := $(filter-out tools/agbcc tools/binutils tools/poryscript,$(wildcard tools/*))
 ```
-Convert all of your projects old map `scripts.inc` files into new `scripts.pory` files while maintaining the old scripts:
 
-1. Create a file in your `/pokeemerald/` directory named `convert_inc.sh` using `touch convert_inc.sh` in your terminal or VSCode/text editor. 
-2. Now copy the following script into the file:
-```
-#!/bin/bash
+## Convert Existing Scripts
+If you're working on a large project, you may want to convert all of the existing `scripts.inc` files to their `scripts.pory` equivalents. Since there are a large number of script files in the Gen 3 projects, you can save yourself a lot of time by following these instructions. **Again, this is completely optional, and you would only want to perform this bulk conversion if you're emabarking on large project where it would be useful to have all the existing scripts setup as Poryscript files.**
 
-for directory in data/maps/* ; do
-	pory_exists=$(find $directory -name $"scripts.pory" | wc -l)
-	if [[ $pory_exists -eq 0 ]]; 
-	then
-		inc_exists=$(find $directory -name $"scripts.inc" | wc -l)
-		if [[ $inc_exists -ne 0 ]]; 
-		then
-			echo "Converting: $directory/scripts.inc"
-			touch "$directory/scripts.pory"
-			echo 'raw `' >> "$directory/scripts.pory"
-			cat "$directory/scripts.inc" >> "$directory/scripts.pory"
-			echo '`' >> "$directory/scripts.pory"
-		fi
-	fi
-	
-done
-```
-3. Next run `chmod 777 convert_inc.sh` to make the script executable. 
+<details>
+  <summary>Click Here to View Instructions</summary>
 
-Finally you can run the command in your pokeemerald directory by using `./convert_inc.sh` or `bash convert_inc.sh` in the console. This script will iterate through all your `/data/map/` directories, take the `scripts.inc` files inside them, and convert them into `scripts.pory` files by adding a `raw` tag around the old scripts. convert_inc.sh will skip over any directories that already have scripts.pory files in them, so that it will not overwrite any maps that you have already switched over to poryscript.
+  Convert all of your projects old map `scripts.inc` files into new `scripts.pory` files while maintaining the old scripts:
 
+  1. Create a file in your `pokeemerald/` directory named `convert_inc.sh` with the following content:
+     ```
+     #!/bin/bash
+
+     for directory in data/maps/* ; do
+     	pory_exists=$(find $directory -name $"scripts.pory" | wc -l)
+     	if [[ $pory_exists -eq 0 ]]; 
+     	then
+     		inc_exists=$(find $directory -name $"scripts.inc" | wc -l)
+     		if [[ $inc_exists -ne 0 ]]; 
+     		then
+     			echo "Converting: $directory/scripts.inc"
+     			touch "$directory/scripts.pory"
+     			echo 'raw `' >> "$directory/scripts.pory"
+     			cat "$directory/scripts.inc" >> "$directory/scripts.pory"
+     			echo '`' >> "$directory/scripts.pory"
+     		fi
+     	fi 	
+     done
+     ```
+  
+  2. Run `chmod 777 convert_inc.sh` to ensure the script executable. 
+
+  Finally you can execute it in your `pokeemerald/` directory by running `./convert_inc.sh` or `bash convert_inc.sh` in the console. This script will iterate through all your `data/map/` directories and convert the `scripts.inc` files into `scripts.pory` files by adding a `raw` tag around the old scripts. `convert_inc.sh` will skip over any directories that already have `scripts.pory` files in them, so that it will not overwrite any maps that you have already switched over to Poryscript.
+</details>
 
 # Poryscript Syntax (How to Write Scripts)
 
