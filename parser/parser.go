@@ -645,7 +645,7 @@ func (p *Parser) parsePoryswitchTextStatement() (string, string, error) {
 func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
 	statement := &ast.MovementStatement{
 		Token:            p.curToken,
-		MovementCommands: []token.Token{},
+		MovementCommands: []string{},
 	}
 	scope, err := p.parseScopeModifier(token.LOCAL)
 	if err != nil {
@@ -665,7 +665,7 @@ func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
 		return nil, NewRangeParseError(statement.Token, p.peekToken, fmt.Sprintf("missing opening curly brace for movement '%s'", statement.Name.Value))
 	}
 	p.nextToken()
-	statement.MovementCommands, err = p.parseMovementValue(true)
+	statement.MovementCommands, err = parseMovementValue(p, true)
 	if err != nil {
 		return nil, err
 	}
@@ -673,17 +673,19 @@ func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
 	return statement, nil
 }
 
-func (p *Parser) parseMovementValue(allowMultiple bool) ([]token.Token, error) {
-	movementCommands := make([]token.Token, 0)
+type poryswitchListValueParser func(p *Parser, allowMultiple bool) ([]string, error)
+
+func parseMovementValue(p *Parser, allowMultiple bool) ([]string, error) {
+	movementCommands := make([]string, 0)
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.PORYSWITCH {
-			poryswitchCommands, err := p.parsePoryswitchMovementStatement()
+			poryswitchCommands, err := p.parsePoryswitchListStatement(parseMovementValue)
 			if err != nil {
 				return nil, err
 			}
 			movementCommands = append(movementCommands, poryswitchCommands...)
 		} else if p.curToken.Type == token.IDENT {
-			moveCommand := p.curToken
+			moveCommand := p.curToken.Literal
 			p.nextToken()
 			if p.curToken.Type == token.MUL {
 				p.nextToken()
@@ -719,29 +721,29 @@ func (p *Parser) parseMovementValue(allowMultiple bool) ([]token.Token, error) {
 	return movementCommands, nil
 }
 
-func (p *Parser) parsePoryswitchMovementStatement() ([]token.Token, error) {
+func (p *Parser) parsePoryswitchListStatement(parseFunc poryswitchListValueParser) ([]string, error) {
 	startToken := p.curToken
 	switchCase, switchValue, err := p.parsePoryswitchHeader()
 	if err != nil {
 		return nil, err
 	}
-	cases, err := p.parsePoryswitchMovementCases()
+	cases, err := p.parsePoryswitchListCases(parseFunc)
 	if err != nil {
 		return nil, err
 	}
-	movements, ok := cases[switchValue]
+	listItems, ok := cases[switchValue]
 	if !ok {
-		movements, ok = cases["_"]
+		listItems, ok = cases["_"]
 		if !ok && p.enableEnvironmentErrors {
 			return nil, NewParseError(startToken, fmt.Sprintf("no poryswitch case found for '%s=%s', which was specified with the '-s' option", switchCase, switchValue))
 		}
 	}
 	p.nextToken()
-	return movements, nil
+	return listItems, nil
 }
 
-func (p *Parser) parsePoryswitchMovementCases() (map[string][]token.Token, error) {
-	movementCases := make(map[string][]token.Token)
+func (p *Parser) parsePoryswitchListCases(parseFunc poryswitchListValueParser) (map[string][]string, error) {
+	listCases := make(map[string][]string)
 	startToken := p.curToken
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.EOF {
@@ -755,11 +757,11 @@ func (p *Parser) parsePoryswitchMovementCases() (map[string][]token.Token, error
 		if p.curToken.Type == token.COLON || p.curToken.Type == token.LBRACE {
 			usedBrace := p.curToken.Type == token.LBRACE
 			p.nextToken()
-			movements, err := p.parseMovementValue(usedBrace)
+			listItems, err := parseFunc(p, usedBrace)
 			if err != nil {
 				return nil, err
 			}
-			movementCases[caseValue] = movements
+			listCases[caseValue] = listItems
 			if usedBrace {
 				if p.curToken.Type != token.RBRACE {
 					return nil, NewParseError(p.curToken, fmt.Sprintf("missing closing curly brace for poryswitch case '%s'", caseValue))
@@ -770,7 +772,7 @@ func (p *Parser) parsePoryswitchMovementCases() (map[string][]token.Token, error
 			return nil, NewParseError(p.curToken, fmt.Sprintf("invalid token '%s' after poryswitch case '%s'. Expected ':' or '{'", p.curToken.Literal, caseValue))
 		}
 	}
-	return movementCases, nil
+	return listCases, nil
 }
 
 func (p *Parser) parseMartStatement() (*ast.MartStatement, error) {
@@ -796,7 +798,7 @@ func (p *Parser) parseMartStatement() (*ast.MartStatement, error) {
 		return nil, NewRangeParseError(statement.Token, p.peekToken, fmt.Sprintf("missing opening curly brace for mart '%s'", statement.Name.Value))
 	}
 	p.nextToken()
-	statement.Items, err = p.parseMartValue(true)
+	statement.Items, err = parseMartValue(p, true)
 	if err != nil {
 		return nil, err
 	}
@@ -804,11 +806,11 @@ func (p *Parser) parseMartStatement() (*ast.MartStatement, error) {
 	return statement, nil
 }
 
-func (p *Parser) parseMartValue(allowMultiple bool) ([]string, error) {
+func parseMartValue(p *Parser, allowMultiple bool) ([]string, error) {
 	martCommands := make([]string, 0)
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.PORYSWITCH {
-			poryswitchCommands, err := p.parsePoryswitchMartStatement()
+			poryswitchCommands, err := p.parsePoryswitchListStatement(parseMartValue)
 			if err != nil {
 				return nil, err
 			}
@@ -825,60 +827,6 @@ func (p *Parser) parseMartValue(allowMultiple bool) ([]string, error) {
 		}
 	}
 	return martCommands, nil
-}
-
-func (p *Parser) parsePoryswitchMartStatement() ([]string, error) {
-	startToken := p.curToken
-	switchCase, switchValue, err := p.parsePoryswitchHeader()
-	if err != nil {
-		return nil, err
-	}
-	cases, err := p.parsePoryswitchMartCases()
-	if err != nil {
-		return nil, err
-	}
-	items, ok := cases[switchValue]
-	if !ok {
-		items, ok = cases["_"]
-		if !ok {
-			return nil, NewParseError(startToken, fmt.Sprintf("no poryswitch case found for '%s=%s', which was specified with the '-s' option", switchCase, switchValue))
-		}
-	}
-	p.nextToken()
-	return items, nil
-}
-
-func (p *Parser) parsePoryswitchMartCases() (map[string][]string, error) {
-	martCases := make(map[string][]string)
-	startToken := p.curToken
-	for p.curToken.Type != token.RBRACE {
-		if p.curToken.Type == token.EOF {
-			return nil, NewParseError(startToken, "missing closing curly braces for poryswitch statement")
-		}
-		if p.curToken.Type != token.IDENT && p.curToken.Type != token.INT {
-			return nil, NewParseError(p.curToken, fmt.Sprintf("invalid poryswitch case '%s'. Expected a simple identifier", p.curToken.Literal))
-		}
-		caseValue := p.curToken.Literal
-		p.nextToken()
-		if p.curToken.Type == token.COLON || p.curToken.Type == token.LBRACE {
-			usedBrace := p.curToken.Type == token.LBRACE
-			p.nextToken()
-			items, err := p.parseMartValue(usedBrace)
-			if err != nil {
-				return nil, err
-			}
-			martCases[caseValue] = items
-			if usedBrace {
-				if p.curToken.Type != token.RBRACE {
-					return nil, NewParseError(p.curToken, fmt.Sprintf("missing closing curly brace for poryswitch case '%s'", caseValue))
-				}
-				p.nextToken()
-			}
-		} else {
-			return nil, NewParseError(p.curToken, fmt.Sprintf("invalid token '%s' after poryswitch case '%s'. Expected ':' or '{'", p.curToken.Literal, caseValue))
-		}
-	}
-	return martCases, nil
 }
 
 func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText, error) {

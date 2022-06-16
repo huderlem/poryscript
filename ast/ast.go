@@ -147,7 +147,7 @@ func (ts *TextStatement) TokenLiteral() string { return ts.Token.Literal }
 type MovementStatement struct {
 	Token            token.Token
 	Name             *Identifier
-	MovementCommands []token.Token
+	MovementCommands []string
 	Scope            token.Type
 }
 
