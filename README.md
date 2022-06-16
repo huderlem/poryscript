@@ -476,7 +476,7 @@ MyMovement:
 ```
 
 ## `mart` Statement
-Use `mart` statements to easily define a list of items for use with the `pokemart` command. Data defined with the `mart` statement is created with local scope, not global. It is not neccesary to add `ITEM_NONE` to the end of the list, but if poryscript encounters it, any items after it will be ignored.
+Use `mart` statements to define a list of items for use with the `pokemart` command. Data defined with the `mart` statement is created with local scope by default. It is not neccesary to add `ITEM_NONE` to the end of the list, but if Poryscript encounters it, any items after it will be ignored.
 
 ```
 script ScriptWithPokemart {
@@ -496,6 +496,7 @@ mart MyMartItems {
 	ITEM_BERRY_JUICE
 }
 ```
+
 Becomes:
 ```
 ScriptWithPokemart::
@@ -515,8 +516,6 @@ MyMartItems:
 	.2byte ITEM_LEMONADE
 	.2byte ITEM_BERRY_JUICE
 	.2byte ITEM_NONE
-	release
-	end
 
 ScriptWithPokemart_Text_0:
 	.string "Welcome to my store.$"
