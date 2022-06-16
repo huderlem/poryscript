@@ -11,15 +11,16 @@ import (
 
 // Lexer produces tokens from a Poryscript file
 type Lexer struct {
-	input          string
-	position       int           // current position in input (points to current char)
-	readPosition   int           // current byte offset position in input (after current char)
-	ch             rune          // current utf-8 char under examination
-	lineNumber     int           // current line number
-	prevCharNumber int           // char byte position of the previously-consume character
-	charNumber     int           // current char byte position of the current line
-	utf8CharNumber int           // current uff-8 char position of the current line
-	queuedTokens   []token.Token // extra tokens that were read ahead of time
+	input              string
+	position           int           // current position in input (points to current char)
+	readPosition       int           // current byte offset position in input (after current char)
+	ch                 rune          // current utf-8 char under examination
+	lineNumber         int           // current line number
+	prevCharNumber     int           // char byte position of the previously-consumed character
+	charNumber         int           // current char byte position of the current line
+	prevUtf8CharNumber int           // utf8 position of the previously-consumed character
+	utf8CharNumber     int           // current uff-8 char position of the current line
+	queuedTokens       []token.Token // extra tokens that were read ahead of time
 }
 
 // New initializes a new lexer for the given Poryscript file
@@ -43,6 +44,7 @@ func (l *Lexer) readChar() {
 	l.position = l.readPosition
 	l.readPosition += charSize
 	l.prevCharNumber = l.charNumber
+	l.prevUtf8CharNumber = l.utf8CharNumber
 	l.charNumber += charSize
 	if charSize > 0 {
 		l.utf8CharNumber++
@@ -50,6 +52,7 @@ func (l *Lexer) readChar() {
 	if prevCh == '\n' {
 		l.lineNumber++
 		l.prevCharNumber = 0
+		l.prevUtf8CharNumber = 0
 		l.charNumber = charSize
 		l.utf8CharNumber = 1
 	}
@@ -257,13 +260,13 @@ func (l *Lexer) NextToken() token.Token {
 	default:
 		if isLetter(l.ch) {
 			tok.StartCharIndex = l.prevCharNumber
-			tok.StartUtf8CharIndex = l.utf8CharNumber - 1
+			tok.StartUtf8CharIndex = l.prevUtf8CharNumber
 			tok.LineNumber = l.lineNumber
 			tok.Literal = l.readIdentifier()
 			tok.Type = token.GetIdentType(tok.Literal)
 			tok.EndLineNumber = l.lineNumber
 			tok.EndCharIndex = l.prevCharNumber
-			tok.EndUtf8CharIndex = l.utf8CharNumber - 1
+			tok.EndUtf8CharIndex = l.prevUtf8CharNumber
 			// If the immediately-next character is the start of a
 			// STRING token, then this is a STRINGTYPE token, instead
 			// of an IDENT.
@@ -275,7 +278,7 @@ func (l *Lexer) NextToken() token.Token {
 			return tok
 		} else if unicode.IsDigit(l.ch) || (l.ch == '-' && unicode.IsDigit(l.peekChar())) {
 			tok.StartCharIndex = l.prevCharNumber
-			tok.StartUtf8CharIndex = l.utf8CharNumber - 1
+			tok.StartUtf8CharIndex = l.prevUtf8CharNumber
 			tok.Type = token.INT
 			tok.LineNumber = l.lineNumber
 			if l.ch == '-' {
@@ -286,7 +289,7 @@ func (l *Lexer) NextToken() token.Token {
 			}
 			tok.EndLineNumber = l.lineNumber
 			tok.EndCharIndex = l.prevCharNumber
-			tok.EndUtf8CharIndex = l.utf8CharNumber - 1
+			tok.EndUtf8CharIndex = l.prevUtf8CharNumber
 			return tok
 		}
 		tok = newSingleCharToken(token.ILLEGAL, l.ch, l.lineNumber, l.charNumber, l.utf8CharNumber)
@@ -299,7 +302,7 @@ func (l *Lexer) NextToken() token.Token {
 func (l *Lexer) readStringToken() token.Token {
 	var t token.Token
 	t.StartCharIndex = l.prevCharNumber
-	t.StartUtf8CharIndex = l.utf8CharNumber - 1
+	t.StartUtf8CharIndex = l.prevUtf8CharNumber
 	t.LineNumber = l.lineNumber
 	t.Literal, t.EndLineNumber, t.EndCharIndex, t.EndUtf8CharIndex = l.readString()
 	t.Type = token.STRING
@@ -361,7 +364,7 @@ func (l *Lexer) readString() (string, int, int, int) {
 		l.readChar()
 		endLine = l.lineNumber
 		endChar = l.prevCharNumber
-		endUtf8Char = l.utf8CharNumber - 1
+		endUtf8Char = l.prevUtf8CharNumber
 		l.skipWhitespace()
 	}
 	return sb.String(), endLine, endChar, endUtf8Char

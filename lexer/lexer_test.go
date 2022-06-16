@@ -49,7 +49,8 @@ func TestNextToken(t *testing.T) {
 		ascii "Regular"braille"WithType"
 		raw RawTest ` + "`" + `
 	step` + "`" + `
-	>`
+	>
+		mart`
 
 	tests := []struct {
 		expectedType          token.Type
@@ -157,7 +158,8 @@ func TestNextToken(t *testing.T) {
 		{token.IDENT, "RawTest", 41, 6, 6, 41, 13, 13},
 		{token.RAWSTRING, "\tstep", 41, 14, 14, 42, 7, 7},
 		{token.GT, ">", 43, 1, 1, 43, 2, 2},
-		{token.EOF, "", 43, 2, 2, 43, 2, 2},
+		{token.MART, "mart", 44, 2, 2, 44, 6, 6},
+		{token.EOF, "", 44, 6, 6, 44, 6, 6},
 	}
 
 	l := New(input)
