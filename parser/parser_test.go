@@ -773,7 +773,7 @@ mart EarlyTerminatedMart {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", nil)
+	p := New(l, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())

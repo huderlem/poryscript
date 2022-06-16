@@ -715,6 +715,6 @@ func emitMartStatement(martStmt *ast.MartStatement) string {
 		}
 		sb.WriteString(fmt.Sprintf("\t.2byte %s\n", item))
 	}
-	sb.WriteString("\t.2byte ITEM_NONE\n\trelease\n\tend\n")
+	sb.WriteString(fmt.Sprintf("\t.2byte %s\n", terminator))
 	return sb.String()
 }

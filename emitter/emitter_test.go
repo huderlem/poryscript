@@ -1853,8 +1853,6 @@ SomeMartItems:
 	.2byte ITEM_LEMONADE
 	.2byte ITEM_BERRY_JUICE
 	.2byte ITEM_NONE
-	release
-	end
 
 ScriptWithPokemart_Text_0:
 	.string "Welcome to my store.$"
@@ -1881,8 +1879,6 @@ SomeMartItems:
 	.2byte ITEM_LEMONADE
 	.2byte ITEM_BERRY_JUICE
 	.2byte ITEM_NONE
-	release
-	end
 
 ScriptWithPokemart_Text_0:
 	.string "Welcome to my store.$"
@@ -1892,7 +1888,7 @@ ScriptWithPokemart_Text_1:
 `
 
 	l := lexer.New(input)
-	p := parser.New(l, "", nil)
+	p := parser.New(l, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1947,8 +1943,6 @@ EarlyTerminatedMartItems:
 	.2byte ITEM_LAVA_COOKIE
 	.2byte ITEM_MOOMOO_MILK
 	.2byte ITEM_NONE
-	release
-	end
 
 ScriptWithPokemart_Text_0:
 	.string "We don't sell much here.$"
@@ -1972,8 +1966,6 @@ EarlyTerminatedMartItems:
 	.2byte ITEM_LAVA_COOKIE
 	.2byte ITEM_MOOMOO_MILK
 	.2byte ITEM_NONE
-	release
-	end
 
 ScriptWithPokemart_Text_0:
 	.string "We don't sell much here.$"
@@ -1983,7 +1975,7 @@ ScriptWithPokemart_Text_1:
 `
 
 	l := lexer.New(input)
-	p := parser.New(l, "", nil)
+	p := parser.New(l, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())

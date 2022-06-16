@@ -169,6 +169,10 @@ type MartStatement struct {
 	Scope     token.Type
 }
 
+func (ms *MartStatement) AllChildren() []Statement {
+	return []Statement{}
+}
+
 func (ps *MartStatement) statementNode() {}
 
 // TokenLiteral returns a string representation of the mart statement.
