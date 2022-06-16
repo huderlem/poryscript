@@ -151,16 +151,11 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, 
 	chunkCounter := 0
 	finalChunks := make(map[int]*chunk)
 	remainingChunks := []*chunk{
-		&chunk{id: chunkCounter, returnID: -1, statements: scriptStmt.Body.Statements[:]},
+		{id: chunkCounter, returnID: -1, statements: scriptStmt.Body.Statements[:]},
 	}
 	breakStatementReturnChunks := make(map[ast.Statement]int)
 	breakStatementOriginChunks := make(map[ast.Statement]int)
 	for len(remainingChunks) > 0 {
-		ids := []int{}
-		for _, c := range remainingChunks {
-			ids = append(ids, c.id)
-		}
-
 		// Grab an unprocessed script chunk.
 		curChunk := remainingChunks[0]
 		remainingChunks = remainingChunks[1:]
