@@ -686,8 +686,8 @@ func emitMovementStatement(movementStmt *ast.MovementStatement) string {
 		sb.WriteString(fmt.Sprintf("%s:\n", movementStmt.Name.Value))
 	}
 	for _, cmd := range movementStmt.MovementCommands {
-		sb.WriteString(fmt.Sprintf("\t%s\n", cmd))
-		if cmd == terminator {
+		sb.WriteString(fmt.Sprintf("\t%s\n", cmd.Literal))
+		if cmd.Literal == terminator {
 			return sb.String()
 		}
 	}

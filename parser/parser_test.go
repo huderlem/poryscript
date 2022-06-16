@@ -267,8 +267,8 @@ mart MyMart {
 		}
 		for i, expectedCommand := range tt.commands {
 			command := stmt.MovementCommands[i]
-			if expectedCommand != command {
-				t.Fatalf("Incorrect movement command %d. Expected %s, got %s", i, expectedCommand, command)
+			if expectedCommand != command.Literal {
+				t.Fatalf("Incorrect movement command %d. Expected %s, got %s", i, expectedCommand, command.Literal)
 			}
 		}
 	}
@@ -789,8 +789,8 @@ func testMovement(t *testing.T, stmt ast.Statement, expectedName string, expecte
 		t.Fatalf("Incorrect number of movement commands. Got %d commands instead of %d", len(movementStmt.MovementCommands), len(expectedCommands))
 	}
 	for i, cmd := range expectedCommands {
-		if movementStmt.MovementCommands[i] != cmd {
-			t.Errorf("Incorrect movement command at index %d. Got '%s' instead of '%s'", i, movementStmt.MovementCommands[i], cmd)
+		if movementStmt.MovementCommands[i].Literal != cmd {
+			t.Errorf("Incorrect movement command at index %d. Got '%s' instead of '%s'", i, movementStmt.MovementCommands[i].Literal, cmd)
 		}
 	}
 }

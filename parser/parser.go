@@ -645,7 +645,7 @@ func (p *Parser) parsePoryswitchTextStatement() (string, string, error) {
 func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
 	statement := &ast.MovementStatement{
 		Token:            p.curToken,
-		MovementCommands: []string{},
+		MovementCommands: []token.Token{},
 	}
 	scope, err := p.parseScopeModifier(token.LOCAL)
 	if err != nil {
@@ -673,10 +673,10 @@ func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
 	return statement, nil
 }
 
-type poryswitchListValueParser func(p *Parser, allowMultiple bool) ([]string, error)
+type poryswitchListValueParser func(p *Parser, allowMultiple bool) ([]token.Token, error)
 
-func parseMovementValue(p *Parser, allowMultiple bool) ([]string, error) {
-	movementCommands := make([]string, 0)
+func parseMovementValue(p *Parser, allowMultiple bool) ([]token.Token, error) {
+	movementCommands := make([]token.Token, 0)
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.PORYSWITCH {
 			poryswitchCommands, err := p.parsePoryswitchListStatement(parseMovementValue)
@@ -685,7 +685,7 @@ func parseMovementValue(p *Parser, allowMultiple bool) ([]string, error) {
 			}
 			movementCommands = append(movementCommands, poryswitchCommands...)
 		} else if p.curToken.Type == token.IDENT {
-			moveCommand := p.curToken.Literal
+			moveCommand := p.curToken
 			p.nextToken()
 			if p.curToken.Type == token.MUL {
 				p.nextToken()
@@ -721,7 +721,7 @@ func parseMovementValue(p *Parser, allowMultiple bool) ([]string, error) {
 	return movementCommands, nil
 }
 
-func (p *Parser) parsePoryswitchListStatement(parseFunc poryswitchListValueParser) ([]string, error) {
+func (p *Parser) parsePoryswitchListStatement(parseFunc poryswitchListValueParser) ([]token.Token, error) {
 	startToken := p.curToken
 	switchCase, switchValue, err := p.parsePoryswitchHeader()
 	if err != nil {
@@ -742,8 +742,8 @@ func (p *Parser) parsePoryswitchListStatement(parseFunc poryswitchListValueParse
 	return listItems, nil
 }
 
-func (p *Parser) parsePoryswitchListCases(parseFunc poryswitchListValueParser) (map[string][]string, error) {
-	listCases := make(map[string][]string)
+func (p *Parser) parsePoryswitchListCases(parseFunc poryswitchListValueParser) (map[string][]token.Token, error) {
+	listCases := make(map[string][]token.Token)
 	startToken := p.curToken
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.EOF {
@@ -777,8 +777,9 @@ func (p *Parser) parsePoryswitchListCases(parseFunc poryswitchListValueParser) (
 
 func (p *Parser) parseMartStatement() (*ast.MartStatement, error) {
 	statement := &ast.MartStatement{
-		Token: p.curToken,
-		Items: []string{},
+		Token:      p.curToken,
+		TokenItems: []token.Token{},
+		Items:      []string{},
 	}
 	scope, err := p.parseScopeModifier(token.LOCAL)
 	if err != nil {
@@ -798,7 +799,10 @@ func (p *Parser) parseMartStatement() (*ast.MartStatement, error) {
 		return nil, NewRangeParseError(statement.Token, p.peekToken, fmt.Sprintf("missing opening curly brace for mart '%s'", statement.Name.Value))
 	}
 	p.nextToken()
-	statement.Items, err = parseMartValue(p, true)
+	statement.TokenItems, err = parseMartValue(p, true)
+	for _, t := range statement.TokenItems {
+		statement.Items = append(statement.Items, p.tryReplaceWithConstant(t.Literal))
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -806,8 +810,8 @@ func (p *Parser) parseMartStatement() (*ast.MartStatement, error) {
 	return statement, nil
 }
 
-func parseMartValue(p *Parser, allowMultiple bool) ([]string, error) {
-	martCommands := make([]string, 0)
+func parseMartValue(p *Parser, allowMultiple bool) ([]token.Token, error) {
+	martCommands := make([]token.Token, 0)
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.PORYSWITCH {
 			poryswitchCommands, err := p.parsePoryswitchListStatement(parseMartValue)
@@ -816,9 +820,8 @@ func parseMartValue(p *Parser, allowMultiple bool) ([]string, error) {
 			}
 			martCommands = append(martCommands, poryswitchCommands...)
 		} else if p.curToken.Type == token.IDENT {
-			martCommand := p.tryReplaceWithConstant(p.curToken.Literal)
+			martCommands = append(martCommands, p.curToken)
 			p.nextToken()
-			martCommands = append(martCommands, martCommand)
 		} else {
 			return nil, NewParseError(p.curToken, fmt.Sprintf("expected mart item, but got '%s' instead", p.curToken.Literal))
 		}
@@ -1719,7 +1722,7 @@ func (p *Parser) parseConstant() error {
 }
 
 func (p *Parser) tryReplaceWithConstant(value string) string {
-	if constValue, ok := p.constants[p.curToken.Literal]; ok {
+	if constValue, ok := p.constants[value]; ok {
 		return constValue
 	}
 	return value
