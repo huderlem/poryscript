@@ -813,7 +813,7 @@ func (p *Parser) parseMartValue(allowMultiple bool) ([]string, error) {
 			}
 			martCommands = append(martCommands, poryswitchCommands...)
 		} else if p.curToken.Type == token.IDENT {
-			martCommand := p.curToken.Literal
+			martCommand := p.tryReplaceWithConstant(p.curToken.Literal)
 			p.nextToken()
 			martCommands = append(martCommands, martCommand)
 		} else {

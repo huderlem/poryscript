@@ -1909,6 +1909,8 @@ ScriptWithPokemart_Text_1:
 
 func TestEmitMartEarlyTermination(t *testing.T) {
 	input := `
+const FOO_ITEM = ITEM_MOOMOO_MILK
+
 script ScriptWithPokemart {
 	lock
 	message("We don't sell much here.")
@@ -1920,7 +1922,7 @@ script ScriptWithPokemart {
 
 mart EarlyTerminatedMartItems {
 	ITEM_LAVA_COOKIE
-	ITEM_MOOMOO_MILK
+	FOO_ITEM
 	ITEM_NONE
 	ITEM_RARE_CANDY
 	ITEM_LEMONADE
