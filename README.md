@@ -508,7 +508,7 @@ ScriptWithPokemart::
 	release
 	return
 
-
+	.align 2
 MyMartItems:
 	.2byte ITEM_LAVA_COOKIE
 	.2byte ITEM_MOOMOO_MILK
