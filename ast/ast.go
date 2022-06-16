@@ -163,10 +163,10 @@ func (ms *MovementStatement) TokenLiteral() string { return ms.Token.Literal }
 // MartStatement is a Poryscript mart statement.
 // Mart statements represent item data for the pokemart command.
 type MartStatement struct {
-	Token     token.Token
-	Name      *Identifier
-	MartItems []string
-	Scope     token.Type
+	Token token.Token
+	Name  *Identifier
+	Items []string
+	Scope token.Type
 }
 
 func (ms *MartStatement) AllChildren() []Statement {

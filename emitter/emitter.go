@@ -709,7 +709,7 @@ func emitMartStatement(martStmt *ast.MartStatement) string {
 	} else {
 		sb.WriteString(fmt.Sprintf("%s:\n", martStmt.Name.Value))
 	}
-	for _, item := range martStmt.MartItems {
+	for _, item := range martStmt.Items {
 		if item == terminator {
 			break
 		}

@@ -1826,7 +1826,7 @@ script ScriptWithPokemart {
 	release
 }
 
-mart SomeMartItems {
+mart(global) SomeMartItems {
 	ITEM_LAVA_COOKIE
 	ITEM_MOOMOO_MILK
 	ITEM_RARE_CANDY
@@ -1846,7 +1846,7 @@ mart SomeMartItems {
 
 
 	.align 2
-SomeMartItems:
+SomeMartItems::
 	.2byte ITEM_LAVA_COOKIE
 	.2byte ITEM_MOOMOO_MILK
 	.2byte ITEM_RARE_CANDY
@@ -1872,7 +1872,7 @@ ScriptWithPokemart_Text_1:
 
 
 	.align 2
-SomeMartItems:
+SomeMartItems::
 	.2byte ITEM_LAVA_COOKIE
 	.2byte ITEM_MOOMOO_MILK
 	.2byte ITEM_RARE_CANDY
@@ -2058,6 +2058,21 @@ movement MyMovement {
 	}
 	face_down
 }
+
+mart MyMart {
+	ITEM_FOO
+	poryswitch(GAME_VERSION) {
+		RUBY: ITEM_RUBY
+		SAPPHIRE {
+			ITEM_SAPPHIRE
+			ITEM_BAR
+			ITEM_NONE
+			ITEM_OMITTED
+		}
+		_: ITEM_FALLBACK
+	}
+	ITEM_LAST
+}
 `
 
 	expectedRubyDe := `MapScripts::
@@ -2091,6 +2106,13 @@ MyMovement:
 	face_ruby
 	face_down
 	step_end
+
+	.align 2
+MyMart:
+	.2byte ITEM_FOO
+	.2byte ITEM_RUBY
+	.2byte ITEM_LAST
+	.2byte ITEM_NONE
 
 MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	.string "This script is inlined.$"
@@ -2139,6 +2161,13 @@ MyMovement:
 	face_ruby
 	face_down
 	step_end
+
+	.align 2
+MyMart:
+	.2byte ITEM_FOO
+	.2byte ITEM_RUBY
+	.2byte ITEM_LAST
+	.2byte ITEM_NONE
 
 MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	.string "This script is inlined.$"
@@ -2194,6 +2223,13 @@ MyMovement:
 	face_down
 	step_end
 
+	.align 2
+MyMart:
+	.2byte ITEM_FOO
+	.2byte ITEM_SAPPHIRE
+	.2byte ITEM_BAR
+	.2byte ITEM_NONE
+
 MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	.string "This script is inlined.$"
 
@@ -2248,6 +2284,13 @@ MyMovement:
 	face_down
 	step_end
 
+	.align 2
+MyMart:
+	.2byte ITEM_FOO
+	.2byte ITEM_SAPPHIRE
+	.2byte ITEM_BAR
+	.2byte ITEM_NONE
+
 MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	.string "This script is inlined.$"
 
@@ -2291,6 +2334,13 @@ MyMovement:
 	face_fallback
 	face_down
 	step_end
+
+	.align 2
+MyMart:
+	.2byte ITEM_FOO
+	.2byte ITEM_FALLBACK
+	.2byte ITEM_LAST
+	.2byte ITEM_NONE
 
 MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	.string "This script is inlined.$"

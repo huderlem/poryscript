@@ -176,6 +176,23 @@ movement MyMovement {
 	}
 	walk_down
 }
+
+mart MyMart {
+	ITEM_FOO
+	poryswitch(GAME_VERSION) {
+		_: ITEM_FALLBACK
+		RUBY: ITEM_RUBY
+		SAPPHIRE {
+			ITEM_SAPPHIRE
+			poryswitch(LANG) {
+				DE: ITEM_DE
+				_ { ITEM_FALLBACK_LANG }
+			}
+			ITEM_SAP_END
+		}
+	}
+	ITEM_FINAL
+}
 `
 	scriptTests := []struct {
 		switches map[string]string
@@ -252,6 +269,34 @@ movement MyMovement {
 			command := stmt.MovementCommands[i]
 			if expectedCommand != command.Literal {
 				t.Fatalf("Incorrect movement command %d. Expected %s, got %s", i, expectedCommand, command.Literal)
+			}
+		}
+	}
+
+	martTests := []struct {
+		switches map[string]string
+		items    []string
+	}{
+		{map[string]string{"GAME_VERSION": "RUBY", "LANG": "DE"}, []string{"ITEM_FOO", "ITEM_RUBY", "ITEM_FINAL"}},
+		{map[string]string{"GAME_VERSION": "SAPPHIRE", "LANG": "DE"}, []string{"ITEM_FOO", "ITEM_SAPPHIRE", "ITEM_DE", "ITEM_SAP_END", "ITEM_FINAL"}},
+		{map[string]string{"GAME_VERSION": "SAPPHIRE", "LANG": "EN"}, []string{"ITEM_FOO", "ITEM_SAPPHIRE", "ITEM_FALLBACK_LANG", "ITEM_SAP_END", "ITEM_FINAL"}},
+	}
+
+	for _, tt := range martTests {
+		l := lexer.New(input)
+		p := New(l, "../font_widths.json", "", 208, tt.switches)
+		program, err := p.ParseProgram()
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+		stmt := program.TopLevelStatements[3].(*ast.MartStatement)
+		if len(stmt.Items) != len(tt.items) {
+			t.Fatalf("Incorrect number of mart items. Expected %d, got %d", len(tt.items), len(stmt.Items))
+		}
+		for i, expectedItem := range tt.items {
+			item := stmt.Items[i]
+			if expectedItem != item {
+				t.Fatalf("Incorrect mart item %d. Expected %s, got %s", i, expectedItem, item)
 			}
 		}
 	}
@@ -793,12 +838,12 @@ func testMart(t *testing.T, stmt ast.Statement, expectedName string, expectedIte
 	if martStmt.Name.Value != expectedName {
 		t.Errorf("Incorrect mart name. Got '%s' instead of '%s'", martStmt.Name.Value, expectedName)
 	}
-	if len(martStmt.MartItems) != len(expectedItems) {
-		t.Fatalf("Incorrect number of mart items. Got %d commands instead of %d", len(martStmt.MartItems), len(expectedItems))
+	if len(martStmt.Items) != len(expectedItems) {
+		t.Fatalf("Incorrect number of mart items. Got %d commands instead of %d", len(martStmt.Items), len(expectedItems))
 	}
 	for i, cmd := range expectedItems {
-		if martStmt.MartItems[i] != cmd {
-			t.Errorf("Incorrect movement command at index %d. Got '%s' instead of '%s'", i, martStmt.MartItems[i], cmd)
+		if martStmt.Items[i] != cmd {
+			t.Errorf("Incorrect movement command at index %d. Got '%s' instead of '%s'", i, martStmt.Items[i], cmd)
 		}
 	}
 }
@@ -1585,11 +1630,36 @@ movement {
 		},
 		{
 			input: `
+mart {
+
+}`,
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 0, Utf8CharStart: 0, CharEnd: 6, Utf8CharEnd: 6, Message: "missing name for mart statement"},
+			expectedErrorMsg: "line 2: missing name for mart statement",
+		},
+		{
+			input: `
 movement Foo
 	walk_up
 }`,
 			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 3, CharStart: 0, Utf8CharStart: 0, CharEnd: 8, Utf8CharEnd: 8, Message: "missing opening curly brace for movement 'Foo'"},
 			expectedErrorMsg: "line 2: missing opening curly brace for movement 'Foo'",
+		},
+		{
+			input: `
+mart FooMart
+	walk_down
+}`,
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 3, CharStart: 0, Utf8CharStart: 0, CharEnd: 10, Utf8CharEnd: 10, Message: "missing opening curly brace for mart 'FooMart'"},
+			expectedErrorMsg: "line 2: missing opening curly brace for mart 'FooMart'",
+		},
+		{
+			input: `
+mart Foo {
+	ITEM_FOO
+	ITEM_BAR * 2
+}`,
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 10, Utf8CharStart: 10, CharEnd: 11, Utf8CharEnd: 11, Message: "expected mart item, but got '*' instead"},
+			expectedErrorMsg: "line 4: expected mart item, but got '*' instead",
 		},
 		{
 			input: `
@@ -1831,6 +1901,12 @@ movement() MyMovement {walk_left}`,
 		},
 		{
 			input: `
+mart() MyMart {ITEM_FOO}`,
+			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 5, Utf8CharStart: 5, CharEnd: 6, Utf8CharEnd: 6, Message: "scope modifier must be 'global' or 'local', but got ')' instead"},
+			expectedErrorMsg: "line 2: scope modifier must be 'global' or 'local', but got ')' instead",
+		},
+		{
+			input: `
 mapscripts() MyMapScripts {}`,
 			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 11, Utf8CharStart: 11, CharEnd: 12, Utf8CharEnd: 12, Message: "scope modifier must be 'global' or 'local', but got ')' instead"},
 			expectedErrorMsg: "line 2: scope modifier must be 'global' or 'local', but got ')' instead",
@@ -1918,10 +1994,12 @@ func testForParseError(t *testing.T, input string, expectedError ParseError, exp
 
 func prettyPrintParseError(e ParseError) string {
 	return fmt.Sprintf(
-		"LineNumberStart: %d\nLineNumberEnd: %d\nCharStart: %d\nCharEnd: %d\nMessage: %s",
+		"LineNumberStart: %d\nLineNumberEnd: %d\nCharStart: %d\nUtf8CharStart: %d\nCharEnd: %d\nUtf8CharEnd: %d\nMessage: %s",
 		e.LineNumberStart,
 		e.LineNumberEnd,
 		e.CharStart,
+		e.Utf8CharStart,
 		e.CharEnd,
+		e.Utf8CharEnd,
 		e.Message)
 }
