@@ -5,7 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-Nothing, yet.
+### Added
+- Add the ability to define sub-labels inside `script` statements. This is useful in some cases where it's more ergonomic to directly jump to a desired location inside a script, similar to C's goto labels.
 
 ## [2.13.0] - 2022-06-16
 ### Added

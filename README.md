@@ -24,6 +24,7 @@ View the [Changelog](https://github.com/huderlem/poryscript/blob/master/CHANGELO
     + [Regular Commands](#regular-commands)
     + [Early-Exiting a Script](#early-exiting-a-script)
     + [`switch` Statement](#switch-statement)
+    + [Labels](#labels)
   * [`text` Statement](#text-statement)
     + [Automatic Text Formatting](#automatic-text-formatting)
     + [Custom Text Encoding](#custom-text-encoding)
@@ -351,6 +352,27 @@ A `switch` statement is an easy way to separate different logic for a set of con
         default:
             msgbox("You have at least 3 things.")
     }
+```
+
+### Labels
+Labels can be defined inside a `script`, and they are very similar to C's `goto` labels. A label isn't usually desired or needed when writing Poryscript scripts, but it can be useful and in certain situations where you might want to jump to a common part of your script from several different places. To write a label, simply add a colon (`:`) after a name anywhere inside a `script`. Labels are rendered as regular assembly labels, and they can be marked as local or global. By default, labels have local scope, but they can be changed to global scope using the same syntax as other statements (e.g. `MyLabel(global):`).
+
+Label Example:
+```
+// Note, this is a bad example of where a
+// label would be useful.
+script MyScript {
+    lockall
+    if (flag(FLAG_TEST)) {
+        goto(MyScript_End)
+    } else if (flag(FLAG_OTHER_TEST)) {
+        addvar(VAR_SCORE, 1)
+        goto(MyScript_End)
+    }
+
+MyScript_End:
+    releaseall
+}
 ```
 
 ## `text` Statement
