@@ -160,10 +160,16 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, 
 		curChunk := remainingChunks[0]
 		remainingChunks = remainingChunks[1:]
 
-		// Skip over basic command statements.
+		// Skip over basic command and label statements.
 		i := 0
 		shouldContinue := false
 		for _, stmt := range curChunk.statements {
+			_, ok := stmt.(*ast.LabelStatement)
+			if ok {
+				i++
+				continue
+			}
+
 			commandStmt, ok := stmt.(*ast.CommandStatement)
 			if !ok {
 				break

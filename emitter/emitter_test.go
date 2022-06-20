@@ -2497,6 +2497,135 @@ MyScript_12:
 	}
 }
 
+func TestEmitLabels(t *testing.T) {
+	input := `script ScriptWithLabels {
+	lock
+	message("We don't sell much here.")
+	waitmessage
+MyLabel:
+	do {
+MyLabel2:
+		dothing()
+MyLabel7:
+		if (var(VAR_TEST) == 5) {
+			MyLabel6:
+			foo()
+			MyLabel8:
+		}
+MyLabel3(global):
+	} while (flag(FLAG_TEMP))
+MyLabel4:
+	pokemart(EarlyTerminatedMartItems)
+	msgbox("Come again soon.")
+	release
+MyLabel5:
+}`
+
+	expectedUnoptimized := `ScriptWithLabels::
+	lock
+	message ScriptWithLabels_Text_0
+	waitmessage
+MyLabel:
+	goto ScriptWithLabels_3
+
+ScriptWithLabels_1:
+MyLabel4:
+	pokemart EarlyTerminatedMartItems
+	msgbox ScriptWithLabels_Text_1
+	release
+MyLabel5:
+	return
+
+ScriptWithLabels_2:
+	goto ScriptWithLabels_4
+
+ScriptWithLabels_3:
+MyLabel2:
+	dothing
+MyLabel7:
+	goto ScriptWithLabels_7
+
+ScriptWithLabels_4:
+	goto_if_set FLAG_TEMP, ScriptWithLabels_3
+	goto ScriptWithLabels_1
+
+ScriptWithLabels_5:
+MyLabel3::
+	goto ScriptWithLabels_2
+
+ScriptWithLabels_6:
+MyLabel6:
+	foo
+MyLabel8:
+	goto ScriptWithLabels_5
+
+ScriptWithLabels_7:
+	compare VAR_TEST, 5
+	goto_if_eq ScriptWithLabels_6
+	goto ScriptWithLabels_5
+
+
+ScriptWithLabels_Text_0:
+	.string "We don't sell much here.$"
+
+ScriptWithLabels_Text_1:
+	.string "Come again soon.$"
+`
+
+	expectedOptimized := `ScriptWithLabels::
+	lock
+	message ScriptWithLabels_Text_0
+	waitmessage
+MyLabel:
+ScriptWithLabels_3:
+MyLabel2:
+	dothing
+MyLabel7:
+	compare VAR_TEST, 5
+	goto_if_eq ScriptWithLabels_6
+ScriptWithLabels_5:
+MyLabel3::
+	goto_if_set FLAG_TEMP, ScriptWithLabels_3
+MyLabel4:
+	pokemart EarlyTerminatedMartItems
+	msgbox ScriptWithLabels_Text_1
+	release
+MyLabel5:
+	return
+
+ScriptWithLabels_6:
+MyLabel6:
+	foo
+MyLabel8:
+	goto ScriptWithLabels_5
+
+
+ScriptWithLabels_Text_0:
+	.string "We don't sell much here.$"
+
+ScriptWithLabels_Text_1:
+	.string "Come again soon.$"
+`
+	l := lexer.New(input)
+	p := parser.New(l, "", "", 0, nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	e := New(program, false)
+	result, _ := e.Emit()
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result, _ = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+	}
+}
+
 // Helper benchmark var to prevent compiler/runtime optimizations.
 // https://dave.cheney.net/2013/06/30/how-to-write-benchmarks-in-go
 var benchResult string

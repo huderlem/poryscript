@@ -96,6 +96,24 @@ func (cs *CommandStatement) statementNode() {}
 // TokenLiteral returns a string representation of the command statement.
 func (cs *CommandStatement) TokenLiteral() string { return cs.Token.Literal }
 
+// LabelStatement is a Poryscript label statement. A label statement marks
+// an indepedently addressable label inside a script, very similar to labels
+// used in C's goto statements.
+type LabelStatement struct {
+	Token    token.Token
+	Name     *Identifier
+	IsGlobal bool
+}
+
+func (cs *LabelStatement) AllChildren() []Statement {
+	return []Statement{}
+}
+
+func (cs *LabelStatement) statementNode() {}
+
+// TokenLiteral returns a string representation of the label statement.
+func (cs *LabelStatement) TokenLiteral() string { return cs.Token.Literal }
+
 // Identifier represents a Poryscript identifier.
 type Identifier struct {
 	Token token.Token

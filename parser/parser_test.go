@@ -1106,6 +1106,109 @@ func testConstant(t *testing.T, expected, actual string) {
 	}
 }
 
+type labelTest struct {
+	commandIndex int
+	name         string
+	isGlobal     bool
+}
+
+func TestLabelStatements(t *testing.T) {
+	input := `
+script MyScript {
+	lock
+MyLabel:
+	foo(1, 2)
+MyLabel2(global): bar
+	release
+}
+
+script MyScript2 {MyLabel3:}
+`
+	l := lexer.New(input)
+	p := New(l, "../font_widths.json", "", 0, nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if len(program.TopLevelStatements) != 2 {
+		t.Fatalf("program.TopLevelStatements does not contain 2 statements. got=%d", len(program.TopLevelStatements))
+	}
+
+	tests := []struct {
+		expectedLabels []labelTest
+	}{
+		{
+			[]labelTest{
+				{
+					commandIndex: 1,
+					name:         "MyLabel",
+					isGlobal:     false,
+				},
+				{
+					commandIndex: 3,
+					name:         "MyLabel2",
+					isGlobal:     true,
+				},
+			},
+		},
+		{
+			[]labelTest{
+				{
+					commandIndex: 0,
+					name:         "MyLabel3",
+					isGlobal:     false,
+				},
+			},
+		},
+	}
+
+	for i, tt := range tests {
+		stmt := program.TopLevelStatements[i]
+		if !testLabels(t, stmt, tt.expectedLabels) {
+			return
+		}
+	}
+}
+
+func testLabels(t *testing.T, s ast.Statement, expectedLabels []labelTest) bool {
+	if s.TokenLiteral() != "script" {
+		t.Errorf("s.TokenLiteral not 'script'. got=%q", s.TokenLiteral())
+		return false
+	}
+
+	scriptStmt, ok := s.(*ast.ScriptStatement)
+	if !ok {
+		t.Errorf("s not %T. got=%T", &ast.ScriptStatement{}, s)
+		return false
+	}
+
+	if scriptStmt.Body == nil {
+		t.Errorf("scriptStmt.Body was nil")
+		return false
+	}
+
+	for _, expectedLabelTest := range expectedLabels {
+		expectedLabel := scriptStmt.Body.Statements[expectedLabelTest.commandIndex]
+		labelStmt, ok := expectedLabel.(*ast.LabelStatement)
+		if !ok {
+			t.Errorf("s not %T. got=%T", &ast.LabelStatement{}, s)
+			return false
+		}
+
+		if labelStmt.Name.Value != expectedLabelTest.name {
+			t.Errorf("labelStmt.Name.Value not '%s'. got=%s", expectedLabelTest.name, labelStmt.Name.Value)
+			return false
+		}
+
+		if labelStmt.IsGlobal != expectedLabelTest.isGlobal {
+			t.Errorf("labelStmt.IsGlobal not '%t'. got=%t", expectedLabelTest.isGlobal, labelStmt.IsGlobal)
+			return false
+		}
+	}
+
+	return true
+}
+
 func TestErrors(t *testing.T) {
 	tests := []struct {
 		input              string

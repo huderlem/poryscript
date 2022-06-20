@@ -40,6 +40,8 @@ type Parser struct {
 	curToken                token.Token
 	peekToken               token.Token
 	peek2Token              token.Token
+	peek3Token              token.Token
+	peek4Token              token.Token
 	inlineTexts             []ast.Text
 	inlineTextsSet          map[textKey]string
 	inlineTextCounts        map[string]int
@@ -70,7 +72,9 @@ func New(l *lexer.Lexer, fontConfigFilepath string, defaultFontID string, maxLin
 		constants:               make(map[string]string),
 		enableEnvironmentErrors: true,
 	}
-	// Read three tokens, so curToken, peekToken, and peek2Token are all set.
+	// Read five tokens, so curToken, peekToken, peek2Token, peek3Token, and peek4Token are all set.
+	p.nextToken()
+	p.nextToken()
 	p.nextToken()
 	p.nextToken()
 	p.nextToken()
@@ -117,7 +121,9 @@ func (p *Parser) peekContinueStack() ast.Statement {
 func (p *Parser) nextToken() {
 	p.curToken = p.peekToken
 	p.peekToken = p.peek2Token
-	p.peek2Token = p.l.NextToken()
+	p.peek2Token = p.peek3Token
+	p.peek3Token = p.peek4Token
+	p.peek4Token = p.l.NextToken()
 }
 
 func (p *Parser) peekTokenIs(expectedType token.Type) bool {
@@ -126,6 +132,14 @@ func (p *Parser) peekTokenIs(expectedType token.Type) bool {
 
 func (p *Parser) peek2TokenIs(expectedType token.Type) bool {
 	return p.peek2Token.Type == expectedType
+}
+
+func (p *Parser) peek3TokenIs(expectedType token.Type) bool {
+	return p.peek3Token.Type == expectedType
+}
+
+func (p *Parser) peek4TokenIs(expectedType token.Type) bool {
+	return p.peek4Token.Type == expectedType
 }
 
 func (p *Parser) expectPeek(expectedType token.Type) error {
@@ -359,8 +373,13 @@ func (p *Parser) parseStatement(scriptName string) ([]ast.Statement, []impText, 
 	var statement ast.Statement
 	switch p.curToken.Type {
 	case token.IDENT:
-		statement, implicitTexts, err = p.parseCommandStatement(scriptName)
-		statements = append(statements, statement)
+		label := p.tryParseLabelStatement()
+		if label != nil {
+			statements = append(statements, label)
+		} else {
+			statement, implicitTexts, err = p.parseCommandStatement(scriptName)
+			statements = append(statements, statement)
+		}
 	case token.IF:
 		statement, implicitTexts, err = p.parseIfStatement(scriptName)
 		statements = append(statements, statement)
@@ -475,6 +494,40 @@ func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, []impT
 	}
 
 	return command, implicitTexts, nil
+}
+
+func (p *Parser) tryParseLabelStatement() *ast.LabelStatement {
+	// From a parsing perspective, label statements are similar
+	// to command statements because they can either be simple identifiers
+	// or include scope syntax, which involves parentheses.
+	if p.peekTokenIs(token.COLON) {
+		label := &ast.LabelStatement{
+			Token: p.curToken,
+			Name: &ast.Identifier{
+				Token: p.curToken,
+				Value: p.curToken.Literal,
+			},
+			IsGlobal: false,
+		}
+		p.nextToken()
+		return label
+	} else if p.peekTokenIs(token.LPAREN) && (p.peek2TokenIs(token.GLOBAL) || p.peek2TokenIs(token.LOCAL)) && p.peek3TokenIs(token.RPAREN) && p.peek4TokenIs(token.COLON) {
+		label := &ast.LabelStatement{
+			Token: p.curToken,
+			Name: &ast.Identifier{
+				Token: p.curToken,
+				Value: p.curToken.Literal,
+			},
+			IsGlobal: p.peek2TokenIs(token.GLOBAL),
+		}
+		p.nextToken()
+		p.nextToken()
+		p.nextToken()
+		p.nextToken()
+		return label
+	}
+
+	return nil
 }
 
 func (p *Parser) parseRawStatement() (*ast.RawStatement, error) {

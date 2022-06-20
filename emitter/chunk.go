@@ -34,11 +34,16 @@ func (c *chunk) renderStatements(sb *strings.Builder) error {
 	// Render basic non-branching commands.
 	for _, stmt := range c.statements {
 		commandStmt, ok := stmt.(*ast.CommandStatement)
-		if !ok {
-			return fmt.Errorf("could not render chunk statement '%q' because it is not a command statement", stmt.TokenLiteral())
+		if ok {
+			sb.WriteString(renderCommandStatement(commandStmt))
+		} else {
+			labelStmt, ok := stmt.(*ast.LabelStatement)
+			if ok {
+				sb.WriteString(renderLabelStatement(labelStmt))
+			} else {
+				return fmt.Errorf("could not render chunk statement '%q' because it is not a command or label statement", stmt.TokenLiteral())
+			}
 		}
-
-		sb.WriteString(renderCommandStatement(commandStmt))
 	}
 	return nil
 }
@@ -109,5 +114,15 @@ func renderCommandStatement(commandStmt *ast.CommandStatement) string {
 		sb.WriteString(fmt.Sprintf(" %s", strings.Join(commandStmt.Args, ", ")))
 	}
 	sb.WriteString("\n")
+	return sb.String()
+}
+
+func renderLabelStatement(labelStmt *ast.LabelStatement) string {
+	var sb strings.Builder
+	if labelStmt.IsGlobal {
+		sb.WriteString(fmt.Sprintf("%s::\n", labelStmt.Name.Value))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s:\n", labelStmt.Name.Value))
+	}
 	return sb.String()
 }
