@@ -365,7 +365,7 @@ script MyScript {
     lockall
     if (flag(FLAG_TEST)) {
         goto(MyScript_End)
-    } else if (flag(FLAG_OTHER_TEST)) {
+    } elif (flag(FLAG_OTHER_TEST)) {
         addvar(VAR_SCORE, 1)
         goto(MyScript_End)
     }

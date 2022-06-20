@@ -28,6 +28,13 @@ func New(program *ast.Program, optimize bool) *Emitter {
 // Emit the target assembler bytecode script.
 func (e *Emitter) Emit() (string, error) {
 	var sb strings.Builder
+
+	// Build a collection of text labels for error-reporting purposes.
+	textLabels := map[string]struct{}{}
+	for _, text := range e.program.Texts {
+		textLabels[text.Name] = struct{}{}
+	}
+
 	i := 0
 	for _, stmt := range e.program.TopLevelStatements {
 		_, ok := stmt.(*ast.TextStatement)
@@ -43,7 +50,7 @@ func (e *Emitter) Emit() (string, error) {
 
 		mapScriptsStmt, ok := stmt.(*ast.MapScriptsStatement)
 		if ok {
-			output, err := e.emitMapScriptStatement(mapScriptsStmt)
+			output, err := e.emitMapScriptStatement(mapScriptsStmt, textLabels)
 			if err != nil {
 				return "", err
 			}
@@ -54,7 +61,7 @@ func (e *Emitter) Emit() (string, error) {
 
 		scriptStmt, ok := stmt.(*ast.ScriptStatement)
 		if ok {
-			output, err := e.emitScriptStatement(scriptStmt)
+			output, err := e.emitScriptStatement(scriptStmt, textLabels)
 			if err != nil {
 				return "", err
 			}
@@ -98,7 +105,7 @@ func (e *Emitter) Emit() (string, error) {
 	return sb.String(), nil
 }
 
-func (e *Emitter) emitMapScriptStatement(mapScriptStmt *ast.MapScriptsStatement) (string, error) {
+func (e *Emitter) emitMapScriptStatement(mapScriptStmt *ast.MapScriptsStatement, textLabels map[string]struct{}) (string, error) {
 	var sb strings.Builder
 	if mapScriptStmt.Scope == token.GLOBAL {
 		sb.WriteString(fmt.Sprintf("%s::\n", mapScriptStmt.Name.Value))
@@ -115,7 +122,7 @@ func (e *Emitter) emitMapScriptStatement(mapScriptStmt *ast.MapScriptsStatement)
 
 	for _, mapScript := range mapScriptStmt.MapScripts {
 		if mapScript.Script != nil {
-			scriptOutput, err := e.emitScriptStatement(mapScript.Script)
+			scriptOutput, err := e.emitScriptStatement(mapScript.Script, textLabels)
 			if err != nil {
 				return "", err
 			}
@@ -130,7 +137,7 @@ func (e *Emitter) emitMapScriptStatement(mapScriptStmt *ast.MapScriptsStatement)
 		sb.WriteString("\t.2byte 0\n\n")
 		for _, scriptEntry := range tableMapScript.Entries {
 			if scriptEntry.Script != nil {
-				scriptOutput, err := e.emitScriptStatement(scriptEntry.Script)
+				scriptOutput, err := e.emitScriptStatement(scriptEntry.Script, textLabels)
 				if err != nil {
 					return "", err
 				}
@@ -142,7 +149,7 @@ func (e *Emitter) emitMapScriptStatement(mapScriptStmt *ast.MapScriptsStatement)
 	return sb.String(), nil
 }
 
-func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, error) {
+func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement, textLabels map[string]struct{}) (string, error) {
 	// The algorithm for emitting script statements is to split the scripts into
 	// self-contained chunks that logically branch to one another. When branching logic
 	// occurs, create a new chunk for any shared logic that follows the branching, as well
@@ -281,7 +288,7 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement) (string, 
 		}
 	}
 
-	return e.renderChunks(finalChunks, scriptStmt.Name.Value, scriptStmt.Scope == token.GLOBAL)
+	return e.renderChunks(finalChunks, scriptStmt.Name.Value, scriptStmt.Scope == token.GLOBAL, textLabels)
 }
 
 func createConditionDestination(destinationChunk int, operatorExpression *ast.OperatorExpression) *conditionDestination {
@@ -556,7 +563,7 @@ func createSwitchStatementChunks(stmt *ast.SwitchStatement, statementIndex int, 
 	return remainingChunks, &jump{destChunkID: switchChunk.id}, returnID
 }
 
-func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string, isGlobal bool) (string, error) {
+func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string, isGlobal bool, textLabels map[string]struct{}) (string, error) {
 	// Get sorted list of final chunk ids.
 	var chunkIDs []int
 	if e.optimize {
@@ -567,6 +574,12 @@ func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string, isGloba
 			chunkIDs = append(chunkIDs, k)
 		}
 		sort.Ints(chunkIDs)
+	}
+
+	// Build a collection of chunk labels for error-reporting purposes.
+	chunkLabels := map[string]struct{}{}
+	for _, chunk := range chunks {
+		chunkLabels[chunk.getLabel(scriptName)] = struct{}{}
 	}
 
 	// First, render the bodies of each chunk. We'll
@@ -587,7 +600,7 @@ func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string, isGloba
 			nextChunkID = -1
 		}
 		chunk := chunks[chunkID]
-		err := chunk.renderStatements(&sb)
+		err := chunk.renderStatements(&sb, chunkLabels, textLabels)
 		if err != nil {
 			return "", err
 		}

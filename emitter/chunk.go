@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/huderlem/poryscript/ast"
+	"github.com/huderlem/poryscript/parser"
 )
 
 // Represents a single chunk of script output. Each chunk has an associated label in
@@ -17,20 +18,25 @@ type chunk struct {
 	branchBehavior   brancher
 }
 
-func (c *chunk) renderLabel(scriptName string, isGlobal bool, sb *strings.Builder) {
+func (c *chunk) getLabel(scriptName string) string {
 	if c.id == 0 {
 		// Main script entrypoint label.
-		if isGlobal {
-			sb.WriteString(fmt.Sprintf("%s::\n", scriptName))
-		} else {
-			sb.WriteString(fmt.Sprintf("%s:\n", scriptName))
-		}
+		return scriptName
+	}
+	return fmt.Sprintf("%s_%d", scriptName, c.id)
+}
+
+func (c *chunk) renderLabel(scriptName string, isGlobal bool, sb *strings.Builder) {
+	label := c.getLabel(scriptName)
+	isMainEntryPoint := c.id == 0
+	if isMainEntryPoint && isGlobal {
+		sb.WriteString(fmt.Sprintf("%s::\n", label))
 	} else {
-		sb.WriteString(fmt.Sprintf("%s_%d:\n", scriptName, c.id))
+		sb.WriteString(fmt.Sprintf("%s:\n", label))
 	}
 }
 
-func (c *chunk) renderStatements(sb *strings.Builder) error {
+func (c *chunk) renderStatements(sb *strings.Builder, chunkLabels map[string]struct{}, textLabels map[string]struct{}) error {
 	// Render basic non-branching commands.
 	for _, stmt := range c.statements {
 		commandStmt, ok := stmt.(*ast.CommandStatement)
@@ -39,6 +45,14 @@ func (c *chunk) renderStatements(sb *strings.Builder) error {
 		} else {
 			labelStmt, ok := stmt.(*ast.LabelStatement)
 			if ok {
+				// Error if the user-defined label collides with one of the auto-generated
+				// chunk or text labels.
+				if _, ok := chunkLabels[labelStmt.Name.Value]; ok {
+					return parser.NewParseError(labelStmt.Token, fmt.Sprintf("duplicate script label '%s'. Choose a unique label that won't clash with the auto-generated script labels", labelStmt.Name.Value))
+				}
+				if _, ok := textLabels[labelStmt.Name.Value]; ok {
+					return parser.NewParseError(labelStmt.Token, fmt.Sprintf("duplicate text label '%s'. Choose a unique label that won't clash with the auto-generated text labels", labelStmt.Name.Value))
+				}
 				sb.WriteString(renderLabelStatement(labelStmt))
 			} else {
 				return fmt.Errorf("could not render chunk statement '%q' because it is not a command or label statement", stmt.TokenLiteral())
