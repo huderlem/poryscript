@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+Nothing, yet.
+
+## [2.14.0] - 2022-06-27
 ### Added
 - Add the ability to define sub-labels inside `script` statements. This is useful in some cases where it's more ergonomic to directly jump to a desired location inside a script, similar to C's goto labels.
 
@@ -122,7 +125,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/poryscript/compare/2.13.0...HEAD
+[Unreleased]: https://github.com/huderlem/poryscript/compare/2.14.0...HEAD
+[2.14.0]: https://github.com/huderlem/poryscript/compare/2.13.0...2.14.0
 [2.13.0]: https://github.com/huderlem/poryscript/compare/2.12.0...2.13.0
 [2.12.0]: https://github.com/huderlem/poryscript/compare/2.11.0...2.12.0
 [2.11.0]: https://github.com/huderlem/poryscript/compare/2.10.0...2.11.0
