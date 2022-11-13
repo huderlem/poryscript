@@ -50,7 +50,7 @@ type Parser struct {
 	continueStack           []ast.Statement
 	fontConfigFilepath      string
 	defaultFontID           string
-	fonts                   *FontWidthsConfig
+	fonts                   *FontConfig
 	maxLineLength           int
 	compileSwitches         map[string]string
 	constants               map[string]string
@@ -1051,7 +1051,28 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 	rawText := p.curToken.Literal
 	var fontID string
 	var fontIdToken token.Token
-	maxTextLength := p.maxLineLength
+	var maxTextLength int
+	if p.fonts == nil {
+		fw, err := LoadFontConfig(p.fontConfigFilepath)
+		if err != nil && p.enableEnvironmentErrors {
+			log.Printf("PORYSCRIPT WARNING: Failed to load fonts JSON config file. Text auto-formatting will not work. Please specify a valid font config filepath with -fw option. '%s'\n", err.Error())
+		}
+		p.fonts = &fw
+	}
+	if fontID == "" {
+		if p.defaultFontID != "" {
+			fontID = p.defaultFontID
+		} else {
+			fontID = p.fonts.DefaultFontID
+		}
+	}
+	if maxTextLength == 0 {
+		if p.maxLineLength != 0 {
+			maxTextLength = p.maxLineLength
+		} else {
+			maxTextLength = p.fonts.Fonts[fontID].MaxLineLength
+		}
+	}
 	if p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		if p.peekTokenIs(token.STRING) {
@@ -1084,20 +1105,6 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 	}
 	if err := p.expectPeek(token.RPAREN); err != nil {
 		return "", "", NewParseError(p.peekToken, "missing closing parenthesis ')' for format()")
-	}
-	if p.fonts == nil {
-		fw, err := LoadFontWidths(p.fontConfigFilepath)
-		if err != nil && p.enableEnvironmentErrors {
-			log.Printf("PORYSCRIPT WARNING: Failed to load fonts JSON config file. Text auto-formatting will not work. Please specify a valid font config filepath with -fw option. '%s'\n", err.Error())
-		}
-		p.fonts = &fw
-	}
-	if fontID == "" {
-		if p.defaultFontID != "" {
-			fontID = p.defaultFontID
-		} else {
-			fontID = p.fonts.DefaultFontID
-		}
 	}
 	formatted, err := p.fonts.FormatText(rawText, maxTextLength, fontID)
 	if err != nil && p.enableEnvironmentErrors {

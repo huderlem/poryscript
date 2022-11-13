@@ -8,15 +8,20 @@ import (
 	"strings"
 )
 
-// FontWidthsConfig holds the pixel widths of characters in various game fonts.
-type FontWidthsConfig struct {
-	Fonts         map[string]map[string]int `json:"fonts"`
-	DefaultFontID string                    `json:"defaultFontId"`
+// FontConfig holds the pixel widths of characters in various game fonts.
+type FontConfig struct {
+	DefaultFontID string           `json:"defaultFontId"`
+	Fonts         map[string]Fonts `json:"fonts"`
 }
 
-// LoadFontWidths reads a font width config JSON file.
-func LoadFontWidths(filepath string) (FontWidthsConfig, error) {
-	var config FontWidthsConfig
+type Fonts struct {
+	Widths        map[string]int `json:"widths"`
+	MaxLineLength int            `json:"maxLineLength"`
+}
+
+// LoadFontConfig reads a font width config JSON file.
+func LoadFontConfig(filepath string) (FontConfig, error) {
+	var config FontConfig
 	bytes, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		return config, err
@@ -33,7 +38,7 @@ const testFontID = "TEST"
 
 // FormatText automatically inserts line breaks into text
 // according to in-game text box widths.
-func (fw *FontWidthsConfig) FormatText(text string, maxWidth int, fontID string) (string, error) {
+func (fw *FontConfig) FormatText(text string, maxWidth int, fontID string) (string, error) {
 	if !fw.isFontIDValid(fontID) && len(fontID) > 0 && fontID != testFontID {
 		validFontIDs := make([]string, len(fw.Fonts))
 		i := 0
@@ -110,7 +115,7 @@ func (fw *FontWidthsConfig) FormatText(text string, maxWidth int, fontID string)
 	return formattedSb.String(), nil
 }
 
-func (fw *FontWidthsConfig) getNextWord(text string) (int, string, error) {
+func (fw *FontConfig) getNextWord(text string) (int, string, error) {
 	escape := false
 	endPos := 0
 	startPos := 0
@@ -162,15 +167,15 @@ func (fw *FontWidthsConfig) getNextWord(text string) (int, string, error) {
 	return len(text), text[startPos:], nil
 }
 
-func (fw *FontWidthsConfig) isLineBreak(word string) bool {
+func (fw *FontConfig) isLineBreak(word string) bool {
 	return word == `\n` || word == `\l` || word == `\p`
 }
 
-func (fw *FontWidthsConfig) isParagraphBreak(word string) bool {
+func (fw *FontConfig) isParagraphBreak(word string) bool {
 	return word == `\p`
 }
 
-func (fw *FontWidthsConfig) getWordPixelWidth(word string, fontID string) int {
+func (fw *FontConfig) getWordPixelWidth(word string, fontID string) int {
 	word, wordWidth := fw.processControlCodes(word, fontID)
 	for _, r := range word {
 		wordWidth += fw.getRunePixelWidth(r, fontID)
@@ -178,7 +183,7 @@ func (fw *FontWidthsConfig) getWordPixelWidth(word string, fontID string) int {
 	return wordWidth
 }
 
-func (fw *FontWidthsConfig) processControlCodes(word string, fontID string) (string, int) {
+func (fw *FontConfig) processControlCodes(word string, fontID string) (string, int) {
 	width := 0
 	re := regexp.MustCompile(`{[^}]*}`)
 	positions := re.FindAllStringIndex(word, -1)
@@ -190,35 +195,35 @@ func (fw *FontWidthsConfig) processControlCodes(word string, fontID string) (str
 	return strippedWord, width
 }
 
-func (fw *FontWidthsConfig) getRunePixelWidth(r rune, fontID string) int {
+func (fw *FontConfig) getRunePixelWidth(r rune, fontID string) int {
 	if fontID == testFontID {
 		return 10
 	}
 	return fw.readWidthFromFontConfig(string(r), fontID)
 }
 
-func (fw *FontWidthsConfig) getControlCodePixelWidth(code string, fontID string) int {
+func (fw *FontConfig) getControlCodePixelWidth(code string, fontID string) int {
 	if fontID == testFontID {
 		return 100
 	}
 	return fw.readWidthFromFontConfig(code, fontID)
 }
 
-func (fw *FontWidthsConfig) isFontIDValid(fontID string) bool {
+func (fw *FontConfig) isFontIDValid(fontID string) bool {
 	_, ok := fw.Fonts[fontID]
 	return ok
 }
 
 const fallbackWidth = 0
 
-func (fw *FontWidthsConfig) readWidthFromFontConfig(value string, fontID string) int {
+func (fw *FontConfig) readWidthFromFontConfig(value string, fontID string) int {
 	font, ok := fw.Fonts[fontID]
 	if !ok {
 		return fallbackWidth
 	}
-	width, ok := font[value]
+	width, ok := font.Widths[value]
 	if !ok {
-		defaultWidth, ok := font["default"]
+		defaultWidth, ok := font.Widths["default"]
 		if !ok {
 			return fallbackWidth
 		}

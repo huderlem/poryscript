@@ -34,7 +34,7 @@ func (opt mapOption) Set(value string) error {
 type options struct {
 	inputFilepath      string
 	outputFilepath     string
-	fontWidthsFilepath string
+	fontConfigFilepath string
 	defaultFontID      string
 	maxLineLength      int
 	optimize           bool
@@ -46,9 +46,9 @@ func parseOptions() options {
 	versionPtr := flag.Bool("v", false, "show version of poryscript")
 	inputPtr := flag.String("i", "", "input poryscript file (leave empty to read from standard input)")
 	outputPtr := flag.String("o", "", "output script file (leave empty to write to standard output)")
-	fontsPtr := flag.String("fw", "font_widths.json", "font widths config JSON file")
+	fontsPtr := flag.String("fw", "font_config.json", "font widths config JSON file")
 	fontIDPtr := flag.String("f", "", "set default font id (leave empty to use default defined in font widths config file)")
-	lengthPtr := flag.Int("l", 208, "set default line length in pixels for formatted text")
+	lengthPtr := flag.Int("l", 0, "set default line length in pixels for formatted text")
 	optimizePtr := flag.Bool("optimize", true, "optimize compiled script size (To disable, use '-optimize=false')")
 	compileSwitches := make(mapOption)
 	flag.Var(compileSwitches, "s", "set a compile-time switch. Multiple -s options can be set. Example: -s VERSION=RUBY -s LANGUAGE=GERMAN")
@@ -67,7 +67,7 @@ func parseOptions() options {
 	return options{
 		inputFilepath:      *inputPtr,
 		outputFilepath:     *outputPtr,
-		fontWidthsFilepath: *fontsPtr,
+		fontConfigFilepath: *fontsPtr,
 		defaultFontID:      *fontIDPtr,
 		maxLineLength:      *lengthPtr,
 		optimize:           *optimizePtr,
@@ -112,7 +112,7 @@ func main() {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
 	}
 
-	parser := parser.New(lexer.New(input), options.fontWidthsFilepath, options.defaultFontID, options.maxLineLength, options.compileSwitches)
+	parser := parser.New(lexer.New(input), options.fontConfigFilepath, options.defaultFontID, options.maxLineLength, options.compileSwitches)
 	program, err := parser.ParseProgram()
 	if err != nil {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
