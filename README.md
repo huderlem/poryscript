@@ -52,14 +52,14 @@ Poryscript is a command-line program.  It reads an input script and outputs the 
 > ./poryscript -h
 Usage of poryscript:
   -f string
-        set default font id (leave empty to use default defined in font widths config file)
-  -fw string
-        font widths config JSON file (default "font_widths.json")
+        set default font id (leave empty to use default defined in font config file)
+  -fc string
+        font config JSON file (default "font_config.json")
   -h    show poryscript help information
   -i string
         input poryscript file (leave empty to read from standard input)
   -l int
-        set default line length in pixels for formatted text (default 208)
+        set default line length in pixels for formatted text (leave as 0 to use default for font as defined in font config file)
   -o string
         output script file (leave empty to write to standard output)
   -optimize
@@ -75,11 +75,11 @@ Convert a `.pory` script to a compiled `.inc` script, which can be directly incl
 ```
 
 To automatically convert your Poryscript scripts when compiling a decomp project, perform these two steps:
-1. Create a new `tools/poryscript/` directory, and add the `poryscript` command-line executable tool to it. Also copy `font_widths.json` to the same location.
+1. Create a new `tools/poryscript/` directory, and add the `poryscript` command-line executable tool to it. Also copy `font_config.json` to the same location.
 ```
 # For example, on Windows, place the files here.
 pokeemerald/tools/poryscript/poryscript.exe
-pokeemerald/tools/poryscript/font_widths.json
+pokeemerald/tools/poryscript/font_config.json
 ```
 It's also a good idea to add `tools/poryscript` to your `.gitignore` before your next commit.
 
@@ -104,7 +104,7 @@ mostlyclean: tidy
 ```
 ```diff
 sound/%.bin: sound/%.aif ; $(AIF) $< $@
-+ data/%.inc: data/%.pory; $(SCRIPT) -i $< -o $@ -fw tools/poryscript/font_widths.json
++ data/%.inc: data/%.pory; $(SCRIPT) -i $< -o $@ -fw tools/poryscript/font_config.json
 ```
 ```diff
 -TOOLDIRS := $(filter-out tools/agbcc tools/binutils,$(wildcard tools/*))
@@ -427,13 +427,13 @@ Becomes:
 .string "Amazing!\p"
 .string "So glad to meet you!$"
 ```
-The font widths configuration JSON file informs Poryscript how many pixels wide each character in the message is. Different fonts have different character widths. For convenience, Poryscript comes with `font_widths.json`, which contains the configuration for pokeemerald's `1_latin` font. More fonts can easily be added to this file by the user by creating anothing font id node under the `fonts` key in `font_widths.json`.
+The font configuration JSON file informs Poryscript how many pixels wide each character in the message is, as well as setting a default maximum line length. Different fonts have different character widths, and different games have different text box sizes. For convenience, Poryscript comes with `font_config.json`, which contains the configuration for pokeemerald's `1_latin` font as `1_latin_rse`, as well as pokefirered's equivilent as `1_latin_frlg`. More fonts can easily be added to this file by the user by creating anothing font id node under the `fonts` key in `font_config.json`.
 
 The length of a line can optionally be specified as the third parameter to `format()` if a font id was specified as the second parameter.
 
 ```
 text MyText {
-    format("Hello, are you the real-live legendary {PLAYER} that everyone talks about?\pAmazing!\pSo glad to meet you!", "1_latin", 100)
+    format("Hello, are you the real-live legendary {PLAYER} that everyone talks about?\pAmazing!\pSo glad to meet you!", "1_latin_rse", 100)
 }
 ```
 Becomes:
