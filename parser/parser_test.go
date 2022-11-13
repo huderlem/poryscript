@@ -34,7 +34,7 @@ script MyScript3 {
 		}
 `
 	l := lexer.New(input)
-	p := New(l, "../font_widths.json", "", 0, nil)
+	p := New(l, "../font_config.json", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -205,7 +205,7 @@ mart MyMart {
 
 	for _, tt := range scriptTests {
 		l := lexer.New(input)
-		p := New(l, "../font_widths.json", "", 208, tt.switches)
+		p := New(l, "../font_config.json", "", 0, tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -233,7 +233,7 @@ mart MyMart {
 
 	for i, tt := range textTests {
 		l := lexer.New(input)
-		p := New(l, "../font_widths.json", "", 208, tt.switches)
+		p := New(l, "../font_config.json", "", 0, tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -256,7 +256,7 @@ mart MyMart {
 
 	for _, tt := range movementTests {
 		l := lexer.New(input)
-		p := New(l, "../font_widths.json", "", 208, tt.switches)
+		p := New(l, "../font_config.json", "", 0, tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -284,7 +284,7 @@ mart MyMart {
 
 	for _, tt := range martTests {
 		l := lexer.New(input)
-		p := New(l, "../font_widths.json", "", 208, tt.switches)
+		p := New(l, "../font_config.json", "", 0, tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -725,7 +725,7 @@ text MyText2 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "../font_widths.json", "1_latin_frlg", 150, nil)
+	p := New(l, "../font_config.json", "1_latin_frlg", 150, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1125,7 +1125,7 @@ MyLabel2(global): bar
 script MyScript2 {MyLabel3:}
 `
 	l := lexer.New(input)
-	p := New(l, "../font_widths.json", "", 0, nil)
+	p := New(l, "../font_config.json", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1874,7 +1874,7 @@ text Foo {
 	format("Hi", "invalidFontID")
 }`,
 			expectedError:      ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 14, Utf8CharStart: 14, CharEnd: 29, Utf8CharEnd: 29},
-			expectedErrorRegex: `line 3: unknown fontID 'invalidFontID' used in format\(\)\. List of valid fontIDs are '\[((1_latin)|(1_latin_frlg)| )+\]'`,
+			expectedErrorRegex: `line 3: unknown fontID 'invalidFontID' used in format\(\)\. List of valid fontIDs are '\[((1_latin_rse)|(1_latin_frlg)| )+\]'`,
 		},
 		{
 			input: `
@@ -2069,7 +2069,7 @@ script MyScript {
 
 func testForParseError(t *testing.T, input string, expectedError ParseError, expectedErrorMsg, expectedErrorRegex string) {
 	l := lexer.New(input)
-	p := New(l, "../font_widths.json", "", 208, nil)
+	p := New(l, "../font_config.json", "", 0, nil)
 	_, err := p.ParseProgram()
 	if err == nil {
 		t.Fatalf("Expected error '%s', but no error occurred", expectedError)

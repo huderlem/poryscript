@@ -19,7 +19,7 @@ func TestFormatText(t *testing.T) {
 		{100, `Hello.\nI am writing a longer \l“test.”`, "Hello.\\n\nI am\\l\nwriting a\\l\nlonger\\l\n“test.”"},
 	}
 
-	fw := FontWidthsConfig{}
+	fw := FontConfig{}
 
 	for i, tt := range tests {
 		result, _ := fw.FormatText(tt.inputText, tt.maxWidth, testFontID)
@@ -56,7 +56,7 @@ func TestGetNextWord(t *testing.T) {
 		{` \ \p  Bar`, 2, `\`},
 	}
 
-	fw := FontWidthsConfig{}
+	fw := FontConfig{}
 
 	for i, tt := range tests {
 		resultPos, resultValue, _ := fw.getNextWord(tt.inputText)
@@ -82,7 +82,7 @@ func TestProcessControlCodes(t *testing.T) {
 		{"Has{FOO}{PLAYE{R}}Codes", "Has}Codes", 200},
 	}
 
-	fw := FontWidthsConfig{}
+	fw := FontConfig{}
 
 	for i, tt := range tests {
 		resultValue, resultWidth := fw.processControlCodes(tt.inputText, testFontID)

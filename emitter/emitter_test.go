@@ -1376,7 +1376,7 @@ MyText2:
 	.custom "Bye!"
 `
 	l := lexer.New(input)
-	p := parser.New(l, "../font_widths.json", "", 208, nil)
+	p := parser.New(l, "../font_config.json", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1436,7 +1436,7 @@ ScripText_2:
 
 `
 	l := lexer.New(input)
-	p := parser.New(l, "../font_widths.json", "", 208, nil)
+	p := parser.New(l, "../font_config.json", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1664,7 +1664,7 @@ PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	.string "map scripts much easier.$"
 `
 	l := lexer.New(input)
-	p := parser.New(l, "../font_widths.json", "", 208, nil)
+	p := parser.New(l, "../font_config.json", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -2362,7 +2362,7 @@ MyText::
 
 	for i, tt := range tests {
 		l := lexer.New(input)
-		p := parser.New(l, "../font_widths.json", "", 208, tt.switches)
+		p := parser.New(l, "../font_config.json", "", 0, tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
