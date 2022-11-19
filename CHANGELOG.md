@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 Nothing, yet.
 
+## [3.0.0] - 2022-11-19
+### Changed
+- Font configuration file is now called `font_config.json`, and each font in that file contains a `maxLineLength` used by `format()`. The command-line option `-fw` has been renamed to `-fc` to reflect the new name of the font configuration file.
+
 ## [2.14.0] - 2022-06-27
 ### Added
 - Add the ability to define sub-labels inside `script` statements. This is useful in some cases where it's more ergonomic to directly jump to a desired location inside a script, similar to C's goto labels.
@@ -125,7 +129,8 @@ Nothing, yet.
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/poryscript/compare/2.14.0...HEAD
+[Unreleased]: https://github.com/huderlem/poryscript/compare/3.0.0...HEAD
+[3.0.0]: https://github.com/huderlem/poryscript/compare/2.14.0...3.0.0
 [2.14.0]: https://github.com/huderlem/poryscript/compare/2.13.0...2.14.0
 [2.13.0]: https://github.com/huderlem/poryscript/compare/2.12.0...2.13.0
 [2.12.0]: https://github.com/huderlem/poryscript/compare/2.11.0...2.12.0
