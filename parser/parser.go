@@ -1051,7 +1051,6 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 	rawText := p.curToken.Literal
 	var fontID string
 	var fontIdToken token.Token
-	var maxTextLength int
 	if p.fonts == nil {
 		fc, err := LoadFontConfig(p.fontConfigFilepath)
 		if err != nil && p.enableEnvironmentErrors {
@@ -1066,12 +1065,9 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 			fontID = p.fonts.DefaultFontID
 		}
 	}
-	if maxTextLength == 0 {
-		if p.maxLineLength != 0 {
-			maxTextLength = p.maxLineLength
-		} else {
-			maxTextLength = p.fonts.Fonts[fontID].MaxLineLength
-		}
+	maxTextLength := p.maxLineLength
+	if maxTextLength <= 0 {
+		maxTextLength = p.fonts.Fonts[fontID].MaxLineLength
 	}
 	if p.peekTokenIs(token.COMMA) {
 		p.nextToken()
