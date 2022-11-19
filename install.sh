@@ -10,7 +10,7 @@ if [ "$1" != "" ]; then
         echo "Could not find executable to install. Try building first!"
         exit 1
     fi
-    cp font_widths.json $1/tools/poryscript
+    cp font_config.json $1/tools/poryscript
 else
     echo "Usage: install.sh PATH"
 fi
