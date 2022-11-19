@@ -8,7 +8,8 @@ import (
 	"strings"
 )
 
-// FontConfig holds the pixel widths of characters in various game fonts.
+// FontConfig holds the configuration for various supported fonts, as well as
+// the default font.
 type FontConfig struct {
 	DefaultFontID string           `json:"defaultFontId"`
 	Fonts         map[string]Fonts `json:"fonts"`
@@ -38,11 +39,11 @@ const testFontID = "TEST"
 
 // FormatText automatically inserts line breaks into text
 // according to in-game text box widths.
-func (fw *FontConfig) FormatText(text string, maxWidth int, fontID string) (string, error) {
-	if !fw.isFontIDValid(fontID) && len(fontID) > 0 && fontID != testFontID {
-		validFontIDs := make([]string, len(fw.Fonts))
+func (fc *FontConfig) FormatText(text string, maxWidth int, fontID string) (string, error) {
+	if !fc.isFontIDValid(fontID) && len(fontID) > 0 && fontID != testFontID {
+		validFontIDs := make([]string, len(fc.Fonts))
 		i := 0
-		for k := range fw.Fonts {
+		for k := range fc.Fonts {
 			validFontIDs[i] = k
 			i++
 		}
@@ -58,7 +59,7 @@ func (fw *FontConfig) FormatText(text string, maxWidth int, fontID string) (stri
 	isFirstWord := true
 	pos := 0
 	for pos < len(text) {
-		endPos, word, err := fw.getNextWord(text[pos:])
+		endPos, word, err := fc.getNextWord(text[pos:])
 		if err != nil {
 			return "", err
 		}
@@ -66,12 +67,12 @@ func (fw *FontConfig) FormatText(text string, maxWidth int, fontID string) (stri
 			break
 		}
 		pos += endPos
-		if fw.isLineBreak(word) {
+		if fc.isLineBreak(word) {
 			curWidth = 0
 			formattedSb.WriteString(curLineSb.String())
 			formattedSb.WriteString(word)
 			formattedSb.WriteByte('\n')
-			if fw.isParagraphBreak(word) {
+			if fc.isParagraphBreak(word) {
 				isFirstLine = true
 			} else {
 				isFirstLine = false
@@ -81,9 +82,9 @@ func (fw *FontConfig) FormatText(text string, maxWidth int, fontID string) (stri
 		} else {
 			wordWidth := 0
 			if !isFirstWord {
-				wordWidth += fw.getRunePixelWidth(' ', fontID)
+				wordWidth += fc.getRunePixelWidth(' ', fontID)
 			}
-			wordWidth += fw.getWordPixelWidth(word, fontID)
+			wordWidth += fc.getWordPixelWidth(word, fontID)
 			if curWidth+wordWidth > maxWidth && curLineSb.Len() > 0 {
 				formattedSb.WriteString(curLineSb.String())
 				if isFirstLine {
@@ -115,7 +116,7 @@ func (fw *FontConfig) FormatText(text string, maxWidth int, fontID string) (stri
 	return formattedSb.String(), nil
 }
 
-func (fw *FontConfig) getNextWord(text string) (int, string, error) {
+func (fc *FontConfig) getNextWord(text string) (int, string, error) {
 	escape := false
 	endPos := 0
 	startPos := 0
@@ -167,57 +168,57 @@ func (fw *FontConfig) getNextWord(text string) (int, string, error) {
 	return len(text), text[startPos:], nil
 }
 
-func (fw *FontConfig) isLineBreak(word string) bool {
+func (fc *FontConfig) isLineBreak(word string) bool {
 	return word == `\n` || word == `\l` || word == `\p`
 }
 
-func (fw *FontConfig) isParagraphBreak(word string) bool {
+func (fc *FontConfig) isParagraphBreak(word string) bool {
 	return word == `\p`
 }
 
-func (fw *FontConfig) getWordPixelWidth(word string, fontID string) int {
-	word, wordWidth := fw.processControlCodes(word, fontID)
+func (fc *FontConfig) getWordPixelWidth(word string, fontID string) int {
+	word, wordWidth := fc.processControlCodes(word, fontID)
 	for _, r := range word {
-		wordWidth += fw.getRunePixelWidth(r, fontID)
+		wordWidth += fc.getRunePixelWidth(r, fontID)
 	}
 	return wordWidth
 }
 
-func (fw *FontConfig) processControlCodes(word string, fontID string) (string, int) {
+func (fc *FontConfig) processControlCodes(word string, fontID string) (string, int) {
 	width := 0
 	re := regexp.MustCompile(`{[^}]*}`)
 	positions := re.FindAllStringIndex(word, -1)
 	for _, pos := range positions {
 		code := word[pos[0]:pos[1]]
-		width += fw.getControlCodePixelWidth(code, fontID)
+		width += fc.getControlCodePixelWidth(code, fontID)
 	}
 	strippedWord := re.ReplaceAllString(word, "")
 	return strippedWord, width
 }
 
-func (fw *FontConfig) getRunePixelWidth(r rune, fontID string) int {
+func (fc *FontConfig) getRunePixelWidth(r rune, fontID string) int {
 	if fontID == testFontID {
 		return 10
 	}
-	return fw.readWidthFromFontConfig(string(r), fontID)
+	return fc.readWidthFromFontConfig(string(r), fontID)
 }
 
-func (fw *FontConfig) getControlCodePixelWidth(code string, fontID string) int {
+func (fc *FontConfig) getControlCodePixelWidth(code string, fontID string) int {
 	if fontID == testFontID {
 		return 100
 	}
-	return fw.readWidthFromFontConfig(code, fontID)
+	return fc.readWidthFromFontConfig(code, fontID)
 }
 
-func (fw *FontConfig) isFontIDValid(fontID string) bool {
-	_, ok := fw.Fonts[fontID]
+func (fc *FontConfig) isFontIDValid(fontID string) bool {
+	_, ok := fc.Fonts[fontID]
 	return ok
 }
 
 const fallbackWidth = 0
 
-func (fw *FontConfig) readWidthFromFontConfig(value string, fontID string) int {
-	font, ok := fw.Fonts[fontID]
+func (fc *FontConfig) readWidthFromFontConfig(value string, fontID string) int {
+	font, ok := fc.Fonts[fontID]
 	if !ok {
 		return fallbackWidth
 	}

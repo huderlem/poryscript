@@ -59,7 +59,7 @@ Usage of poryscript:
   -i string
         input poryscript file (leave empty to read from standard input)
   -l int
-        set default line length in pixels for formatted text (leave as 0 to use default for font as defined in font config file)
+        set default line length in pixels for formatted text (uses font config file for default)
   -o string
         output script file (leave empty to write to standard output)
   -optimize
@@ -104,7 +104,7 @@ mostlyclean: tidy
 ```
 ```diff
 sound/%.bin: sound/%.aif ; $(AIF) $< $@
-+ data/%.inc: data/%.pory; $(SCRIPT) -i $< -o $@ -fw tools/poryscript/font_config.json
++ data/%.inc: data/%.pory; $(SCRIPT) -i $< -o $@ -fc tools/poryscript/font_config.json
 ```
 ```diff
 -TOOLDIRS := $(filter-out tools/agbcc tools/binutils,$(wildcard tools/*))
@@ -417,7 +417,7 @@ Becomes:
 The font id can optionally be specified as the second parameter to `format()`.
 ```
 text MyText {
-    format("Hello, are you the real-live legendary {PLAYER} that everyone talks about?\pAmazing!\pSo glad to meet you!", "1_latin")
+    format("Hello, are you the real-live legendary {PLAYER} that everyone talks about?\pAmazing!\pSo glad to meet you!", "1_latin_rse")
 }
 ```
 Becomes:
@@ -427,7 +427,7 @@ Becomes:
 .string "Amazing!\p"
 .string "So glad to meet you!$"
 ```
-The font configuration JSON file informs Poryscript how many pixels wide each character in the message is, as well as setting a default maximum line length. Different fonts have different character widths, and different games have different text box sizes. For convenience, Poryscript comes with `font_config.json`, which contains the configuration for pokeemerald's `1_latin` font as `1_latin_rse`, as well as pokefirered's equivilent as `1_latin_frlg`. More fonts can easily be added to this file by the user by creating anothing font id node under the `fonts` key in `font_config.json`.
+The font configuration JSON file informs Poryscript how many pixels wide each character in the message is, as well as setting a default maximum line length. Fonts have different character widths, and games have different text box sizes. For convenience, Poryscript comes with `font_config.json`, which contains the configuration for pokeemerald's `1_latin` font as `1_latin_rse`, as well as pokefirered's equivalent as `1_latin_frlg`. More fonts can be added to this file by simply creating anothing font id node under the `fonts` key in `font_config.json`.
 
 The length of a line can optionally be specified as the third parameter to `format()` if a font id was specified as the second parameter.
 

@@ -1053,11 +1053,11 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 	var fontIdToken token.Token
 	var maxTextLength int
 	if p.fonts == nil {
-		fw, err := LoadFontConfig(p.fontConfigFilepath)
+		fc, err := LoadFontConfig(p.fontConfigFilepath)
 		if err != nil && p.enableEnvironmentErrors {
-			log.Printf("PORYSCRIPT WARNING: Failed to load fonts JSON config file. Text auto-formatting will not work. Please specify a valid font config filepath with -fw option. '%s'\n", err.Error())
+			log.Printf("PORYSCRIPT WARNING: Failed to load fonts JSON config file. Text auto-formatting will not work. Please specify a valid font config filepath with -fc option. '%s'\n", err.Error())
 		}
-		p.fonts = &fw
+		p.fonts = &fc
 	}
 	if fontID == "" {
 		if p.defaultFontID != "" {
