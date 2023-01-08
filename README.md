@@ -248,7 +248,7 @@ Compound boolean expressions are also supported. This means you can use the AND 
 The `while` statement can also be written as an infinite loop by omitting the boolean expression. This would be equivalent to `while(true)` in typical programming languages. (Of course, you'll want to `break` out of the infinite loop, or hard-stop the script.)
 ```
     while {
-        msgbox("Want to see this message again?", MSGBOX_YESNO")
+        msgbox("Want to see this message again?", MSGBOX_YESNO)
         if (var(VAR_RESULT) != 1) {
             break
         }
