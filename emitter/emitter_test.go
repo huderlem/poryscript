@@ -1455,6 +1455,58 @@ ScripText_2:
 	}
 }
 
+func TestEmitEndTerminatorsWithLabels(t *testing.T) {
+	input := `
+script Script {
+    goto(label1)
+    return
+label1:
+    msgbox("this needs to be rendered")
+}`
+
+	expectedUnoptimized := `Script::
+	goto label1
+	return
+label1:
+	msgbox Script_Text_0
+	return
+
+
+Script_Text_0:
+	.string "this needs to be rendered$"
+`
+
+	expectedOptimized := `Script::
+	goto label1
+	return
+label1:
+	msgbox Script_Text_0
+	return
+
+
+Script_Text_0:
+	.string "this needs to be rendered$"
+`
+	l := lexer.New(input)
+	p := parser.New(l, "../font_config.json", "", 0, nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	e := New(program, false)
+	result, _ := e.Emit()
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result, _ = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+	}
+}
+
 func TestEmitMapScripts(t *testing.T) {
 	input := `
 const STATE = 1

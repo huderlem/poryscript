@@ -182,9 +182,11 @@ func (e *Emitter) emitScriptStatement(scriptStmt *ast.ScriptStatement, textLabel
 				break
 			}
 			// "end" and "return" are special control-flow commands that end execution of
-			// the current logic scope. Therefore, we should not process any further into the
-			// current chunk, and mark it as finalized.
-			if commandStmt.Name.Value == "end" || commandStmt.Name.Value == "return" {
+			// the current logic scope. Since labels could occur after these commands in the
+			// current chunk, we only finalize the chunk when these commands are the last
+			// command of the current chunk. Otherwise, it would would cause the elimination
+			// of any forthcoming labels in this chunk's statements.
+			if i == len(curChunk.statements)-1 && (commandStmt.Name.Value == "end" || commandStmt.Name.Value == "return") {
 				completeChunk := &chunk{
 					id:               curChunk.id,
 					returnID:         -1,
