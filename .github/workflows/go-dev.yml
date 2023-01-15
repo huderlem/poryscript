@@ -14,10 +14,10 @@ jobs:
     name: Build & Test on ubuntu-latest
     runs-on: ubuntu-latest
     steps:
-    - name: Set up Go 1.13
-      uses: actions/setup-go@v1
+    - name: Set up Go 1.19
+      uses: actions/setup-go@v3
       with:
-        go-version: 1.13
+        go-version: 1.19
       id: go
 
     - name: Check out code into the Go module directory
@@ -60,10 +60,10 @@ jobs:
     name: Build & Test on macos-latest
     runs-on: macos-latest
     steps:
-    - name: Set up Go 1.13
-      uses: actions/setup-go@v1
+    - name: Set up Go 1.19
+      uses: actions/setup-go@v3
       with:
-        go-version: 1.13
+        go-version: 1.19
       id: go
 
     - name: Check out code into the Go module directory
@@ -102,10 +102,10 @@ jobs:
     name: Build & Test on windows-latest
     runs-on: windows-latest
     steps:
-    - name: Set up Go 1.13
-      uses: actions/setup-go@v1
+    - name: Set up Go 1.19
+      uses: actions/setup-go@v3
       with:
-        go-version: 1.13
+        go-version: 1.19
       id: go
 
     - name: Check out code into the Go module directory
