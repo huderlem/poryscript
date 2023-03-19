@@ -85,14 +85,16 @@ It's also a good idea to add `tools/poryscript` to your `.gitignore` before your
 
 2. Update the Makefile with these changes (Note, don't add the `+` symbol at the start of the lines. That's just to show the line is being added.):
 ```diff
+FIX := tools/gbafix/gbafix$(EXE)
+MAPJSON := tools/mapjson/mapjson$(EXE)
+JSONPROC := tools/jsonproc/jsonproc$(EXE)
 + SCRIPT := tools/poryscript/poryscript$(EXE)
 ```
 ```diff
-mostlyclean: tidy
-	rm -f sound/direct_sound_samples/*.bin
-	rm -f $(MID_SUBDIR)/*.s
-	find . \( -iname '*.1bpp' -o -iname '*.4bpp' -o -iname '*.8bpp' -o -iname '*.gbapal' -o -iname '*.lz' -o -iname '*.latfont' -o -iname '*.hwjpnfont' -o -iname '*.fwjpnfont' \) -exec rm {} +
+mostlyclean: tidynonmodern tidymodern
+	...
 	rm -f $(AUTO_GEN_TARGETS)
+	@$(MAKE) clean -C libagbsyscall
 +	rm -f $(patsubst %.pory,%.inc,$(shell find data/ -type f -name '*.pory'))
 ```
 ```diff
@@ -105,16 +107,6 @@ mostlyclean: tidy
 ```diff
 sound/%.bin: sound/%.aif ; $(AIF) $< $@
 + data/%.inc: data/%.pory; $(SCRIPT) -i $< -o $@ -fc tools/poryscript/font_config.json
-```
-```diff
--TOOLDIRS := $(filter-out tools/agbcc tools/binutils,$(wildcard tools/*))
-+TOOLDIRS := $(filter-out tools/agbcc tools/binutils tools/poryscript,$(wildcard tools/*))
-```
-
-3. Update `make_tools.mk` with the same change:
-```diff
--TOOLDIRS := $(filter-out tools/agbcc tools/binutils,$(wildcard tools/*))
-+TOOLDIRS := $(filter-out tools/agbcc tools/binutils tools/poryscript,$(wildcard tools/*))
 ```
 
 ## Convert Existing Scripts
