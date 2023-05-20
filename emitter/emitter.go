@@ -548,7 +548,16 @@ func createSwitchStatementChunks(stmt *ast.SwitchStatement, statementIndex int, 
 				}
 			}
 		}
-		if destChunkID != -1 && !stmt.Cases[i].IsDefault {
+		if destChunkID == -1 {
+			// If we're here, it means that there was no body for the last case(s).
+			// This is syntactically fine, but if there are no other switch cases with
+			// bodies, we want to completely omit even rendering the switch statement because
+			// it's a no-op. By early-returning here, we avoid adding the switch branchBehavior,
+			// which will result in the switch not being rendered in the output.
+			if len(branchCases) == 0 {
+				return remainingChunks, &jump{destChunkID: switchChunk.id}, returnID
+			}
+		} else if !stmt.Cases[i].IsDefault {
 			branchCases = append(branchCases, &switchCaseBranch{
 				comparisonValue: stmt.Cases[i].Value,
 				destChunkID:     destChunkID,

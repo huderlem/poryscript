@@ -1301,6 +1301,118 @@ MyScript_18:
 	}
 }
 
+func TestEmptySwitchCase(t *testing.T) {
+	input := `
+script MyScript {
+	switch (var(VAR_1)) {
+		case 1:
+			foo
+		default:
+	}
+	second
+    if (flag(FLAG_1)) {
+        while (flag(FLAG_2)) {
+            loopstart
+            switch (var(VAR_2)) {
+            case 1:
+            case 2:
+            case 3:
+            }
+        }
+    }
+    switch (var(VAR_3)) {
+        case 1:
+    }
+}`
+
+	expectedUnoptimized := `MyScript::
+	goto MyScript_2
+
+MyScript_1:
+	second
+	goto MyScript_6
+
+MyScript_2:
+	switch VAR_1
+	case 1, MyScript_3
+	goto MyScript_1
+
+MyScript_3:
+	foo
+	goto MyScript_1
+
+MyScript_4:
+	goto MyScript_7
+
+MyScript_5:
+	goto MyScript_8
+
+MyScript_6:
+	goto_if_set FLAG_1, MyScript_5
+	goto MyScript_4
+
+MyScript_7:
+	return
+
+MyScript_8:
+	goto MyScript_10
+
+MyScript_9:
+	loopstart
+	goto MyScript_11
+
+MyScript_10:
+	goto_if_set FLAG_2, MyScript_9
+	goto MyScript_4
+
+MyScript_11:
+	goto MyScript_8
+
+`
+
+	expectedOptimized := `MyScript::
+	switch VAR_1
+	case 1, MyScript_3
+MyScript_1:
+	second
+	goto_if_set FLAG_1, MyScript_5
+MyScript_4:
+	return
+
+MyScript_3:
+	foo
+	goto MyScript_1
+
+MyScript_5:
+MyScript_8:
+	goto_if_set FLAG_2, MyScript_9
+	goto MyScript_4
+
+MyScript_9:
+	loopstart
+	goto MyScript_8
+
+`
+	l := lexer.New(input)
+	p := parser.New(l, "", "", 0, nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	e := New(program, false)
+	result, _ := e.Emit()
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true)
+	result, _ = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+	}
+}
+
 func TestEmitTextStatements(t *testing.T) {
 	input := `
 script TextFormatLineBreaks {
