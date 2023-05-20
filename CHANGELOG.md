@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 Nothing, yet.
 
+## [3.0.2] - 2023-05-20
+### Fixed
+- Fix bug where a `switch` statement with all empty `case` bodies would produce invalid output.
+
 ## [3.0.1] - 2023-01-08
 ### Fixed
 - Fix bug where `end` and `return` commands could cause labels to not render.
@@ -133,7 +137,8 @@ Nothing, yet.
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/poryscript/compare/3.0.1...HEAD
+[Unreleased]: https://github.com/huderlem/poryscript/compare/3.0.2...HEAD
+[3.0.2]: https://github.com/huderlem/poryscript/compare/3.0.1...3.0.2
 [3.0.1]: https://github.com/huderlem/poryscript/compare/3.0.0...3.0.1
 [3.0.0]: https://github.com/huderlem/poryscript/compare/2.14.0...3.0.0
 [2.14.0]: https://github.com/huderlem/poryscript/compare/2.13.0...2.14.0
