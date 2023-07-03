@@ -1065,10 +1065,9 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 			fontID = p.fonts.DefaultFontID
 		}
 	}
+
 	maxTextLength := p.maxLineLength
-	if maxTextLength <= 0 {
-		maxTextLength = p.fonts.Fonts[fontID].MaxLineLength
-	}
+
 	if p.peekTokenIs(token.COMMA) {
 		p.nextToken()
 		if p.peekTokenIs(token.STRING) {
@@ -1102,6 +1101,11 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 	if err := p.expectPeek(token.RPAREN); err != nil {
 		return "", "", NewParseError(p.peekToken, "missing closing parenthesis ')' for format()")
 	}
+
+	if maxTextLength <= 0 {
+		maxTextLength = p.fonts.Fonts[fontID].MaxLineLength
+	}
+
 	formatted, err := p.fonts.FormatText(rawText, maxTextLength, fontID)
 	if err != nil && p.enableEnvironmentErrors {
 		return "", "", NewParseError(fontIdToken, err.Error())

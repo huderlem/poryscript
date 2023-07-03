@@ -723,16 +723,24 @@ text MyText1 {
 text MyText2 {
 	format("FooBar", 100, "TEST")
 }
+
+text MyText3 {
+	format("aaaa aaa aa aaa aa aaa aa aaa aa aaa aa aaa", "1_latin_rse")
+}
+
+text MyText4 {
+	format("aaaa aaa aa aaa aa aaa aa aaa aa aaa aa aaa", "1_latin_frlg")
+}
 `
 	l := lexer.New(input)
-	p := New(l, "../font_config.json", "1_latin_frlg", 150, nil)
+	p := New(l, "../font_config.json", "1_latin_frlg", -1, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
-	if len(program.Texts) != 4 {
-		t.Fatalf("len(program.Texts) != 3. Got '%d' instead.", len(program.Texts))
+	if len(program.Texts) != 6 {
+		t.Fatalf("len(program.Texts) != 6. Got '%d' instead.", len(program.Texts))
 	}
 	if program.Texts[0].Value != "Test»{BLAH}$" {
 		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[0].Value, "Test»{BLAH}$")
@@ -746,6 +754,13 @@ text MyText2 {
 	if program.Texts[3].Value != "FooBar$" {
 		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[3].Value, "FooBar$")
 	}
+	if program.Texts[4].Value != "aaaa aaa aa aaa aa aaa aa aaa aa aaa aa\\n\naaa$" {
+		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[4].Value, "aaaa aaa aa aaa aa aaa aa aaa aa aaa aa\\n\naaa$")
+	}
+	if program.Texts[5].Value != "aaaa aaa aa aaa aa aaa aa aaa aa\\n\naaa aa aaa$" {
+		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[5].Value, "aaaa aaa aa aaa aa aaa aa aaa aa\\n\naaa aa aaa$")
+	}
+	
 }
 
 func TestMovementStatements(t *testing.T) {
