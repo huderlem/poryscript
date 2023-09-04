@@ -709,19 +709,19 @@ script MyScript1 {
 func TestFormatOperator(t *testing.T) {
 	input := `
 script MyScript1 {
-	msgbox(format("Test»{BLAH}$"))
+	msgbox(format("Test»{BLAH} and a bunch of extra stuff to overflow the line$"))
 }
 
 text MyText {
-	format("FooBar", "TEST")
+	format("FooBar and a bunch of extra stuff to overflow the line$", "TEST")
 }
 
 text MyText1 {
-	format("FooBar", "TEST", 100)
+	format("FooBar and a bunch of extra stuff to overflow the line$", "TEST", 100)
 }
 
 text MyText2 {
-	format("FooBar", 100, "TEST")
+	format("FooBar and a bunch of extra stuff to overflow the line$", 100, "TEST")
 }
 
 text MyText3 {
@@ -733,7 +733,7 @@ text MyText4 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "../font_config.json", "1_latin_frlg", -1, nil)
+	p := New(l, "../font_config.json", "1_latin_frlg", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -742,25 +742,30 @@ text MyText4 {
 	if len(program.Texts) != 6 {
 		t.Fatalf("len(program.Texts) != 6. Got '%d' instead.", len(program.Texts))
 	}
-	if program.Texts[0].Value != "Test»{BLAH}$" {
-		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[0].Value, "Test»{BLAH}$")
+	defaultTest := "Test»{BLAH} and a bunch of extra stuff to\\n\noverflow the line$"
+	if program.Texts[0].Value != defaultTest {
+		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[0].Value, defaultTest)
 	}
-	if program.Texts[1].Value != "FooBar$" {
-		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[1].Value, "FooBar$")
+	testBlank := "FooBar\\n\nand\\l\na\\l\nbunch\\l\nof\\l\nextra\\l\nstuff\\l\nto\\l\noverflow\\l\nthe\\l\nline$"
+	if program.Texts[1].Value != testBlank {
+		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[1].Value, testBlank)
 	}
-	if program.Texts[2].Value != "FooBar$" {
-		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[2].Value, "FooBar$")
+	test100 := "FooBar and\\n\na bunch\\l\nof extra\\l\nstuff to\\l\noverflow\\l\nthe line$"
+	if program.Texts[2].Value != test100 {
+		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[2].Value, test100)
 	}
-	if program.Texts[3].Value != "FooBar$" {
-		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[3].Value, "FooBar$")
+	if program.Texts[3].Value != test100 {
+		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[3].Value, test100)
 	}
-	if program.Texts[4].Value != "aaaa aaa aa aaa aa aaa aa aaa aa aaa aa\\n\naaa$" {
-		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[4].Value, "aaaa aaa aa aaa aa aaa aa aaa aa aaa aa\\n\naaa$")
+	otherFont := "aaaa aaa aa aaa aa aaa aa aaa aa aaa aa\\n\naaa$"
+	if program.Texts[4].Value != otherFont {
+		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[4].Value, otherFont)
 	}
-	if program.Texts[5].Value != "aaaa aaa aa aaa aa aaa aa aaa aa\\n\naaa aa aaa$" {
-		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[5].Value, "aaaa aaa aa aaa aa aaa aa aaa aa\\n\naaa aa aaa$")
+	defaultFont := "aaaa aaa aa aaa aa aaa aa aaa aa\\n\naaa aa aaa$"
+	if program.Texts[5].Value != defaultFont {
+		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[5].Value, defaultFont)
 	}
-	
+
 }
 
 func TestMovementStatements(t *testing.T) {
