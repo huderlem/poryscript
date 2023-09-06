@@ -56,6 +56,7 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, fontID string) (stri
 	var curLineSb strings.Builder
 	curWidth := 0
 	isFirstLine := true
+    isSecondLine := false
 	isFirstWord := true
 	pos := 0
 	for pos < len(text) {
@@ -87,9 +88,15 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, fontID string) (stri
 			wordWidth += fc.getWordPixelWidth(word, fontID)
 			if curWidth+wordWidth > maxWidth && curLineSb.Len() > 0 {
 				formattedSb.WriteString(curLineSb.String())
-				if isFirstLine {
-					formattedSb.WriteString(`\n`)
-					isFirstLine = false
+                if isFirstLine {
+                    formattedSb.WriteString(`\n`)
+                    isFirstLine = false
+                    // Start 3_line_message_box
+                    isSecondLine = true
+                } else if isSecondLine {
+                    formattedSb.WriteString(`\n`)
+                    isSecondLine = false
+                    // End 3_line_message_box
 				} else {
 					formattedSb.WriteString(`\l`)
 				}
