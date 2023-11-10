@@ -16,8 +16,9 @@ type FontConfig struct {
 }
 
 type Fonts struct {
-	Widths        map[string]int `json:"widths"`
-	MaxLineLength int            `json:"maxLineLength"`
+	Widths             map[string]int `json:"widths"`
+	CursorOverlapWidth int            `json:"cursorOverlapWidth"`
+	MaxLineLength      int            `json:"maxLineLength"`
 }
 
 // LoadFontConfig reads a font width config JSON file.
@@ -39,7 +40,7 @@ const testFontID = "TEST"
 
 // FormatText automatically inserts line breaks into text
 // according to in-game text box widths.
-func (fc *FontConfig) FormatText(text string, maxWidth int, fontID string) (string, error) {
+func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth int, fontID string) (string, error) {
 	if !fc.isFontIDValid(fontID) && len(fontID) > 0 && fontID != testFontID {
 		validFontIDs := make([]string, len(fc.Fonts))
 		i := 0
@@ -57,15 +58,14 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, fontID string) (stri
 	curWidth := 0
 	isFirstLine := true
 	isFirstWord := true
-	pos := 0
-	for pos < len(text) {
-		endPos, word, err := fc.getNextWord(text[pos:])
-		if err != nil {
-			return "", err
-		}
-		if len(word) == 0 {
-			break
-		}
+	spaceCharWidth := fc.getRunePixelWidth(' ', fontID)
+	pos, word := fc.getNextWord(text)
+	if len(word) == 0 {
+		return formattedSb.String(), nil
+	}
+
+	for len(word) > 0 {
+		endPos, nextWord := fc.getNextWord(text[pos:])
 		pos += endPos
 		if fc.isLineBreak(word) {
 			curWidth = 0
@@ -80,12 +80,20 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, fontID string) (stri
 			isFirstWord = true
 			curLineSb.Reset()
 		} else {
-			wordWidth := 0
+			wordWidth := fc.getWordPixelWidth(word, fontID)
+			nextWordWidth := wordWidth
 			if !isFirstWord {
-				wordWidth += fc.getRunePixelWidth(' ', fontID)
+				nextWordWidth += spaceCharWidth
 			}
-			wordWidth += fc.getWordPixelWidth(word, fontID)
-			if curWidth+wordWidth > maxWidth && curLineSb.Len() > 0 {
+			nextWidth := curWidth + nextWordWidth
+			// Technically, this isn't quite correct--especially if the cursorOverlapWidth is large, such that
+			// it could span multiple words. The true solution would require optimistically trying to fit all
+			// remaining words onto the same line, rather than only looking at the current word + cursor. However,
+			// this is "good enough" and likely works for almost all actual use cases in practice.
+			if len(nextWord) > 0 && (!isFirstLine || fc.isParagraphBreak(nextWord)) {
+				nextWidth += cursorOverlapWidth
+			}
+			if nextWidth > maxWidth && curLineSb.Len() > 0 {
 				formattedSb.WriteString(curLineSb.String())
 				if isFirstLine {
 					formattedSb.WriteString(`\n`)
@@ -99,7 +107,7 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, fontID string) (stri
 				curLineSb.WriteString(word)
 				curWidth = wordWidth
 			} else {
-				curWidth += wordWidth
+				curWidth += nextWordWidth
 				if !isFirstWord {
 					curLineSb.WriteByte(' ')
 				}
@@ -107,6 +115,7 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, fontID string) (stri
 				isFirstWord = false
 			}
 		}
+		word = nextWord
 	}
 
 	if curLineSb.Len() > 0 {
@@ -116,7 +125,7 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, fontID string) (stri
 	return formattedSb.String(), nil
 }
 
-func (fc *FontConfig) getNextWord(text string) (int, string, error) {
+func (fc *FontConfig) getNextWord(text string) (int, string) {
 	escape := false
 	endPos := 0
 	startPos := 0
@@ -126,11 +135,11 @@ func (fc *FontConfig) getNextWord(text string) (int, string, error) {
 	controlCodeLevel := 0
 	for pos, char := range text {
 		if endOnNext {
-			return pos, text[startPos:pos], nil
+			return pos, text[startPos:pos]
 		}
 		if escape && (char == 'l' || char == 'n' || char == 'p') {
 			if foundRegularRune {
-				return endPos, text[startPos:endPos], nil
+				return endPos, text[startPos:endPos]
 			}
 			endOnNext = true
 		} else if char == '\\' && controlCodeLevel == 0 {
@@ -143,7 +152,7 @@ func (fc *FontConfig) getNextWord(text string) (int, string, error) {
 		} else {
 			if char == ' ' {
 				if foundNonSpace && controlCodeLevel == 0 {
-					return pos, text[startPos:pos], nil
+					return pos, text[startPos:pos]
 				}
 			} else {
 				if !foundNonSpace {
@@ -163,9 +172,9 @@ func (fc *FontConfig) getNextWord(text string) (int, string, error) {
 		}
 	}
 	if !foundNonSpace {
-		return len(text), "", nil
+		return len(text), ""
 	}
-	return len(text), text[startPos:], nil
+	return len(text), text[startPos:]
 }
 
 func (fc *FontConfig) isLineBreak(word string) bool {
@@ -184,15 +193,16 @@ func (fc *FontConfig) getWordPixelWidth(word string, fontID string) int {
 	return wordWidth
 }
 
+var controlCodeRegex = regexp.MustCompile(`{[^}]*}`)
+
 func (fc *FontConfig) processControlCodes(word string, fontID string) (string, int) {
 	width := 0
-	re := regexp.MustCompile(`{[^}]*}`)
-	positions := re.FindAllStringIndex(word, -1)
+	positions := controlCodeRegex.FindAllStringIndex(word, -1)
 	for _, pos := range positions {
 		code := word[pos[0]:pos[1]]
 		width += fc.getControlCodePixelWidth(code, fontID)
 	}
-	strippedWord := re.ReplaceAllString(word, "")
+	strippedWord := controlCodeRegex.ReplaceAllString(word, "")
 	return strippedWord, width
 }
 
@@ -200,14 +210,14 @@ func (fc *FontConfig) getRunePixelWidth(r rune, fontID string) int {
 	if fontID == testFontID {
 		return 10
 	}
-	return fc.readWidthFromFontConfig(string(r), fontID)
+	return fc.getWidth(string(r), fontID)
 }
 
 func (fc *FontConfig) getControlCodePixelWidth(code string, fontID string) int {
 	if fontID == testFontID {
 		return 100
 	}
-	return fc.readWidthFromFontConfig(code, fontID)
+	return fc.getWidth(code, fontID)
 }
 
 func (fc *FontConfig) isFontIDValid(fontID string) bool {
@@ -217,7 +227,7 @@ func (fc *FontConfig) isFontIDValid(fontID string) bool {
 
 const fallbackWidth = 0
 
-func (fc *FontConfig) readWidthFromFontConfig(value string, fontID string) int {
+func (fc *FontConfig) getWidth(value string, fontID string) int {
 	font, ok := fc.Fonts[fontID]
 	if !ok {
 		return fallbackWidth

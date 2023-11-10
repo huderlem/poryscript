@@ -750,7 +750,7 @@ text MyText4 {
 	if program.Texts[1].Value != testBlank {
 		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[1].Value, testBlank)
 	}
-	test100 := "FooBar and\\n\na bunch\\l\nof extra\\l\nstuff to\\l\noverflow\\l\nthe line$"
+	test100 := "FooBar and\\n\na bunch of\\l\nextra\\l\nstuff to\\l\noverflow\\l\nthe line$"
 	if program.Texts[2].Value != test100 {
 		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[2].Value, test100)
 	}
