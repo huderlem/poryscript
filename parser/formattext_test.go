@@ -25,6 +25,9 @@ func TestFormatText(t *testing.T) {
 		{130, 0, `Apple Banana\pOrange`, "Apple Banana\\p\nOrange"},
 		{130, 10, `Apple Banana\pOrange`, "Apple Banana\\p\nOrange"},
 		{130, 11, `Apple Banana\pOrange`, "Apple\\n\nBanana\\p\nOrange"},
+		{100, 0, `Hello.\NI am writing a longer \N“test.”`, "Hello.\\n\nI am\\l\nwriting a\\l\nlonger\\l\n“test.”"},
+		{100, 0, `Hello.\NI am\Nwriting\la longer \N“test.”`, "Hello.\\n\nI am\\l\nwriting\\l\na longer\\l\n“test.”"},
+		{100, 0, `Hello.\NI am\Nwriting\pa longer \N“test.”`, "Hello.\\n\nI am\\l\nwriting\\p\na longer\\n\n“test.”"},
 	}
 
 	fc := FontConfig{}

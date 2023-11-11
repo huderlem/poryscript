@@ -70,7 +70,15 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth i
 		if fc.isLineBreak(word) {
 			curWidth = 0
 			formattedSb.WriteString(curLineSb.String())
-			formattedSb.WriteString(word)
+			if fc.isAutoLineBreak(word) {
+				if isFirstLine {
+					formattedSb.WriteString(`\n`)
+				} else {
+					formattedSb.WriteString(`\l`)
+				}
+			} else {
+				formattedSb.WriteString(word)
+			}
 			formattedSb.WriteByte('\n')
 			if fc.isParagraphBreak(word) {
 				isFirstLine = true
@@ -137,7 +145,7 @@ func (fc *FontConfig) getNextWord(text string) (int, string) {
 		if endOnNext {
 			return pos, text[startPos:pos]
 		}
-		if escape && (char == 'l' || char == 'n' || char == 'p') {
+		if escape && (char == 'l' || char == 'n' || char == 'p' || char == 'N') {
 			if foundRegularRune {
 				return endPos, text[startPos:endPos]
 			}
@@ -178,7 +186,11 @@ func (fc *FontConfig) getNextWord(text string) (int, string) {
 }
 
 func (fc *FontConfig) isLineBreak(word string) bool {
-	return word == `\n` || word == `\l` || word == `\p`
+	return word == `\n` || word == `\l` || word == `\p` || word == `\N`
+}
+
+func (fc *FontConfig) isAutoLineBreak(word string) bool {
+	return word == `\N`
 }
 
 func (fc *FontConfig) isParagraphBreak(word string) bool {
