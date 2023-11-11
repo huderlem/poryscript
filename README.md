@@ -406,6 +406,14 @@ Becomes:
 .string "Amazing!\p"
 .string "So glad to meet you!$"
 ```
+
+Additionally, `format()` supports a special line break `\N`, which will automatically insert the appropriate `\n` or `\l` line break. While this is an use case, it's useful in situations where a line break is desired for dramatic/stylistic purposes. In the following example, we want explicit line breaks for the `"..."` texts, but we don't know for sure if the first one should be `\n` or `\l`, so using `\N` makes it easy:
+```
+text MyText {
+    format("You are my favorite trainer!\N...\N...\N...\NBut I'm better!")
+}
+```
+
 The font id can optionally be specified as the second parameter to `format()`.
 ```
 text MyText {
