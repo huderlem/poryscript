@@ -5,7 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-Nothing, yet.
+### Added
+- Add support for configuration of the textbox's cursor width to improve `format()`'s ability to fit text on a line.
+    - This is achieved with a new `cursorOverlapWidth` field in `font_config.json`
+    - Note, this change also changed the `maxLineLength` of the `1_latin_frlg` font, so existing uses of `format()` could be affected--especially when used in combination with explicit line breaks inside the `format()` text content.
+- Add automatic line break (`\N`) support to `format()`
 
 ## [3.0.3] - 2023-09-04
 ### Fixed
