@@ -90,7 +90,7 @@ func (e *Emitter) Emit() (string, error) {
 
 		martStmt, ok := stmt.(*ast.MartStatement)
 		if ok {
-			sb.WriteString(emitMartStatement(martStmt))
+			sb.WriteString(e.emitMartStatement(martStmt))
 			i++
 			continue
 		}
@@ -755,19 +755,21 @@ func (e *Emitter) emitMovementStatement(movementStmt *ast.MovementStatement) str
 	return sb.String()
 }
 
-func emitMartStatement(martStmt *ast.MartStatement) string {
+func (e *Emitter) emitMartStatement(martStmt *ast.MartStatement) string {
 	terminator := "ITEM_NONE"
 	var sb strings.Builder
 	sb.WriteString("\t.align 2\n")
+	tryEmitLineMarker(&sb, martStmt.Token, e.enableLineMarkers, e.inputFilepath)
 	if martStmt.Scope == token.GLOBAL {
 		sb.WriteString(fmt.Sprintf("%s::\n", martStmt.Name.Value))
 	} else {
 		sb.WriteString(fmt.Sprintf("%s:\n", martStmt.Name.Value))
 	}
-	for _, item := range martStmt.Items {
+	for i, item := range martStmt.Items {
 		if item == terminator {
 			break
 		}
+		tryEmitLineMarker(&sb, martStmt.TokenItems[i], e.enableLineMarkers, e.inputFilepath)
 		sb.WriteString(fmt.Sprintf("\t.2byte %s\n", item))
 	}
 	sb.WriteString(fmt.Sprintf("\t.2byte %s\n", terminator))
