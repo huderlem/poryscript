@@ -83,7 +83,7 @@ func (e *Emitter) Emit() (string, error) {
 
 		movementStmt, ok := stmt.(*ast.MovementStatement)
 		if ok {
-			sb.WriteString(emitMovementStatement(movementStmt))
+			sb.WriteString(e.emitMovementStatement(movementStmt))
 			i++
 			continue
 		}
@@ -735,15 +735,17 @@ func (e *Emitter) emitRawStatement(rawStmt *ast.RawStatement) string {
 	return sb.String()
 }
 
-func emitMovementStatement(movementStmt *ast.MovementStatement) string {
+func (e *Emitter) emitMovementStatement(movementStmt *ast.MovementStatement) string {
 	terminator := "step_end"
 	var sb strings.Builder
+	tryEmitLineMarker(&sb, movementStmt.Token, e.enableLineMarkers, e.inputFilepath)
 	if movementStmt.Scope == token.GLOBAL {
 		sb.WriteString(fmt.Sprintf("%s::\n", movementStmt.Name.Value))
 	} else {
 		sb.WriteString(fmt.Sprintf("%s:\n", movementStmt.Name.Value))
 	}
 	for _, cmd := range movementStmt.MovementCommands {
+		tryEmitLineMarker(&sb, cmd, e.enableLineMarkers, e.inputFilepath)
 		sb.WriteString(fmt.Sprintf("\t%s\n", cmd.Literal))
 		if cmd.Literal == terminator {
 			return sb.String()
