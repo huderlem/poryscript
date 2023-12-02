@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 Nothing, yet.
 
+## [3.2.0] - 2023-12-02
+### Added
+- Add `-lm` option for [C Preprocessor line markers](https://gcc.gnu.org/onlinedocs/gcc-3.0.2/cpp_9.html) to improve error messages.
+    - `-lm` is enabled by default. You can specify `-lm=false` to disable line markers in the compiled output.
+
 ## [3.1.0] - 2023-11-11
 ### Added
 - Add support for configuration of the textbox's cursor width to improve `format()`'s ability to fit text on a line.
@@ -148,7 +153,8 @@ Nothing, yet.
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/poryscript/compare/3.1.0...HEAD
+[Unreleased]: https://github.com/huderlem/poryscript/compare/3.2.0...HEAD
+[3.1.0]: https://github.com/huderlem/poryscript/compare/3.1.0...3.2.0
 [3.1.0]: https://github.com/huderlem/poryscript/compare/3.0.3...3.1.0
 [3.0.3]: https://github.com/huderlem/poryscript/compare/3.0.2...3.0.3
 [3.0.2]: https://github.com/huderlem/poryscript/compare/3.0.1...3.0.2
