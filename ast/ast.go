@@ -384,14 +384,14 @@ func (ss *SwitchStatement) TokenLiteral() string { return ss.Token.Literal }
 
 // MapScript is a single map script with either an inline script implementation or a symbol.
 type MapScript struct {
-	Type   string
+	Type   token.Token
 	Name   string
 	Script *ScriptStatement
 }
 
 // TableMapScriptEntry is a single map script entry in a table-based map script.
 type TableMapScriptEntry struct {
-	Condition  string
+	Condition  token.Token
 	Comparison string
 	Name       string
 	Script     *ScriptStatement
@@ -399,7 +399,7 @@ type TableMapScriptEntry struct {
 
 // TableMapScript is a table of map scripts that correspond to variable states.
 type TableMapScript struct {
-	Type    string
+	Type    token.Token
 	Name    string
 	Entries []TableMapScriptEntry
 }

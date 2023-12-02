@@ -931,8 +931,8 @@ func testNamedMapScript(t *testing.T, mapScript ast.MapScript, expectedName stri
 	if mapScript.Name != expectedName {
 		t.Errorf("Incorrect mapScript name. Got '%s' instead of '%s'", mapScript.Name, expectedName)
 	}
-	if mapScript.Type != expectedType {
-		t.Errorf("Incorrect mapScript type. Got '%s' instead of '%s'", mapScript.Type, expectedType)
+	if mapScript.Type.Literal != expectedType {
+		t.Errorf("Incorrect mapScript type. Got '%s' instead of '%s'", mapScript.Type.Literal, expectedType)
 	}
 	if mapScript.Script != nil {
 		t.Errorf("mapScript is supposed to be nil")
@@ -943,8 +943,8 @@ func testScriptedMapScript(t *testing.T, mapScript ast.MapScript, expectedName s
 	if mapScript.Name != expectedName {
 		t.Errorf("Incorrect scripted mapScript name. Got '%s' instead of '%s'", mapScript.Name, expectedName)
 	}
-	if mapScript.Type != expectedType {
-		t.Errorf("Incorrect scripted mapScript type. Got '%s' instead of '%s'", mapScript.Type, expectedType)
+	if mapScript.Type.Literal != expectedType {
+		t.Errorf("Incorrect scripted mapScript type. Got '%s' instead of '%s'", mapScript.Type.Literal, expectedType)
 	}
 	if mapScript.Script == nil {
 		t.Errorf("mapScript.Script is not supposed to be nil")
@@ -958,8 +958,8 @@ func testTableMapScript(t *testing.T, mapScript ast.TableMapScript, expectedName
 	if mapScript.Name != expectedName {
 		t.Errorf("Incorrect table mapScript name. Got '%s' instead of '%s'", mapScript.Name, expectedName)
 	}
-	if mapScript.Type != expectedType {
-		t.Errorf("Incorrect table mapScript type. Got '%s' instead of '%s'", mapScript.Type, expectedType)
+	if mapScript.Type.Literal != expectedType {
+		t.Errorf("Incorrect table mapScript type. Got '%s' instead of '%s'", mapScript.Type.Literal, expectedType)
 	}
 	if len(mapScript.Entries) != expectedNumEntries {
 		t.Errorf("Incorrect table mapScript number of entries. Got '%d' instead of '%d'", len(mapScript.Entries), expectedNumEntries)
@@ -967,8 +967,8 @@ func testTableMapScript(t *testing.T, mapScript ast.TableMapScript, expectedName
 }
 
 func testTableMapScriptEntry(t *testing.T, mapScriptEntry ast.TableMapScriptEntry, expectedCondition, expectedComparison, expectedName string) {
-	if mapScriptEntry.Condition != expectedCondition {
-		t.Errorf("Incorrect table mapScript entry condition. Got '%s' instead of '%s'", mapScriptEntry.Condition, expectedCondition)
+	if mapScriptEntry.Condition.Literal != expectedCondition {
+		t.Errorf("Incorrect table mapScript entry condition. Got '%s' instead of '%s'", mapScriptEntry.Condition.Literal, expectedCondition)
 	}
 	if mapScriptEntry.Comparison != expectedComparison {
 		t.Errorf("Incorrect table mapScript entry comparison. Got '%s' instead of '%s'", mapScriptEntry.Comparison, expectedComparison)
@@ -982,8 +982,8 @@ func testTableMapScriptEntry(t *testing.T, mapScriptEntry ast.TableMapScriptEntr
 }
 
 func testScriptedTableMapScriptEntry(t *testing.T, mapScriptEntry ast.TableMapScriptEntry, expectedCondition, expectedComparison, expectedName string, expectedNumStatements int) {
-	if mapScriptEntry.Condition != expectedCondition {
-		t.Errorf("Incorrect table mapScript entry condition. Got '%s' instead of '%s'", mapScriptEntry.Condition, expectedCondition)
+	if mapScriptEntry.Condition.Literal != expectedCondition {
+		t.Errorf("Incorrect table mapScript entry condition. Got '%s' instead of '%s'", mapScriptEntry.Condition.Literal, expectedCondition)
 	}
 	if mapScriptEntry.Comparison != expectedComparison {
 		t.Errorf("Incorrect table mapScript entry comparison. Got '%s' instead of '%s'", mapScriptEntry.Comparison, expectedComparison)
@@ -1118,7 +1118,7 @@ mapscripts MyMapScript {
 
 	ms := program.TopLevelStatements[1].(*ast.MapScriptsStatement)
 	frame := ms.TableMapScripts[0].Entries[0]
-	testConstant(t, "2 + 1 - 1", frame.Condition)
+	testConstant(t, "2 + 1 - 1", frame.Condition.Literal)
 	testConstant(t, "2", frame.Comparison)
 }
 

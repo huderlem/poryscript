@@ -117,10 +117,12 @@ func (e *Emitter) emitMapScriptStatement(mapScriptStmt *ast.MapScriptsStatement,
 		sb.WriteString(fmt.Sprintf("%s:\n", mapScriptStmt.Name.Value))
 	}
 	for _, mapScript := range mapScriptStmt.MapScripts {
-		sb.WriteString(fmt.Sprintf("\tmap_script %s, %s\n", mapScript.Type, mapScript.Name))
+		tryEmitLineMarker(&sb, mapScript.Type, e.enableLineMarkers, e.inputFilepath)
+		sb.WriteString(fmt.Sprintf("\tmap_script %s, %s\n", mapScript.Type.Literal, mapScript.Name))
 	}
 	for _, tableMapScript := range mapScriptStmt.TableMapScripts {
-		sb.WriteString(fmt.Sprintf("\tmap_script %s, %s\n", tableMapScript.Type, tableMapScript.Name))
+		tryEmitLineMarker(&sb, tableMapScript.Type, e.enableLineMarkers, e.inputFilepath)
+		sb.WriteString(fmt.Sprintf("\tmap_script %s, %s\n", tableMapScript.Type.Literal, tableMapScript.Name))
 	}
 	sb.WriteString("\t.byte 0\n\n")
 
@@ -136,7 +138,8 @@ func (e *Emitter) emitMapScriptStatement(mapScriptStmt *ast.MapScriptsStatement,
 	for _, tableMapScript := range mapScriptStmt.TableMapScripts {
 		sb.WriteString(fmt.Sprintf("%s:\n", tableMapScript.Name))
 		for _, scriptEntry := range tableMapScript.Entries {
-			sb.WriteString(fmt.Sprintf("\tmap_script_2 %s, %s, %s\n", scriptEntry.Condition, scriptEntry.Comparison, scriptEntry.Name))
+			tryEmitLineMarker(&sb, scriptEntry.Condition, e.enableLineMarkers, e.inputFilepath)
+			sb.WriteString(fmt.Sprintf("\tmap_script_2 %s, %s, %s\n", scriptEntry.Condition.Literal, scriptEntry.Comparison, scriptEntry.Name))
 		}
 		sb.WriteString("\t.2byte 0\n\n")
 		for _, scriptEntry := range tableMapScript.Entries {

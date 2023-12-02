@@ -922,14 +922,14 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 		if p.curToken.Type != token.IDENT {
 			return nil, nil, NewParseError(p.curToken, fmt.Sprintf("expected map script type, but got '%s' instead", p.curToken.Literal))
 		}
-		mapScriptType := p.curToken.Literal
+		mapScriptTypeToken := p.curToken
 		p.nextToken()
 		if p.curToken.Type == token.COLON {
 			if err := p.expectPeek(token.IDENT); err != nil {
 				return nil, nil, NewParseError(p.peekToken, fmt.Sprintf("expected map script label after ':', but got '%s' instead", p.peekToken.Literal))
 			}
 			statement.MapScripts = append(statement.MapScripts, ast.MapScript{
-				Type:   mapScriptType,
+				Type:   mapScriptTypeToken,
 				Name:   p.curToken.Literal,
 				Script: nil,
 			})
@@ -937,14 +937,14 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 		} else if p.curToken.Type == token.LBRACE {
 			braceToken := p.curToken
 			p.nextToken()
-			scriptName := fmt.Sprintf("%s_%s", statement.Name.Value, mapScriptType)
+			scriptName := fmt.Sprintf("%s_%s", statement.Name.Value, mapScriptTypeToken.Literal)
 			blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName, braceToken)
 			if err != nil {
 				return nil, nil, err
 			}
 			implicitTexts = append(implicitTexts, stmtTexts...)
 			statement.MapScripts = append(statement.MapScripts, ast.MapScript{
-				Type: mapScriptType,
+				Type: mapScriptTypeToken,
 				Name: scriptName,
 				Script: &ast.ScriptStatement{
 					Name: &ast.Identifier{
@@ -994,12 +994,14 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 					return nil, nil, NewRangeParseError(startToken, p.curToken, "expected comparison value for map script table entry, but it was empty")
 				}
 
+				conditionToken := startToken
+				conditionToken.Literal = conditionValue
 				if p.curToken.Type == token.COLON {
 					if err := p.expectPeek(token.IDENT); err != nil {
 						return nil, nil, NewParseError(p.peekToken, fmt.Sprintf("expected map script label after ':', but got '%s' instead", p.peekToken.Literal))
 					}
 					tableEntries = append(tableEntries, ast.TableMapScriptEntry{
-						Condition:  conditionValue,
+						Condition:  conditionToken,
 						Comparison: comparisonValue,
 						Name:       p.curToken.Literal,
 						Script:     nil,
@@ -1008,14 +1010,14 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 				} else if p.curToken.Type == token.LBRACE {
 					braceToken := p.curToken
 					p.nextToken()
-					scriptName := fmt.Sprintf("%s_%s_%d", statement.Name.Value, mapScriptType, i)
+					scriptName := fmt.Sprintf("%s_%s_%d", statement.Name.Value, mapScriptTypeToken.Literal, i)
 					blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName, braceToken)
 					if err != nil {
 						return nil, nil, err
 					}
 					implicitTexts = append(implicitTexts, stmtTexts...)
 					tableEntries = append(tableEntries, ast.TableMapScriptEntry{
-						Condition:  conditionValue,
+						Condition:  conditionToken,
 						Comparison: comparisonValue,
 						Name:       scriptName,
 						Script: &ast.ScriptStatement{
@@ -1031,8 +1033,8 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 				i++
 			}
 			statement.TableMapScripts = append(statement.TableMapScripts, ast.TableMapScript{
-				Type:    mapScriptType,
-				Name:    fmt.Sprintf("%s_%s", statement.Name.Value, mapScriptType),
+				Type:    mapScriptTypeToken,
+				Name:    fmt.Sprintf("%s_%s", statement.Name.Value, mapScriptTypeToken.Literal),
 				Entries: tableEntries,
 			})
 			p.nextToken()
