@@ -16,14 +16,16 @@ type Emitter struct {
 	program           *ast.Program
 	optimize          bool
 	enableLineMarkers bool
+	inputFilepath     string
 }
 
 // New creates a new Poryscript program emitter.
-func New(program *ast.Program, optimize, enableLineMarkers bool) *Emitter {
+func New(program *ast.Program, optimize, enableLineMarkers bool, inputFilepath string) *Emitter {
 	return &Emitter{
 		program:           program,
 		optimize:          optimize,
 		enableLineMarkers: enableLineMarkers,
+		inputFilepath:     inputFilepath,
 	}
 }
 

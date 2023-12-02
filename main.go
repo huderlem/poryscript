@@ -121,7 +121,7 @@ func main() {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
 	}
 
-	emitter := emitter.New(program, options.optimize, options.enableLineMarkers)
+	emitter := emitter.New(program, options.optimize, options.enableLineMarkers, options.inputFilepath)
 	result, err := emitter.Emit()
 	if err != nil {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
