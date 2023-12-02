@@ -76,7 +76,7 @@ func (e *Emitter) Emit() (string, error) {
 
 		rawStmt, ok := stmt.(*ast.RawStatement)
 		if ok {
-			sb.WriteString(emitRawStatement(rawStmt))
+			sb.WriteString(e.emitRawStatement(rawStmt))
 			i++
 			continue
 		}
@@ -687,11 +687,19 @@ func optimizeChunkOrder(chunks map[int]*chunk) []int {
 	return chunkIDs
 }
 
+func shouldEmitLineMarkers(enableLineMarkers bool, inputFilepath string) bool {
+	return enableLineMarkers && len(inputFilepath) > 0
+}
+
+func emitLineMarker(sb *strings.Builder, lineNumber int, inputFilepath string) {
+	sb.WriteString(fmt.Sprintf("# %d \"%s\"\n", lineNumber, inputFilepath))
+}
+
 func tryEmitLineMarker(sb *strings.Builder, tok token.Token, enableLineMarkers bool, inputFilepath string) {
-	if !enableLineMarkers || len(inputFilepath) == 0 {
+	if !shouldEmitLineMarkers(enableLineMarkers, inputFilepath) {
 		return
 	}
-	sb.WriteString(fmt.Sprintf("# %d \"%s\"\n", tok.LineNumber, inputFilepath))
+	emitLineMarker(sb, tok.LineNumber, inputFilepath)
 }
 
 func (e *Emitter) emitText(text ast.Text) string {
@@ -713,9 +721,17 @@ func (e *Emitter) emitText(text ast.Text) string {
 	return sb.String()
 }
 
-func emitRawStatement(rawStmt *ast.RawStatement) string {
+func (e *Emitter) emitRawStatement(rawStmt *ast.RawStatement) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s\n", rawStmt.Value))
+	if shouldEmitLineMarkers(e.enableLineMarkers, e.inputFilepath) {
+		lines := strings.Split(rawStmt.Value, "\n")
+		for i, line := range lines {
+			emitLineMarker(&sb, rawStmt.Token.LineNumber+i, e.inputFilepath)
+			sb.WriteString(fmt.Sprintf("%s\n", line))
+		}
+	} else {
+		sb.WriteString(fmt.Sprintf("%s\n", rawStmt.Value))
+	}
 	return sb.String()
 }
 

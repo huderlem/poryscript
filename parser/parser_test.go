@@ -325,9 +325,11 @@ raw ` + "`" + `
 	tests := []struct {
 		expectedValue string
 	}{
-		{`	step_up
+		{`
+	step_up
 	step_end`},
-		{`	step_down`},
+		{`
+	step_down`},
 	}
 
 	for i, tt := range tests {

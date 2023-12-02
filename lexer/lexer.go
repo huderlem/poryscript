@@ -373,7 +373,6 @@ func (l *Lexer) readString() (string, int, int, int) {
 func (l *Lexer) readRaw() string {
 	var sb strings.Builder
 	l.readChar()
-	l.skipNewlineWhitespace()
 	for l.ch != '`' && l.ch != 0 {
 		sb.WriteRune(l.ch)
 		l.readChar()

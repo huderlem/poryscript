@@ -156,7 +156,7 @@ func TestNextToken(t *testing.T) {
 		{token.STRING, "WithType", 40, 24, 24, 40, 34, 34},
 		{token.RAW, "raw", 41, 2, 2, 41, 5, 5},
 		{token.IDENT, "RawTest", 41, 6, 6, 41, 13, 13},
-		{token.RAWSTRING, "\tstep", 41, 14, 14, 42, 7, 7},
+		{token.RAWSTRING, "\n\tstep", 41, 14, 14, 42, 7, 7},
 		{token.GT, ">", 43, 1, 1, 43, 2, 2},
 		{token.MART, "mart", 44, 2, 2, 44, 6, 6},
 		{token.EOF, "", 44, 6, 6, 44, 6, 6},

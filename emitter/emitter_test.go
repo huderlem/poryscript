@@ -160,9 +160,11 @@ Route29_EventScript_Dude_9:
 	goto Route29_EventScript_Dude_8
 
 
+
 Route29_Text_PokemonInTheGrass:
 	.string "POKéMON hide in the grass.\n"
 	.string "Who knows when they'll pop out…$"
+
 
 Route29_Text_Dude_CatchingTutRejected:
 	.string "Oh.\n"
@@ -242,9 +244,11 @@ Route29_EventScript_Dude_7:
 	goto Route29_EventScript_Dude_1
 
 
+
 Route29_Text_PokemonInTheGrass:
 	.string "POKéMON hide in the grass.\n"
 	.string "Who knows when they'll pop out…$"
+
 
 Route29_Text_Dude_CatchingTutRejected:
 	.string "Oh.\n"
