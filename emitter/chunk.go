@@ -64,9 +64,9 @@ func (c *chunk) renderStatements(sb *strings.Builder, chunkLabels map[string]str
 	return nil
 }
 
-func (c *chunk) renderBranching(scriptName string, sb *strings.Builder, nextChunkID int, registerJumpChunk func(int)) bool {
+func (c *chunk) renderBranching(scriptName string, sb *strings.Builder, nextChunkID int, registerJumpChunk func(int), enableLineMarkers bool, inputFilepath string) bool {
 	if c.branchBehavior != nil {
-		isFallThrough := c.branchBehavior.renderBranchConditions(sb, scriptName, nextChunkID, registerJumpChunk)
+		isFallThrough := c.branchBehavior.renderBranchConditions(sb, scriptName, nextChunkID, registerJumpChunk, enableLineMarkers, inputFilepath)
 		return isFallThrough
 	}
 

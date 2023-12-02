@@ -1275,6 +1275,7 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 
 	p.nextToken()
 	parts := []string{}
+	operandToken := p.curToken
 	for p.curToken.Type != token.RPAREN {
 		if p.curToken.Type == token.EOF {
 			return nil, nil, NewParseError(originalToken, "missing closing parenthesis of switch statement value")
@@ -1283,7 +1284,8 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 		p.nextToken()
 	}
 	p.nextToken()
-	statement.Operand = strings.Join(parts, " ")
+	operandToken.Literal = strings.Join(parts, " ")
+	statement.Operand = operandToken
 
 	if err := p.expectPeek(token.LBRACE); err != nil {
 		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing opening curly brace of switch statement")
@@ -1298,6 +1300,7 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 			caseToken := p.curToken
 			p.nextToken()
 			parts := []string{}
+			caseValueToken := p.curToken
 			for p.curToken.Type != token.COLON {
 				parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 				p.nextToken()
@@ -1317,8 +1320,9 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 				return nil, nil, err
 			}
 			implicitTexts = append(implicitTexts, stmtTexts...)
+			caseValueToken.Literal = caseValue
 			statement.Cases = append(statement.Cases, &ast.SwitchCase{
-				Value: caseValue,
+				Value: caseValueToken,
 				Body:  body,
 			})
 		} else if p.curToken.Type == token.DEFAULT {

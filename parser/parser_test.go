@@ -619,8 +619,8 @@ script Test {
 	if !ok {
 		t.Fatalf("not a switch statement\n")
 	}
-	if switchStmt.Operand != "VAR_1" {
-		t.Fatalf("switchStmt.Operand != VAR_1. Got '%s' instead.", switchStmt.Operand)
+	if switchStmt.Operand.Literal != "VAR_1" {
+		t.Fatalf("switchStmt.Operand != VAR_1. Got '%s' instead.", switchStmt.Operand.Literal)
 	}
 	if len(switchStmt.Cases) != 5 {
 		t.Fatalf("len(switchStmt.Cases) != 5. Got '%d' instead.", len(switchStmt.Cases))
@@ -637,8 +637,8 @@ script Test {
 }
 
 func testSwitchCase(t *testing.T, sc *ast.SwitchCase, expectValue string, expectBodyLength int) {
-	if sc.Value != expectValue {
-		t.Fatalf("sc.Value != %s. Got '%s' instead.", expectValue, sc.Value)
+	if sc.Value.Literal != expectValue {
+		t.Fatalf("sc.Value != %s. Got '%s' instead.", expectValue, sc.Value.Literal)
 	}
 	if len(sc.Body.Statements) != expectBodyLength {
 		t.Fatalf("len(sc.Body.Statements) != %d. Got '%d' instead.", expectBodyLength, len(sc.Body.Statements))
@@ -1113,8 +1113,8 @@ mapscripts MyMapScript {
 	testConstant(t, "2 + 1 - 1 + 1", op2.ComparisonValue)
 
 	sw := script.Body.Statements[5].(*ast.SwitchStatement)
-	testConstant(t, "2 + 1 - 1", sw.Operand)
-	testConstant(t, "2", sw.Cases[0].Value)
+	testConstant(t, "2 + 1 - 1", sw.Operand.Literal)
+	testConstant(t, "2", sw.Cases[0].Value.Literal)
 
 	ms := program.TopLevelStatements[1].(*ast.MapScriptsStatement)
 	frame := ms.TableMapScripts[0].Entries[0]

@@ -10,7 +10,7 @@ import (
 
 // Interface that manages chunk branching behavior.
 type brancher interface {
-	renderBranchConditions(sb *strings.Builder, scriptName string, nextChunkID int, registerJumpChunk func(int)) bool
+	renderBranchConditions(sb *strings.Builder, scriptName string, nextChunkID int, registerJumpChunk func(int), enableLineMarkers bool, inputFilepath string) bool
 	getTailChunkID() int
 }
 
@@ -26,7 +26,7 @@ type jump struct {
 }
 
 // Satisfies brancher interface.
-func (j *jump) renderBranchConditions(sb *strings.Builder, scriptName string, nextChunkID int, registerJumpChunk func(int)) bool {
+func (j *jump) renderBranchConditions(sb *strings.Builder, scriptName string, nextChunkID int, registerJumpChunk func(int), enableLineMarkers bool, inputFilepath string) bool {
 	if j.destChunkID != nextChunkID {
 		registerJumpChunk(j.destChunkID)
 		sb.WriteString(fmt.Sprintf("\tgoto %s_%d\n", scriptName, j.destChunkID))
@@ -46,7 +46,7 @@ type breakContext struct {
 }
 
 // Satisfies brancher interface.
-func (bc *breakContext) renderBranchConditions(sb *strings.Builder, scriptName string, nextChunkID int, registerJumpChunk func(int)) bool {
+func (bc *breakContext) renderBranchConditions(sb *strings.Builder, scriptName string, nextChunkID int, registerJumpChunk func(int), enableLineMarkers bool, inputFilepath string) bool {
 	if bc.destChunkID == -1 {
 		sb.WriteString("\treturn\n")
 		return false
@@ -70,7 +70,7 @@ type leafExpressionBranch struct {
 }
 
 // Satisfies brancher interface.
-func (l *leafExpressionBranch) renderBranchConditions(sb *strings.Builder, scriptName string, nextChunkID int, registerJumpChunk func(int)) bool {
+func (l *leafExpressionBranch) renderBranchConditions(sb *strings.Builder, scriptName string, nextChunkID int, registerJumpChunk func(int), enableLineMarkers bool, inputFilepath string) bool {
 	registerJumpChunk(l.truthyDest.id)
 	renderBranchComparison(sb, l.truthyDest, scriptName)
 	if l.falseyReturnID == -1 {
@@ -90,24 +90,26 @@ func (l *leafExpressionBranch) getTailChunkID() int {
 }
 
 type switchCaseBranch struct {
-	comparisonValue string
+	comparisonValue token.Token
 	destChunkID     int
 }
 
 // Represents the a switch statement branch behavior.
 type switchBranch struct {
-	operand     string
+	operand     token.Token
 	cases       []*switchCaseBranch
 	defaultCase *switchCaseBranch
 	destChunkID int
 }
 
 // Satisfies brancher interface.
-func (s *switchBranch) renderBranchConditions(sb *strings.Builder, scriptName string, nextChunkID int, registerJumpChunk func(int)) bool {
-	sb.WriteString(fmt.Sprintf("\tswitch %s\n", s.operand))
+func (s *switchBranch) renderBranchConditions(sb *strings.Builder, scriptName string, nextChunkID int, registerJumpChunk func(int), enableLineMarkers bool, inputFilepath string) bool {
+	tryEmitLineMarker(sb, s.operand, enableLineMarkers, inputFilepath)
+	sb.WriteString(fmt.Sprintf("\tswitch %s\n", s.operand.Literal))
 	for _, switchCase := range s.cases {
 		registerJumpChunk(switchCase.destChunkID)
-		sb.WriteString(fmt.Sprintf("\tcase %s, %s_%d\n", switchCase.comparisonValue, scriptName, switchCase.destChunkID))
+		tryEmitLineMarker(sb, switchCase.comparisonValue, enableLineMarkers, inputFilepath)
+		sb.WriteString(fmt.Sprintf("\tcase %s, %s_%d\n", switchCase.comparisonValue.Literal, scriptName, switchCase.destChunkID))
 	}
 
 	if s.defaultCase != nil {

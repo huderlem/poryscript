@@ -2794,6 +2794,35 @@ ScriptWithLabels_Text_1:
 	}
 }
 
+// func TestEmitLineMarkers(t *testing.T) {
+// 	input := `
+// `
+
+// 	expectedUnoptimized := `
+// `
+
+// 	expectedOptimized := `
+// `
+// 	l := lexer.New(input)
+// 	p := parser.New(l, "", "", 0, nil)
+// 	program, err := p.ParseProgram()
+// 	if err != nil {
+// 		t.Fatalf(err.Error())
+// 	}
+
+// 	e := New(program, false, true, "")
+// 	result, _ := e.Emit()
+// 	if result != expectedUnoptimized {
+// 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+// 	}
+
+// 	e = New(program, true, true, "")
+// 	result, _ = e.Emit()
+// 	if result != expectedOptimized {
+// 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+// 	}
+// }
+
 // Helper benchmark var to prevent compiler/runtime optimizations.
 // https://dave.cheney.net/2013/06/30/how-to-write-benchmarks-in-go
 var benchResult string

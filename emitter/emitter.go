@@ -619,7 +619,7 @@ func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string, isGloba
 		if err != nil {
 			return "", err
 		}
-		isFallThrough := chunk.renderBranching(scriptName, &sb, nextChunkID, registerJumpChunk)
+		isFallThrough := chunk.renderBranching(scriptName, &sb, nextChunkID, registerJumpChunk, e.enableLineMarkers, e.inputFilepath)
 		if !isFallThrough {
 			sb.WriteString("\n")
 		}
