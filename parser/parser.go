@@ -1524,6 +1524,7 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 	}
 	p.nextToken()
 	parts := []string{}
+	operandToken := p.curToken
 	for p.curToken.Type != token.RPAREN {
 		parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 		p.nextToken()
@@ -1531,7 +1532,8 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 			return nil, NewParseError(operatorToken, "missing closing ')' for condition operator value")
 		}
 	}
-	operatorExpression.Operand = strings.Join(parts, " ")
+	operandToken.Literal = strings.Join(parts, " ")
+	operatorExpression.Operand = operandToken
 	p.nextToken()
 
 	if usedNotOperator {

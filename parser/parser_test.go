@@ -444,8 +444,8 @@ func testConditionExpression(t *testing.T, expression *ast.OperatorExpression, e
 	if expression.Type != expectedType {
 		t.Errorf("expression.Type not '%s'. got=%s", expectedType, expression.Type)
 	}
-	if expression.Operand != expectedOperand {
-		t.Errorf("expression.Operand not '%s'. got=%s", expectedOperand, expression.Operand)
+	if expression.Operand.Literal != expectedOperand {
+		t.Errorf("expression.Operand not '%s'. got=%s", expectedOperand, expression.Operand.Literal)
 	}
 	if expression.Operator != expectedOperator {
 		t.Errorf("expression.Operator not '%s'. got=%s", expectedOperator, expression.Operator)
@@ -582,8 +582,8 @@ func testOperatorExpression(t *testing.T, ex *ast.OperatorExpression, expectType
 	if ex.ComparisonValue != comparisonValue {
 		t.Fatalf("ex.ComparisonValue != %s. Got '%s' instead.", comparisonValue, ex.ComparisonValue)
 	}
-	if ex.Operand != operand {
-		t.Fatalf("ex.Operand != %s. Got '%s' instead.", operand, ex.Operand)
+	if ex.Operand.Literal != operand {
+		t.Fatalf("ex.Operand != %s. Got '%s' instead.", operand, ex.Operand.Literal)
 	}
 	if ex.Operator != operator {
 		t.Fatalf("ex.Operator != %s. Got '%s' instead.", operator, ex.Operator)
@@ -1105,11 +1105,11 @@ mapscripts MyMapScript {
 
 	if1 := script.Body.Statements[3].(*ast.IfStatement)
 	op1 := if1.Consequence.Expression.(*ast.OperatorExpression)
-	testConstant(t, "2 + 1 - 1", op1.Operand)
+	testConstant(t, "2 + 1 - 1", op1.Operand.Literal)
 
 	if2 := script.Body.Statements[4].(*ast.IfStatement)
 	op2 := if2.Consequence.Expression.(*ast.OperatorExpression)
-	testConstant(t, "2 + 1", op2.Operand)
+	testConstant(t, "2 + 1", op2.Operand.Literal)
 	testConstant(t, "2 + 1 - 1 + 1", op2.ComparisonValue)
 
 	sw := script.Body.Statements[5].(*ast.SwitchStatement)

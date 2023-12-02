@@ -229,7 +229,7 @@ const (
 
 // OperatorExpression represents a built-in operator, like flag(FLAG_1) and var(VAR_1).
 type OperatorExpression struct {
-	Operand         string
+	Operand         token.Token
 	Operator        token.Type
 	ComparisonValue string
 	ComparisonValueType
@@ -239,7 +239,7 @@ type OperatorExpression struct {
 func (oe *OperatorExpression) booleanExpressionNode() {}
 
 func (oe *OperatorExpression) String() string {
-	return fmt.Sprintf("%s(%s) %s %s", oe.Type, oe.Operand, oe.Operator, oe.ComparisonValue)
+	return fmt.Sprintf("%s(%s) %s %s", oe.Type, oe.Operand.Literal, oe.Operator, oe.ComparisonValue)
 }
 
 // ConditionExpression is the expression for a condition, and the resulting body of statements

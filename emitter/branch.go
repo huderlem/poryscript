@@ -72,7 +72,7 @@ type leafExpressionBranch struct {
 // Satisfies brancher interface.
 func (l *leafExpressionBranch) renderBranchConditions(sb *strings.Builder, scriptName string, nextChunkID int, registerJumpChunk func(int), enableLineMarkers bool, inputFilepath string) bool {
 	registerJumpChunk(l.truthyDest.id)
-	renderBranchComparison(sb, l.truthyDest, scriptName)
+	renderBranchComparison(sb, l.truthyDest, scriptName, enableLineMarkers, inputFilepath)
 	if l.falseyReturnID == -1 {
 		sb.WriteString("\treturn\n")
 		return false
@@ -139,7 +139,8 @@ func (s *switchBranch) getTailChunkID() int {
 	return s.destChunkID
 }
 
-func renderBranchComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
+func renderBranchComparison(sb *strings.Builder, dest *conditionDestination, scriptName string, enableLineMarkers bool, inputFilepath string) {
+	tryEmitLineMarker(sb, dest.operatorExpression.Operand, enableLineMarkers, inputFilepath)
 	switch dest.operatorExpression.Type {
 	case token.FLAG:
 		renderFlagComparison(sb, dest, scriptName)
@@ -153,9 +154,9 @@ func renderBranchComparison(sb *strings.Builder, dest *conditionDestination, scr
 func renderFlagComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
 	if (dest.operatorExpression.Operator == token.EQ && dest.operatorExpression.ComparisonValue == token.TRUE) ||
 		(dest.operatorExpression.Operator == token.NEQ && dest.operatorExpression.ComparisonValue == token.FALSE) {
-		sb.WriteString(fmt.Sprintf("\tgoto_if_set %s, %s_%d\n", dest.operatorExpression.Operand, scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tgoto_if_set %s, %s_%d\n", dest.operatorExpression.Operand.Literal, scriptName, dest.id))
 	} else {
-		sb.WriteString(fmt.Sprintf("\tgoto_if_unset %s, %s_%d\n", dest.operatorExpression.Operand, scriptName, dest.id))
+		sb.WriteString(fmt.Sprintf("\tgoto_if_unset %s, %s_%d\n", dest.operatorExpression.Operand.Literal, scriptName, dest.id))
 	}
 }
 
@@ -164,7 +165,7 @@ func renderVarComparison(sb *strings.Builder, dest *conditionDestination, script
 	if dest.operatorExpression.ComparisonValueType == ast.StrictValueComparison {
 		compareCommand = "compare_var_to_value"
 	}
-	sb.WriteString(fmt.Sprintf("\t%s %s, %s\n", compareCommand, dest.operatorExpression.Operand, dest.operatorExpression.ComparisonValue))
+	sb.WriteString(fmt.Sprintf("\t%s %s, %s\n", compareCommand, dest.operatorExpression.Operand.Literal, dest.operatorExpression.ComparisonValue))
 	switch dest.operatorExpression.Operator {
 	case token.EQ:
 		sb.WriteString(fmt.Sprintf("\tgoto_if_eq %s_%d\n", scriptName, dest.id))
@@ -182,7 +183,7 @@ func renderVarComparison(sb *strings.Builder, dest *conditionDestination, script
 }
 
 func renderDefeatedComparison(sb *strings.Builder, dest *conditionDestination, scriptName string) {
-	sb.WriteString(fmt.Sprintf("\tchecktrainerflag %s\n", dest.operatorExpression.Operand))
+	sb.WriteString(fmt.Sprintf("\tchecktrainerflag %s\n", dest.operatorExpression.Operand.Literal))
 	if (dest.operatorExpression.Operator == token.EQ && dest.operatorExpression.ComparisonValue == token.TRUE) ||
 		(dest.operatorExpression.Operator == token.NEQ && dest.operatorExpression.ComparisonValue == token.FALSE) {
 		sb.WriteString(fmt.Sprintf("\tgoto_if 1, %s_%d\n", scriptName, dest.id))
