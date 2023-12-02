@@ -103,7 +103,7 @@ func (e *Emitter) Emit() (string, error) {
 			sb.WriteString("\n")
 		}
 
-		emitted := emitText(text)
+		emitted := e.emitText(text)
 		sb.WriteString(emitted)
 	}
 	return sb.String(), nil
@@ -615,7 +615,7 @@ func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string, isGloba
 			nextChunkID = -1
 		}
 		chunk := chunks[chunkID]
-		err := chunk.renderStatements(&sb, chunkLabels, textLabels)
+		err := chunk.renderStatements(&sb, chunkLabels, textLabels, e.enableLineMarkers, e.inputFilepath)
 		if err != nil {
 			return "", err
 		}
@@ -687,13 +687,21 @@ func optimizeChunkOrder(chunks map[int]*chunk) []int {
 	return chunkIDs
 }
 
-func emitText(text ast.Text) string {
+func tryEmitLineMarker(sb *strings.Builder, tok token.Token, enableLineMarkers bool, inputFilepath string) {
+	if !enableLineMarkers || len(inputFilepath) == 0 {
+		return
+	}
+	sb.WriteString(fmt.Sprintf("# %d \"%s\"\n", tok.LineNumber, inputFilepath))
+}
+
+func (e *Emitter) emitText(text ast.Text) string {
 	var sb strings.Builder
 	if text.IsGlobal {
 		sb.WriteString(fmt.Sprintf("%s::\n", text.Name))
 	} else {
 		sb.WriteString(fmt.Sprintf("%s:\n", text.Name))
 	}
+	tryEmitLineMarker(&sb, text.Token, e.enableLineMarkers, e.inputFilepath)
 	lines := strings.Split(text.Value, "\n")
 	for _, line := range lines {
 		directive := "string"

@@ -36,11 +36,12 @@ func (c *chunk) renderLabel(scriptName string, isGlobal bool, sb *strings.Builde
 	}
 }
 
-func (c *chunk) renderStatements(sb *strings.Builder, chunkLabels map[string]struct{}, textLabels map[string]struct{}) error {
+func (c *chunk) renderStatements(sb *strings.Builder, chunkLabels map[string]struct{}, textLabels map[string]struct{}, enableLineMarkers bool, inputFilepath string) error {
 	// Render basic non-branching commands.
 	for _, stmt := range c.statements {
 		commandStmt, ok := stmt.(*ast.CommandStatement)
 		if ok {
+			tryEmitLineMarker(sb, commandStmt.Token, enableLineMarkers, inputFilepath)
 			sb.WriteString(renderCommandStatement(commandStmt))
 		} else {
 			labelStmt, ok := stmt.(*ast.LabelStatement)
@@ -53,6 +54,7 @@ func (c *chunk) renderStatements(sb *strings.Builder, chunkLabels map[string]str
 				if _, ok := textLabels[labelStmt.Name.Value]; ok {
 					return parser.NewParseError(labelStmt.Token, fmt.Sprintf("duplicate text label '%s'. Choose a unique label that won't clash with the auto-generated text labels", labelStmt.Name.Value))
 				}
+				tryEmitLineMarker(sb, labelStmt.Token, enableLineMarkers, inputFilepath)
 				sb.WriteString(renderLabelStatement(labelStmt))
 			} else {
 				return fmt.Errorf("could not render chunk statement '%q' because it is not a command or label statement", stmt.TokenLiteral())
