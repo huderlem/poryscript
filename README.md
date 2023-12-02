@@ -37,6 +37,7 @@ View the [Changelog](https://github.com/huderlem/poryscript/blob/master/CHANGELO
   * [Scope Modifiers](#scope-modifiers)
   * [Compile-Time Switches](#compile-time-switches)
   * [Optimization](#optimization)
+  * [Line Markers](#line-markers)
 - [Local Development](#local-development)
   * [Building from Source](#building-from-source)
   * [Running the tests](#running-the-tests)
@@ -60,6 +61,8 @@ Usage of poryscript:
         input poryscript file (leave empty to read from standard input)
   -l int
         set default line length in pixels for formatted text (uses font config file for default)
+  -lm
+        include line markers in output (enables more helpful error messages when compiling the ROM). (To disable, use '-lm=false') (default true)
   -o string
         output script file (leave empty to write to standard output)
   -optimize
@@ -772,6 +775,9 @@ Note, `poryswitch` can also be embedded inside inlined `mapscripts` scripts.
 
 ## Optimization
 By default, Poryscript produces optimized output. It attempts to minimize the number of `goto` commands and unnecessary script labels. To disable optimizations, pass the `-optimize=false` option to `poryscript`.
+
+## Line Markers
+By default, Poryscript includes [C Preprocessor line markers](https://gcc.gnu.org/onlinedocs/gcc-3.0.2/cpp_9.html) in the compiled output.  This improves error messages.  To disable line markers, specify `-lm=false` when invoking Poryscript.
 
 # Local Development
 
