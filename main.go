@@ -38,6 +38,7 @@ type options struct {
 	defaultFontID      string
 	maxLineLength      int
 	optimize           bool
+	enableLineMarkers  bool
 	compileSwitches    map[string]string
 }
 
@@ -50,16 +51,17 @@ func parseOptions() options {
 	fontIDPtr := flag.String("f", "", "set default font id (leave empty to use default defined in font config file)")
 	lengthPtr := flag.Int("l", 0, "set default line length in pixels for formatted text (uses font config file for default)")
 	optimizePtr := flag.Bool("optimize", true, "optimize compiled script size (To disable, use '-optimize=false')")
+	enableLineMarkersPtr := flag.Bool("lm", true, "include line markers in output (enables more helpful error messages when compiling the ROM). (To disable, use '-lm=false')")
 	compileSwitches := make(mapOption)
 	flag.Var(compileSwitches, "s", "set a compile-time switch. Multiple -s options can be set. Example: -s VERSION=RUBY -s LANGUAGE=GERMAN")
 	flag.Parse()
 
-	if *helpPtr == true {
+	if *helpPtr {
 		flag.Usage()
 		os.Exit(0)
 	}
 
-	if *versionPtr == true {
+	if *versionPtr {
 		fmt.Printf("%s\n", version)
 		os.Exit(0)
 	}
@@ -71,6 +73,7 @@ func parseOptions() options {
 		defaultFontID:      *fontIDPtr,
 		maxLineLength:      *lengthPtr,
 		optimize:           *optimizePtr,
+		enableLineMarkers:  *enableLineMarkersPtr,
 		compileSwitches:    compileSwitches,
 	}
 }
@@ -118,7 +121,7 @@ func main() {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
 	}
 
-	emitter := emitter.New(program, options.optimize)
+	emitter := emitter.New(program, options.optimize, options.enableLineMarkers)
 	result, err := emitter.Emit()
 	if err != nil {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())

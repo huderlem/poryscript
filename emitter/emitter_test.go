@@ -275,13 +275,13 @@ Route29_EventScript_Dude_Text_1:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -378,13 +378,13 @@ Route29_EventScript_WaitingMan_Text_1:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -506,13 +506,13 @@ MyScript_13:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -682,13 +682,13 @@ MyScript_21:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1095,13 +1095,13 @@ MyScript6_3:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1288,13 +1288,13 @@ MyScript_18:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1400,13 +1400,13 @@ MyScript_9:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1494,13 +1494,13 @@ MyText2:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1554,13 +1554,13 @@ ScripText_2:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1606,13 +1606,13 @@ Script_Text_0:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1834,13 +1834,13 @@ PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1966,13 +1966,13 @@ ScriptWithMovement_Text_0:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -2058,13 +2058,13 @@ ScriptWithPokemart_Text_1:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -2147,13 +2147,13 @@ ScriptWithPokemart_Text_1:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -2531,7 +2531,7 @@ MyText::
 		if err != nil {
 			t.Fatalf(err.Error())
 		}
-		e := New(program, true)
+		e := New(program, true, false)
 		result, _ := e.Emit()
 		if result != tt.text {
 			t.Errorf("Mismatching poryswitch emit %d -- Expected=%q, Got=%q", i, tt.text, result)
@@ -2648,13 +2648,13 @@ MyScript_12:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -2777,13 +2777,13 @@ ScriptWithLabels_Text_1:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false)
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false)
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -2866,7 +2866,7 @@ Route29_Text_Dude_CatchingTutRejected:
 			l := lexer.New(input)
 			p := parser.New(l, "", "", 0, nil)
 			program, _ := p.ParseProgram()
-			e := New(program, false)
+			e := New(program, false, false)
 			result, _ = e.Emit()
 		}
 	})
@@ -2877,7 +2877,7 @@ Route29_Text_Dude_CatchingTutRejected:
 			l := lexer.New(input)
 			p := parser.New(l, "", "", 0, nil)
 			program, _ := p.ParseProgram()
-			e := New(program, true)
+			e := New(program, true, false)
 			result, _ = e.Emit()
 		}
 	})

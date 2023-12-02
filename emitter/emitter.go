@@ -13,15 +13,17 @@ import (
 // Emitter is responsible for transforming a parsed Poryscript program into
 // the target assembler bytecode script.
 type Emitter struct {
-	program  *ast.Program
-	optimize bool
+	program           *ast.Program
+	optimize          bool
+	enableLineMarkers bool
 }
 
 // New creates a new Poryscript program emitter.
-func New(program *ast.Program, optimize bool) *Emitter {
+func New(program *ast.Program, optimize, enableLineMarkers bool) *Emitter {
 	return &Emitter{
-		program:  program,
-		optimize: optimize,
+		program:           program,
+		optimize:          optimize,
+		enableLineMarkers: enableLineMarkers,
 	}
 }
 
