@@ -695,7 +695,7 @@ func shouldEmitLineMarkers(enableLineMarkers bool, inputFilepath string) bool {
 }
 
 func emitLineMarker(sb *strings.Builder, lineNumber int, inputFilepath string) {
-	sb.WriteString(fmt.Sprintf("# %d \"%s\"\n", lineNumber, inputFilepath))
+	sb.WriteString(fmt.Sprintf("# %d \"%s\"\n", lineNumber, strings.ReplaceAll(inputFilepath, `\`, `\\`)))
 }
 
 func tryEmitLineMarker(sb *strings.Builder, tok token.Token, enableLineMarkers bool, inputFilepath string) {

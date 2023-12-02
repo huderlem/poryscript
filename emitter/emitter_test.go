@@ -2862,94 +2862,94 @@ mart Mart1 {
 }`
 
 	expectedUnoptimized := `MapScripts1::
-# 2 ".\test.pory"
+# 2 ".\\test.pory"
 	map_script MAP_SCRIPT_ON_RESUME, Script1
-# 4 ".\test.pory"
+# 4 ".\\test.pory"
 	map_script MAP_SCRIPT_ON_TRANSITION, MapScripts1_MAP_SCRIPT_ON_TRANSITION
-# 15 ".\test.pory"
+# 15 ".\\test.pory"
 	map_script MAP_SCRIPT_ON_FRAME_TABLE, MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE
 	.byte 0
 
 MapScripts1_MAP_SCRIPT_ON_TRANSITION:
-# 5 ".\test.pory"
+# 5 ".\\test.pory"
 	random 4
-# 6 ".\test.pory"
+# 6 ".\\test.pory"
 	switch VAR_RESULT
-# 7 ".\test.pory"
+# 7 ".\\test.pory"
 	case 0, MapScripts1_MAP_SCRIPT_ON_TRANSITION_2
-# 8 ".\test.pory"
+# 8 ".\\test.pory"
 	case 3, MapScripts1_MAP_SCRIPT_ON_TRANSITION_3
-# 9 ".\test.pory"
+# 9 ".\\test.pory"
 	case 1, MapScripts1_MAP_SCRIPT_ON_TRANSITION_3
-# 10 ".\test.pory"
+# 10 ".\\test.pory"
 	case 2, MapScripts1_MAP_SCRIPT_ON_TRANSITION_4
-# 11 ".\test.pory"
+# 11 ".\\test.pory"
 	case SANDSTORM, MapScripts1_MAP_SCRIPT_ON_TRANSITION_5
 	return
 
 MapScripts1_MAP_SCRIPT_ON_TRANSITION_2:
-# 7 ".\test.pory"
+# 7 ".\\test.pory"
 	setweather WEATHER_ASH
 	return
 
 MapScripts1_MAP_SCRIPT_ON_TRANSITION_3:
-# 9 ".\test.pory"
+# 9 ".\\test.pory"
 	setweather WEATHER_RAIN_HEAVY
 	return
 
 MapScripts1_MAP_SCRIPT_ON_TRANSITION_4:
-# 10 ".\test.pory"
+# 10 ".\\test.pory"
 	setweather WEATHER_DROUGHT
 	return
 
 MapScripts1_MAP_SCRIPT_ON_TRANSITION_5:
-# 12 ".\test.pory"
+# 12 ".\\test.pory"
 	setweather WEATHER_SANDSTORM
 	return
 
 MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE:
-# 16 ".\test.pory"
+# 16 ".\\test.pory"
 	map_script_2 VAR_TEMP_0, 0, MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_0
-# 23 ".\test.pory"
+# 23 ".\\test.pory"
 	map_script_2 VAR_TEMP_0, FOO_CASE, MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1
-# 29 ".\test.pory"
+# 29 ".\\test.pory"
 	map_script_2 VAR_TEMP_0, 2, PetalburgCity_MapScripts_OnResume
 	.2byte 0
 
 MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_0:
-# 17 ".\test.pory"
+# 17 ".\\test.pory"
 	lockall
-# 18 ".\test.pory"
+# 18 ".\\test.pory"
 	applymovement EVENT_OBJ_ID_PLAYER, MyMovement0
-# 19 ".\test.pory"
+# 19 ".\\test.pory"
 	waitmovement 0
-# 20 ".\test.pory"
+# 20 ".\\test.pory"
 	setvar VAR_TEMP_0, STATE
-# 21 ".\test.pory"
+# 21 ".\\test.pory"
 	releaseall
 	return
 
 MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1:
-# 24 ".\test.pory"
+# 24 ".\\test.pory"
 	lock
-# 25 ".\test.pory"
+# 25 ".\\test.pory"
 	msgbox MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0
-# 26 ".\test.pory"
+# 26 ".\\test.pory"
 	setvar VAR_TEMP_0, 2
-# 27 ".\test.pory"
+# 27 ".\\test.pory"
 	release
 	return
 
 
 Script1::
-# 34 ".\test.pory"
+# 34 ".\\test.pory"
 	lock
-# 35 ".\test.pory"
+# 35 ".\\test.pory"
 	faceplayer
 	goto Script1_4
 
 Script1_1:
-# 42 ".\test.pory"
+# 42 ".\\test.pory"
 	release
 	return
 
@@ -2960,12 +2960,12 @@ Script1_3:
 	goto Script1_5
 
 Script1_4:
-# 36 ".\test.pory"
+# 36 ".\\test.pory"
 	goto_if_set FLAG_TEMP, Script1_2
 	goto Script1_3
 
 Script1_5:
-# 36 ".\test.pory"
+# 36 ".\\test.pory"
 	checktrainerflag TRAINER_WHATEVER
 	goto_if 1, Script1_2
 	goto Script1_1
@@ -2974,224 +2974,224 @@ Script1_6:
 	goto Script1_8
 
 Script1_7:
-# 38 ".\test.pory"
+# 38 ".\\test.pory"
 	flbahoistypo
-# 39 ".\test.pory"
+# 39 ".\\test.pory"
 	msgbox Script1_Text_0
 	goto Script1_6
 
 Script1_8:
-# 37 ".\test.pory"
+# 37 ".\\test.pory"
 	compare VAR_RESULT, 3
 	goto_if_gt Script1_7
 	goto Script1_1
 
 
-# 49 ".\test.pory"
+# 49 ".\\test.pory"
 
-# 50 ".\test.pory"
+# 50 ".\\test.pory"
 	raw
-# 51 ".\test.pory"
+# 51 ".\\test.pory"
 	data
-# 52 ".\test.pory"
+# 52 ".\\test.pory"
 	in here
 
-# 55 ".\test.pory"
+# 55 ".\\test.pory"
 Movement1:
-# 56 ".\test.pory"
+# 56 ".\\test.pory"
 	step_up
-# 56 ".\test.pory"
+# 56 ".\\test.pory"
 	step_up
-# 56 ".\test.pory"
+# 56 ".\\test.pory"
 	step_up
-# 57 ".\test.pory"
+# 57 ".\\test.pory"
 	step_down
-# 58 ".\test.pory"
+# 58 ".\\test.pory"
 	step_left
-# 58 ".\test.pory"
+# 58 ".\\test.pory"
 	step_left
 	step_end
 
 	.align 2
-# 61 ".\test.pory"
+# 61 ".\\test.pory"
 Mart1:
-# 62 ".\test.pory"
+# 62 ".\\test.pory"
 	.2byte ITEM_POTION
-# 63 ".\test.pory"
+# 63 ".\\test.pory"
 	.2byte ITEM_POKEBALL
-# 64 ".\test.pory"
+# 64 ".\\test.pory"
 	.2byte ITEM_HAMMER
 	.2byte ITEM_NONE
 
 MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
-# 25 ".\test.pory"
+# 25 ".\\test.pory"
 	.string "Haha it worked! This should make writing map scripts much easier.$"
 
 Script1_Text_0:
-# 39 ".\test.pory"
+# 39 ".\\test.pory"
 	.string "Hello, there!$"
 
 Text1::
-# 45 ".\test.pory"
+# 45 ".\\test.pory"
 	.string "Some other text$"
 `
 
 	expectedOptimized := `MapScripts1::
-# 2 ".\test.pory"
+# 2 ".\\test.pory"
 	map_script MAP_SCRIPT_ON_RESUME, Script1
-# 4 ".\test.pory"
+# 4 ".\\test.pory"
 	map_script MAP_SCRIPT_ON_TRANSITION, MapScripts1_MAP_SCRIPT_ON_TRANSITION
-# 15 ".\test.pory"
+# 15 ".\\test.pory"
 	map_script MAP_SCRIPT_ON_FRAME_TABLE, MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE
 	.byte 0
 
 MapScripts1_MAP_SCRIPT_ON_TRANSITION:
-# 5 ".\test.pory"
+# 5 ".\\test.pory"
 	random 4
-# 6 ".\test.pory"
+# 6 ".\\test.pory"
 	switch VAR_RESULT
-# 7 ".\test.pory"
+# 7 ".\\test.pory"
 	case 0, MapScripts1_MAP_SCRIPT_ON_TRANSITION_2
-# 8 ".\test.pory"
+# 8 ".\\test.pory"
 	case 3, MapScripts1_MAP_SCRIPT_ON_TRANSITION_3
-# 9 ".\test.pory"
+# 9 ".\\test.pory"
 	case 1, MapScripts1_MAP_SCRIPT_ON_TRANSITION_3
-# 10 ".\test.pory"
+# 10 ".\\test.pory"
 	case 2, MapScripts1_MAP_SCRIPT_ON_TRANSITION_4
-# 11 ".\test.pory"
+# 11 ".\\test.pory"
 	case SANDSTORM, MapScripts1_MAP_SCRIPT_ON_TRANSITION_5
 	return
 
 MapScripts1_MAP_SCRIPT_ON_TRANSITION_2:
-# 7 ".\test.pory"
+# 7 ".\\test.pory"
 	setweather WEATHER_ASH
 	return
 
 MapScripts1_MAP_SCRIPT_ON_TRANSITION_3:
-# 9 ".\test.pory"
+# 9 ".\\test.pory"
 	setweather WEATHER_RAIN_HEAVY
 	return
 
 MapScripts1_MAP_SCRIPT_ON_TRANSITION_4:
-# 10 ".\test.pory"
+# 10 ".\\test.pory"
 	setweather WEATHER_DROUGHT
 	return
 
 MapScripts1_MAP_SCRIPT_ON_TRANSITION_5:
-# 12 ".\test.pory"
+# 12 ".\\test.pory"
 	setweather WEATHER_SANDSTORM
 	return
 
 MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE:
-# 16 ".\test.pory"
+# 16 ".\\test.pory"
 	map_script_2 VAR_TEMP_0, 0, MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_0
-# 23 ".\test.pory"
+# 23 ".\\test.pory"
 	map_script_2 VAR_TEMP_0, FOO_CASE, MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1
-# 29 ".\test.pory"
+# 29 ".\\test.pory"
 	map_script_2 VAR_TEMP_0, 2, PetalburgCity_MapScripts_OnResume
 	.2byte 0
 
 MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_0:
-# 17 ".\test.pory"
+# 17 ".\\test.pory"
 	lockall
-# 18 ".\test.pory"
+# 18 ".\\test.pory"
 	applymovement EVENT_OBJ_ID_PLAYER, MyMovement0
-# 19 ".\test.pory"
+# 19 ".\\test.pory"
 	waitmovement 0
-# 20 ".\test.pory"
+# 20 ".\\test.pory"
 	setvar VAR_TEMP_0, STATE
-# 21 ".\test.pory"
+# 21 ".\\test.pory"
 	releaseall
 	return
 
 MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1:
-# 24 ".\test.pory"
+# 24 ".\\test.pory"
 	lock
-# 25 ".\test.pory"
+# 25 ".\\test.pory"
 	msgbox MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0
-# 26 ".\test.pory"
+# 26 ".\\test.pory"
 	setvar VAR_TEMP_0, 2
-# 27 ".\test.pory"
+# 27 ".\\test.pory"
 	release
 	return
 
 
 Script1::
-# 34 ".\test.pory"
+# 34 ".\\test.pory"
 	lock
-# 35 ".\test.pory"
+# 35 ".\\test.pory"
 	faceplayer
-# 36 ".\test.pory"
+# 36 ".\\test.pory"
 	goto_if_set FLAG_TEMP, Script1_2
-# 36 ".\test.pory"
+# 36 ".\\test.pory"
 	checktrainerflag TRAINER_WHATEVER
 	goto_if 1, Script1_2
 Script1_1:
-# 42 ".\test.pory"
+# 42 ".\\test.pory"
 	release
 	return
 
 Script1_2:
 Script1_6:
-# 37 ".\test.pory"
+# 37 ".\\test.pory"
 	compare VAR_RESULT, 3
 	goto_if_gt Script1_7
 	goto Script1_1
 
 Script1_7:
-# 38 ".\test.pory"
+# 38 ".\\test.pory"
 	flbahoistypo
-# 39 ".\test.pory"
+# 39 ".\\test.pory"
 	msgbox Script1_Text_0
 	goto Script1_6
 
 
-# 49 ".\test.pory"
+# 49 ".\\test.pory"
 
-# 50 ".\test.pory"
+# 50 ".\\test.pory"
 	raw
-# 51 ".\test.pory"
+# 51 ".\\test.pory"
 	data
-# 52 ".\test.pory"
+# 52 ".\\test.pory"
 	in here
 
-# 55 ".\test.pory"
+# 55 ".\\test.pory"
 Movement1:
-# 56 ".\test.pory"
+# 56 ".\\test.pory"
 	step_up
-# 56 ".\test.pory"
+# 56 ".\\test.pory"
 	step_up
-# 56 ".\test.pory"
+# 56 ".\\test.pory"
 	step_up
-# 57 ".\test.pory"
+# 57 ".\\test.pory"
 	step_down
-# 58 ".\test.pory"
+# 58 ".\\test.pory"
 	step_left
-# 58 ".\test.pory"
+# 58 ".\\test.pory"
 	step_left
 	step_end
 
 	.align 2
-# 61 ".\test.pory"
+# 61 ".\\test.pory"
 Mart1:
-# 62 ".\test.pory"
+# 62 ".\\test.pory"
 	.2byte ITEM_POTION
-# 63 ".\test.pory"
+# 63 ".\\test.pory"
 	.2byte ITEM_POKEBALL
-# 64 ".\test.pory"
+# 64 ".\\test.pory"
 	.2byte ITEM_HAMMER
 	.2byte ITEM_NONE
 
 MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
-# 25 ".\test.pory"
+# 25 ".\\test.pory"
 	.string "Haha it worked! This should make writing map scripts much easier.$"
 
 Script1_Text_0:
-# 39 ".\test.pory"
+# 39 ".\\test.pory"
 	.string "Hello, there!$"
 
 Text1::
-# 45 ".\test.pory"
+# 45 ".\\test.pory"
 	.string "Some other text$"
 `
 
