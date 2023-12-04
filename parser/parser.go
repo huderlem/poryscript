@@ -24,7 +24,7 @@ var topLevelTokens = map[token.Type]bool{
 type impText struct {
 	command    *ast.CommandStatement
 	argPos     int
-	text       string
+	text       token.Token
 	stringType string
 	scriptName string
 }
@@ -249,7 +249,7 @@ func (p *Parser) parseTopLevelStatement() (ast.Statement, error) {
 
 func (p *Parser) addImplicitTexts(implicitTexts []impText) {
 	for _, t := range implicitTexts {
-		key := textKey{value: t.text, strType: t.stringType}
+		key := textKey{value: t.text.Literal, strType: t.stringType}
 		if textLabel, ok := p.inlineTextsSet[key]; ok {
 			t.command.Args[t.argPos] = textLabel
 		} else {
@@ -259,7 +259,8 @@ func (p *Parser) addImplicitTexts(implicitTexts []impText) {
 			p.inlineTextsSet[key] = textLabel
 			p.inlineTexts = append(p.inlineTexts, ast.Text{
 				Name:       textLabel,
-				Value:      t.text,
+				Value:      t.text.Literal,
+				Token:      t.text,
 				StringType: t.stringType,
 				IsGlobal:   false,
 			})
@@ -446,23 +447,26 @@ func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, []impT
 				numOpenParens--
 				argParts = append(argParts, p.curToken.Literal)
 			} else if p.curToken.Type == token.FORMAT {
-				strValue, strType, err := p.parseFormatStringOperator()
+				strToken, strValue, strType, err := p.parseFormatStringOperator()
 				if err != nil {
 					return nil, nil, err
 				}
+				strToken.Literal = p.formatTextTerminator(strValue, strType)
 				implicitTexts = append(implicitTexts, impText{
 					command:    command,
 					argPos:     len(command.Args),
-					text:       p.formatTextTerminator(strValue, strType),
+					text:       strToken,
 					stringType: strType,
 					scriptName: scriptName,
 				})
 				argParts = append(argParts, "")
 			} else if p.curToken.Type == token.STRING {
+				strToken := p.curToken
+				strToken.Literal = p.formatTextTerminator(p.curToken.Literal, "")
 				implicitTexts = append(implicitTexts, impText{
 					command:    command,
 					argPos:     len(command.Args),
-					text:       p.formatTextTerminator(p.curToken.Literal, ""),
+					text:       strToken,
 					scriptName: scriptName,
 				})
 				argParts = append(argParts, "")
@@ -472,10 +476,12 @@ func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, []impT
 				if p.curToken.Type != token.STRING {
 					return nil, nil, NewParseError(p.curToken, fmt.Sprintf("expected a string literal after string type '%s'. Got '%s' instead", stringType, p.curToken.Literal))
 				}
+				strToken := p.curToken
+				strToken.Literal = p.formatTextTerminator(p.curToken.Literal, stringType)
 				implicitTexts = append(implicitTexts, impText{
 					command:    command,
 					argPos:     len(command.Args),
-					text:       p.formatTextTerminator(p.curToken.Literal, stringType),
+					text:       strToken,
 					stringType: stringType,
 					scriptName: scriptName,
 				})
@@ -592,7 +598,7 @@ func (p *Parser) parseTextStatement() (*ast.TextStatement, error) {
 func (p *Parser) parseTextValue() (string, string, error) {
 	if p.curToken.Type == token.FORMAT {
 		var err error
-		strValue, stringType, err := p.parseFormatStringOperator()
+		_, strValue, stringType, err := p.parseFormatStringOperator()
 		if err != nil {
 			return "", "", err
 		}
@@ -916,14 +922,14 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 		if p.curToken.Type != token.IDENT {
 			return nil, nil, NewParseError(p.curToken, fmt.Sprintf("expected map script type, but got '%s' instead", p.curToken.Literal))
 		}
-		mapScriptType := p.curToken.Literal
+		mapScriptTypeToken := p.curToken
 		p.nextToken()
 		if p.curToken.Type == token.COLON {
 			if err := p.expectPeek(token.IDENT); err != nil {
 				return nil, nil, NewParseError(p.peekToken, fmt.Sprintf("expected map script label after ':', but got '%s' instead", p.peekToken.Literal))
 			}
 			statement.MapScripts = append(statement.MapScripts, ast.MapScript{
-				Type:   mapScriptType,
+				Type:   mapScriptTypeToken,
 				Name:   p.curToken.Literal,
 				Script: nil,
 			})
@@ -931,14 +937,14 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 		} else if p.curToken.Type == token.LBRACE {
 			braceToken := p.curToken
 			p.nextToken()
-			scriptName := fmt.Sprintf("%s_%s", statement.Name.Value, mapScriptType)
+			scriptName := fmt.Sprintf("%s_%s", statement.Name.Value, mapScriptTypeToken.Literal)
 			blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName, braceToken)
 			if err != nil {
 				return nil, nil, err
 			}
 			implicitTexts = append(implicitTexts, stmtTexts...)
 			statement.MapScripts = append(statement.MapScripts, ast.MapScript{
-				Type: mapScriptType,
+				Type: mapScriptTypeToken,
 				Name: scriptName,
 				Script: &ast.ScriptStatement{
 					Name: &ast.Identifier{
@@ -988,12 +994,14 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 					return nil, nil, NewRangeParseError(startToken, p.curToken, "expected comparison value for map script table entry, but it was empty")
 				}
 
+				conditionToken := startToken
+				conditionToken.Literal = conditionValue
 				if p.curToken.Type == token.COLON {
 					if err := p.expectPeek(token.IDENT); err != nil {
 						return nil, nil, NewParseError(p.peekToken, fmt.Sprintf("expected map script label after ':', but got '%s' instead", p.peekToken.Literal))
 					}
 					tableEntries = append(tableEntries, ast.TableMapScriptEntry{
-						Condition:  conditionValue,
+						Condition:  conditionToken,
 						Comparison: comparisonValue,
 						Name:       p.curToken.Literal,
 						Script:     nil,
@@ -1002,14 +1010,14 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 				} else if p.curToken.Type == token.LBRACE {
 					braceToken := p.curToken
 					p.nextToken()
-					scriptName := fmt.Sprintf("%s_%s_%d", statement.Name.Value, mapScriptType, i)
+					scriptName := fmt.Sprintf("%s_%s_%d", statement.Name.Value, mapScriptTypeToken.Literal, i)
 					blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName, braceToken)
 					if err != nil {
 						return nil, nil, err
 					}
 					implicitTexts = append(implicitTexts, stmtTexts...)
 					tableEntries = append(tableEntries, ast.TableMapScriptEntry{
-						Condition:  conditionValue,
+						Condition:  conditionToken,
 						Comparison: comparisonValue,
 						Name:       scriptName,
 						Script: &ast.ScriptStatement{
@@ -1025,8 +1033,8 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 				i++
 			}
 			statement.TableMapScripts = append(statement.TableMapScripts, ast.TableMapScript{
-				Type:    mapScriptType,
-				Name:    fmt.Sprintf("%s_%s", statement.Name.Value, mapScriptType),
+				Type:    mapScriptTypeToken,
+				Name:    fmt.Sprintf("%s_%s", statement.Name.Value, mapScriptTypeToken.Literal),
 				Entries: tableEntries,
 			})
 			p.nextToken()
@@ -1036,9 +1044,9 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 	return statement, implicitTexts, nil
 }
 
-func (p *Parser) parseFormatStringOperator() (string, string, error) {
+func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error) {
 	if err := p.expectPeek(token.LPAREN); err != nil {
-		return "", "", NewRangeParseError(p.curToken, p.peekToken, "format operator must begin with an open parenthesis '('")
+		return token.Token{}, "", "", NewRangeParseError(p.curToken, p.peekToken, "format operator must begin with an open parenthesis '('")
 	}
 	stringType := ""
 	if p.peekTokenIs(token.STRINGTYPE) {
@@ -1046,9 +1054,9 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 		stringType = p.curToken.Literal
 	}
 	if err := p.expectPeek(token.STRING); err != nil {
-		return "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() argument '%s'. Expected a string literal", p.peekToken.Literal))
+		return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() argument '%s'. Expected a string literal", p.peekToken.Literal))
 	}
-	rawText := p.curToken.Literal
+	textToken := p.curToken
 	var fontID string
 	var fontIdToken token.Token
 	if p.fonts == nil {
@@ -1077,7 +1085,7 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 			if p.peekTokenIs(token.COMMA) {
 				p.nextToken()
 				if err := p.expectPeek(token.INT); err != nil {
-					return "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() maxLineLength '%s'. Expected integer", p.peekToken.Literal))
+					return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() maxLineLength '%s'. Expected integer", p.peekToken.Literal))
 				}
 				num, _ := strconv.ParseInt(p.curToken.Literal, 0, 64)
 				maxTextLength = int(num)
@@ -1089,28 +1097,28 @@ func (p *Parser) parseFormatStringOperator() (string, string, error) {
 			if p.peekTokenIs(token.COMMA) {
 				p.nextToken()
 				if err := p.expectPeek(token.STRING); err != nil {
-					return "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() fontId '%s'. Expected string", p.peekToken.Literal))
+					return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() fontId '%s'. Expected string", p.peekToken.Literal))
 				}
 				fontID = p.curToken.Literal
 				fontIdToken = p.curToken
 			}
 		} else {
-			return "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() parameter '%s'. Expected either fontId (string) or maxLineLength (integer)", p.peekToken.Literal))
+			return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() parameter '%s'. Expected either fontId (string) or maxLineLength (integer)", p.peekToken.Literal))
 		}
 	}
 	if err := p.expectPeek(token.RPAREN); err != nil {
-		return "", "", NewParseError(p.peekToken, "missing closing parenthesis ')' for format()")
+		return token.Token{}, "", "", NewParseError(p.peekToken, "missing closing parenthesis ')' for format()")
 	}
 
 	if maxTextLength <= 0 {
 		maxTextLength = p.fonts.Fonts[fontID].MaxLineLength
 	}
 
-	formatted, err := p.fonts.FormatText(rawText, maxTextLength, fontID)
+	formatted, err := p.fonts.FormatText(textToken.Literal, maxTextLength, p.fonts.Fonts[fontID].CursorOverlapWidth, fontID)
 	if err != nil && p.enableEnvironmentErrors {
-		return "", "", NewParseError(fontIdToken, err.Error())
+		return token.Token{}, "", "", NewParseError(fontIdToken, err.Error())
 	}
-	return formatted, stringType, nil
+	return textToken, formatted, stringType, nil
 }
 
 func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, []impText, error) {
@@ -1269,6 +1277,7 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 
 	p.nextToken()
 	parts := []string{}
+	operandToken := p.curToken
 	for p.curToken.Type != token.RPAREN {
 		if p.curToken.Type == token.EOF {
 			return nil, nil, NewParseError(originalToken, "missing closing parenthesis of switch statement value")
@@ -1277,7 +1286,8 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 		p.nextToken()
 	}
 	p.nextToken()
-	statement.Operand = strings.Join(parts, " ")
+	operandToken.Literal = strings.Join(parts, " ")
+	statement.Operand = operandToken
 
 	if err := p.expectPeek(token.LBRACE); err != nil {
 		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing opening curly brace of switch statement")
@@ -1292,6 +1302,7 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 			caseToken := p.curToken
 			p.nextToken()
 			parts := []string{}
+			caseValueToken := p.curToken
 			for p.curToken.Type != token.COLON {
 				parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 				p.nextToken()
@@ -1311,8 +1322,9 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 				return nil, nil, err
 			}
 			implicitTexts = append(implicitTexts, stmtTexts...)
+			caseValueToken.Literal = caseValue
 			statement.Cases = append(statement.Cases, &ast.SwitchCase{
-				Value: caseValue,
+				Value: caseValueToken,
 				Body:  body,
 			})
 		} else if p.curToken.Type == token.DEFAULT {
@@ -1514,6 +1526,7 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 	}
 	p.nextToken()
 	parts := []string{}
+	operandToken := p.curToken
 	for p.curToken.Type != token.RPAREN {
 		parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 		p.nextToken()
@@ -1521,7 +1534,8 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 			return nil, NewParseError(operatorToken, "missing closing ')' for condition operator value")
 		}
 	}
-	operatorExpression.Operand = strings.Join(parts, " ")
+	operandToken.Literal = strings.Join(parts, " ")
+	operatorExpression.Operand = operandToken
 	p.nextToken()
 
 	if usedNotOperator {

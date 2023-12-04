@@ -160,9 +160,11 @@ Route29_EventScript_Dude_9:
 	goto Route29_EventScript_Dude_8
 
 
+
 Route29_Text_PokemonInTheGrass:
 	.string "POKéMON hide in the grass.\n"
 	.string "Who knows when they'll pop out…$"
+
 
 Route29_Text_Dude_CatchingTutRejected:
 	.string "Oh.\n"
@@ -242,9 +244,11 @@ Route29_EventScript_Dude_7:
 	goto Route29_EventScript_Dude_1
 
 
+
 Route29_Text_PokemonInTheGrass:
 	.string "POKéMON hide in the grass.\n"
 	.string "Who knows when they'll pop out…$"
+
 
 Route29_Text_Dude_CatchingTutRejected:
 	.string "Oh.\n"
@@ -275,13 +279,13 @@ Route29_EventScript_Dude_Text_1:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false, "")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -378,13 +382,13 @@ Route29_EventScript_WaitingMan_Text_1:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false, "")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -506,13 +510,13 @@ MyScript_13:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false, "")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -682,13 +686,13 @@ MyScript_21:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false, "")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1095,13 +1099,13 @@ MyScript6_3:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false, "")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1288,13 +1292,13 @@ MyScript_18:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false, "")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1400,13 +1404,13 @@ MyScript_9:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false, "")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1494,13 +1498,13 @@ MyText2:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false, "")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1554,13 +1558,13 @@ ScripText_2:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false, "")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1606,13 +1610,13 @@ Script_Text_0:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false, "")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1834,13 +1838,13 @@ PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false, "")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -1966,13 +1970,13 @@ ScriptWithMovement_Text_0:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false, "")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -2058,13 +2062,13 @@ ScriptWithPokemart_Text_1:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false, "")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -2147,13 +2151,13 @@ ScriptWithPokemart_Text_1:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false, "")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -2531,7 +2535,7 @@ MyText::
 		if err != nil {
 			t.Fatalf(err.Error())
 		}
-		e := New(program, true)
+		e := New(program, true, false, "")
 		result, _ := e.Emit()
 		if result != tt.text {
 			t.Errorf("Mismatching poryswitch emit %d -- Expected=%q, Got=%q", i, tt.text, result)
@@ -2648,13 +2652,13 @@ MyScript_12:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, false, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, false, "")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -2777,13 +2781,434 @@ ScriptWithLabels_Text_1:
 		t.Fatalf(err.Error())
 	}
 
-	e := New(program, false)
+	e := New(program, false, true, "")
 	result, _ := e.Emit()
 	if result != expectedUnoptimized {
 		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
 	}
 
-	e = New(program, true)
+	e = New(program, true, true, "")
+	result, _ = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+	}
+}
+
+func TestEmitLineMarkers(t *testing.T) {
+	input := `mapscripts MapScripts1 {
+	MAP_SCRIPT_ON_RESUME: Script1
+
+	MAP_SCRIPT_ON_TRANSITION {
+		random(4)
+		switch (var(VAR_RESULT)) {
+			case 0: setweather(WEATHER_ASH)
+			case 3:
+			case 1: setweather(WEATHER_RAIN_HEAVY)
+			case 2: setweather(WEATHER_DROUGHT)
+			case SANDSTORM:
+				setweather(WEATHER_SANDSTORM)
+		}
+	}
+	MAP_SCRIPT_ON_FRAME_TABLE [
+		VAR_TEMP_0, 0 {
+			lockall
+			applymovement(EVENT_OBJ_ID_PLAYER, MyMovement0)
+			waitmovement(0)
+			setvar(VAR_TEMP_0, STATE)
+			releaseall
+		}
+		VAR_TEMP_0, FOO_CASE {
+			lock
+			msgbox("Haha it worked! This should make writing map scripts much easier.")
+			setvar(VAR_TEMP_0, 2)
+			release
+		}
+		VAR_TEMP_0, 2: PetalburgCity_MapScripts_OnResume
+	]
+}
+
+script Script1 {
+	lock
+	faceplayer
+	if (flag(FLAG_TEMP) == true || defeated(TRAINER_WHATEVER)) {
+		while (var(VAR_RESULT) > 3) {
+			flbahoistypo
+			msgbox("Hello, there!")
+		}
+	}
+	release
+}
+
+text Text1 {
+	"Some other text"
+}
+
+raw ` + "`" + `
+	raw
+	data
+	in here
+` + "`" + `
+
+movement Movement1 {
+	step_up * 3
+	step_down
+	step_left * 2
+}
+
+mart Mart1 {
+	ITEM_POTION
+	ITEM_POKEBALL
+	ITEM_HAMMER
+}`
+
+	expectedUnoptimized := `MapScripts1::
+# 2 ".\\test.pory"
+	map_script MAP_SCRIPT_ON_RESUME, Script1
+# 4 ".\\test.pory"
+	map_script MAP_SCRIPT_ON_TRANSITION, MapScripts1_MAP_SCRIPT_ON_TRANSITION
+# 15 ".\\test.pory"
+	map_script MAP_SCRIPT_ON_FRAME_TABLE, MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE
+	.byte 0
+
+MapScripts1_MAP_SCRIPT_ON_TRANSITION:
+# 5 ".\\test.pory"
+	random 4
+# 6 ".\\test.pory"
+	switch VAR_RESULT
+# 7 ".\\test.pory"
+	case 0, MapScripts1_MAP_SCRIPT_ON_TRANSITION_2
+# 8 ".\\test.pory"
+	case 3, MapScripts1_MAP_SCRIPT_ON_TRANSITION_3
+# 9 ".\\test.pory"
+	case 1, MapScripts1_MAP_SCRIPT_ON_TRANSITION_3
+# 10 ".\\test.pory"
+	case 2, MapScripts1_MAP_SCRIPT_ON_TRANSITION_4
+# 11 ".\\test.pory"
+	case SANDSTORM, MapScripts1_MAP_SCRIPT_ON_TRANSITION_5
+	return
+
+MapScripts1_MAP_SCRIPT_ON_TRANSITION_2:
+# 7 ".\\test.pory"
+	setweather WEATHER_ASH
+	return
+
+MapScripts1_MAP_SCRIPT_ON_TRANSITION_3:
+# 9 ".\\test.pory"
+	setweather WEATHER_RAIN_HEAVY
+	return
+
+MapScripts1_MAP_SCRIPT_ON_TRANSITION_4:
+# 10 ".\\test.pory"
+	setweather WEATHER_DROUGHT
+	return
+
+MapScripts1_MAP_SCRIPT_ON_TRANSITION_5:
+# 12 ".\\test.pory"
+	setweather WEATHER_SANDSTORM
+	return
+
+MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE:
+# 16 ".\\test.pory"
+	map_script_2 VAR_TEMP_0, 0, MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_0
+# 23 ".\\test.pory"
+	map_script_2 VAR_TEMP_0, FOO_CASE, MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1
+# 29 ".\\test.pory"
+	map_script_2 VAR_TEMP_0, 2, PetalburgCity_MapScripts_OnResume
+	.2byte 0
+
+MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_0:
+# 17 ".\\test.pory"
+	lockall
+# 18 ".\\test.pory"
+	applymovement EVENT_OBJ_ID_PLAYER, MyMovement0
+# 19 ".\\test.pory"
+	waitmovement 0
+# 20 ".\\test.pory"
+	setvar VAR_TEMP_0, STATE
+# 21 ".\\test.pory"
+	releaseall
+	return
+
+MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1:
+# 24 ".\\test.pory"
+	lock
+# 25 ".\\test.pory"
+	msgbox MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0
+# 26 ".\\test.pory"
+	setvar VAR_TEMP_0, 2
+# 27 ".\\test.pory"
+	release
+	return
+
+
+Script1::
+# 34 ".\\test.pory"
+	lock
+# 35 ".\\test.pory"
+	faceplayer
+	goto Script1_4
+
+Script1_1:
+# 42 ".\\test.pory"
+	release
+	return
+
+Script1_2:
+	goto Script1_6
+
+Script1_3:
+	goto Script1_5
+
+Script1_4:
+# 36 ".\\test.pory"
+	goto_if_set FLAG_TEMP, Script1_2
+	goto Script1_3
+
+Script1_5:
+# 36 ".\\test.pory"
+	checktrainerflag TRAINER_WHATEVER
+	goto_if 1, Script1_2
+	goto Script1_1
+
+Script1_6:
+	goto Script1_8
+
+Script1_7:
+# 38 ".\\test.pory"
+	flbahoistypo
+# 39 ".\\test.pory"
+	msgbox Script1_Text_0
+	goto Script1_6
+
+Script1_8:
+# 37 ".\\test.pory"
+	compare VAR_RESULT, 3
+	goto_if_gt Script1_7
+	goto Script1_1
+
+
+# 49 ".\\test.pory"
+
+# 50 ".\\test.pory"
+	raw
+# 51 ".\\test.pory"
+	data
+# 52 ".\\test.pory"
+	in here
+
+# 55 ".\\test.pory"
+Movement1:
+# 56 ".\\test.pory"
+	step_up
+# 56 ".\\test.pory"
+	step_up
+# 56 ".\\test.pory"
+	step_up
+# 57 ".\\test.pory"
+	step_down
+# 58 ".\\test.pory"
+	step_left
+# 58 ".\\test.pory"
+	step_left
+	step_end
+
+	.align 2
+# 61 ".\\test.pory"
+Mart1:
+# 62 ".\\test.pory"
+	.2byte ITEM_POTION
+# 63 ".\\test.pory"
+	.2byte ITEM_POKEBALL
+# 64 ".\\test.pory"
+	.2byte ITEM_HAMMER
+	.2byte ITEM_NONE
+
+MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
+# 25 ".\\test.pory"
+	.string "Haha it worked! This should make writing map scripts much easier.$"
+
+Script1_Text_0:
+# 39 ".\\test.pory"
+	.string "Hello, there!$"
+
+Text1::
+# 45 ".\\test.pory"
+	.string "Some other text$"
+`
+
+	expectedOptimized := `MapScripts1::
+# 2 ".\\test.pory"
+	map_script MAP_SCRIPT_ON_RESUME, Script1
+# 4 ".\\test.pory"
+	map_script MAP_SCRIPT_ON_TRANSITION, MapScripts1_MAP_SCRIPT_ON_TRANSITION
+# 15 ".\\test.pory"
+	map_script MAP_SCRIPT_ON_FRAME_TABLE, MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE
+	.byte 0
+
+MapScripts1_MAP_SCRIPT_ON_TRANSITION:
+# 5 ".\\test.pory"
+	random 4
+# 6 ".\\test.pory"
+	switch VAR_RESULT
+# 7 ".\\test.pory"
+	case 0, MapScripts1_MAP_SCRIPT_ON_TRANSITION_2
+# 8 ".\\test.pory"
+	case 3, MapScripts1_MAP_SCRIPT_ON_TRANSITION_3
+# 9 ".\\test.pory"
+	case 1, MapScripts1_MAP_SCRIPT_ON_TRANSITION_3
+# 10 ".\\test.pory"
+	case 2, MapScripts1_MAP_SCRIPT_ON_TRANSITION_4
+# 11 ".\\test.pory"
+	case SANDSTORM, MapScripts1_MAP_SCRIPT_ON_TRANSITION_5
+	return
+
+MapScripts1_MAP_SCRIPT_ON_TRANSITION_2:
+# 7 ".\\test.pory"
+	setweather WEATHER_ASH
+	return
+
+MapScripts1_MAP_SCRIPT_ON_TRANSITION_3:
+# 9 ".\\test.pory"
+	setweather WEATHER_RAIN_HEAVY
+	return
+
+MapScripts1_MAP_SCRIPT_ON_TRANSITION_4:
+# 10 ".\\test.pory"
+	setweather WEATHER_DROUGHT
+	return
+
+MapScripts1_MAP_SCRIPT_ON_TRANSITION_5:
+# 12 ".\\test.pory"
+	setweather WEATHER_SANDSTORM
+	return
+
+MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE:
+# 16 ".\\test.pory"
+	map_script_2 VAR_TEMP_0, 0, MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_0
+# 23 ".\\test.pory"
+	map_script_2 VAR_TEMP_0, FOO_CASE, MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1
+# 29 ".\\test.pory"
+	map_script_2 VAR_TEMP_0, 2, PetalburgCity_MapScripts_OnResume
+	.2byte 0
+
+MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_0:
+# 17 ".\\test.pory"
+	lockall
+# 18 ".\\test.pory"
+	applymovement EVENT_OBJ_ID_PLAYER, MyMovement0
+# 19 ".\\test.pory"
+	waitmovement 0
+# 20 ".\\test.pory"
+	setvar VAR_TEMP_0, STATE
+# 21 ".\\test.pory"
+	releaseall
+	return
+
+MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1:
+# 24 ".\\test.pory"
+	lock
+# 25 ".\\test.pory"
+	msgbox MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0
+# 26 ".\\test.pory"
+	setvar VAR_TEMP_0, 2
+# 27 ".\\test.pory"
+	release
+	return
+
+
+Script1::
+# 34 ".\\test.pory"
+	lock
+# 35 ".\\test.pory"
+	faceplayer
+# 36 ".\\test.pory"
+	goto_if_set FLAG_TEMP, Script1_2
+# 36 ".\\test.pory"
+	checktrainerflag TRAINER_WHATEVER
+	goto_if 1, Script1_2
+Script1_1:
+# 42 ".\\test.pory"
+	release
+	return
+
+Script1_2:
+Script1_6:
+# 37 ".\\test.pory"
+	compare VAR_RESULT, 3
+	goto_if_gt Script1_7
+	goto Script1_1
+
+Script1_7:
+# 38 ".\\test.pory"
+	flbahoistypo
+# 39 ".\\test.pory"
+	msgbox Script1_Text_0
+	goto Script1_6
+
+
+# 49 ".\\test.pory"
+
+# 50 ".\\test.pory"
+	raw
+# 51 ".\\test.pory"
+	data
+# 52 ".\\test.pory"
+	in here
+
+# 55 ".\\test.pory"
+Movement1:
+# 56 ".\\test.pory"
+	step_up
+# 56 ".\\test.pory"
+	step_up
+# 56 ".\\test.pory"
+	step_up
+# 57 ".\\test.pory"
+	step_down
+# 58 ".\\test.pory"
+	step_left
+# 58 ".\\test.pory"
+	step_left
+	step_end
+
+	.align 2
+# 61 ".\\test.pory"
+Mart1:
+# 62 ".\\test.pory"
+	.2byte ITEM_POTION
+# 63 ".\\test.pory"
+	.2byte ITEM_POKEBALL
+# 64 ".\\test.pory"
+	.2byte ITEM_HAMMER
+	.2byte ITEM_NONE
+
+MapScripts1_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
+# 25 ".\\test.pory"
+	.string "Haha it worked! This should make writing map scripts much easier.$"
+
+Script1_Text_0:
+# 39 ".\\test.pory"
+	.string "Hello, there!$"
+
+Text1::
+# 45 ".\\test.pory"
+	.string "Some other text$"
+`
+
+	l := lexer.New(input)
+	p := parser.New(l, "", "", 0, nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	e := New(program, false, true, ".\\test.pory")
+	result, _ := e.Emit()
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true, true, ".\\test.pory")
 	result, _ = e.Emit()
 	if result != expectedOptimized {
 		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
@@ -2866,7 +3291,7 @@ Route29_Text_Dude_CatchingTutRejected:
 			l := lexer.New(input)
 			p := parser.New(l, "", "", 0, nil)
 			program, _ := p.ParseProgram()
-			e := New(program, false)
+			e := New(program, false, false, "")
 			result, _ = e.Emit()
 		}
 	})
@@ -2877,7 +3302,7 @@ Route29_Text_Dude_CatchingTutRejected:
 			l := lexer.New(input)
 			p := parser.New(l, "", "", 0, nil)
 			program, _ := p.ParseProgram()
-			e := New(program, true)
+			e := New(program, true, false, "")
 			result, _ = e.Emit()
 		}
 	})

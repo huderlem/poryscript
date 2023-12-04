@@ -229,7 +229,7 @@ const (
 
 // OperatorExpression represents a built-in operator, like flag(FLAG_1) and var(VAR_1).
 type OperatorExpression struct {
-	Operand         string
+	Operand         token.Token
 	Operator        token.Type
 	ComparisonValue string
 	ComparisonValueType
@@ -239,7 +239,7 @@ type OperatorExpression struct {
 func (oe *OperatorExpression) booleanExpressionNode() {}
 
 func (oe *OperatorExpression) String() string {
-	return fmt.Sprintf("%s(%s) %s %s", oe.Type, oe.Operand, oe.Operator, oe.ComparisonValue)
+	return fmt.Sprintf("%s(%s) %s %s", oe.Type, oe.Operand.Literal, oe.Operator, oe.ComparisonValue)
 }
 
 // ConditionExpression is the expression for a condition, and the resulting body of statements
@@ -349,7 +349,7 @@ func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }
 
 // SwitchCase is a single case in a switch statement.
 type SwitchCase struct {
-	Value     string
+	Value     token.Token
 	Body      *BlockStatement
 	IsDefault bool
 }
@@ -357,7 +357,7 @@ type SwitchCase struct {
 // SwitchStatement is a switch statement in Poryscript.
 type SwitchStatement struct {
 	Token       token.Token
-	Operand     string
+	Operand     token.Token
 	Cases       []*SwitchCase
 	DefaultCase *SwitchCase
 }
@@ -384,14 +384,14 @@ func (ss *SwitchStatement) TokenLiteral() string { return ss.Token.Literal }
 
 // MapScript is a single map script with either an inline script implementation or a symbol.
 type MapScript struct {
-	Type   string
+	Type   token.Token
 	Name   string
 	Script *ScriptStatement
 }
 
 // TableMapScriptEntry is a single map script entry in a table-based map script.
 type TableMapScriptEntry struct {
-	Condition  string
+	Condition  token.Token
 	Comparison string
 	Name       string
 	Script     *ScriptStatement
@@ -399,7 +399,7 @@ type TableMapScriptEntry struct {
 
 // TableMapScript is a table of map scripts that correspond to variable states.
 type TableMapScript struct {
-	Type    string
+	Type    token.Token
 	Name    string
 	Entries []TableMapScriptEntry
 }

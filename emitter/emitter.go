@@ -13,15 +13,19 @@ import (
 // Emitter is responsible for transforming a parsed Poryscript program into
 // the target assembler bytecode script.
 type Emitter struct {
-	program  *ast.Program
-	optimize bool
+	program           *ast.Program
+	optimize          bool
+	enableLineMarkers bool
+	inputFilepath     string
 }
 
 // New creates a new Poryscript program emitter.
-func New(program *ast.Program, optimize bool) *Emitter {
+func New(program *ast.Program, optimize, enableLineMarkers bool, inputFilepath string) *Emitter {
 	return &Emitter{
-		program:  program,
-		optimize: optimize,
+		program:           program,
+		optimize:          optimize,
+		enableLineMarkers: enableLineMarkers,
+		inputFilepath:     inputFilepath,
 	}
 }
 
@@ -72,21 +76,21 @@ func (e *Emitter) Emit() (string, error) {
 
 		rawStmt, ok := stmt.(*ast.RawStatement)
 		if ok {
-			sb.WriteString(emitRawStatement(rawStmt))
+			sb.WriteString(e.emitRawStatement(rawStmt))
 			i++
 			continue
 		}
 
 		movementStmt, ok := stmt.(*ast.MovementStatement)
 		if ok {
-			sb.WriteString(emitMovementStatement(movementStmt))
+			sb.WriteString(e.emitMovementStatement(movementStmt))
 			i++
 			continue
 		}
 
 		martStmt, ok := stmt.(*ast.MartStatement)
 		if ok {
-			sb.WriteString(emitMartStatement(martStmt))
+			sb.WriteString(e.emitMartStatement(martStmt))
 			i++
 			continue
 		}
@@ -99,7 +103,7 @@ func (e *Emitter) Emit() (string, error) {
 			sb.WriteString("\n")
 		}
 
-		emitted := emitText(text)
+		emitted := e.emitText(text)
 		sb.WriteString(emitted)
 	}
 	return sb.String(), nil
@@ -113,10 +117,12 @@ func (e *Emitter) emitMapScriptStatement(mapScriptStmt *ast.MapScriptsStatement,
 		sb.WriteString(fmt.Sprintf("%s:\n", mapScriptStmt.Name.Value))
 	}
 	for _, mapScript := range mapScriptStmt.MapScripts {
-		sb.WriteString(fmt.Sprintf("\tmap_script %s, %s\n", mapScript.Type, mapScript.Name))
+		tryEmitLineMarker(&sb, mapScript.Type, e.enableLineMarkers, e.inputFilepath)
+		sb.WriteString(fmt.Sprintf("\tmap_script %s, %s\n", mapScript.Type.Literal, mapScript.Name))
 	}
 	for _, tableMapScript := range mapScriptStmt.TableMapScripts {
-		sb.WriteString(fmt.Sprintf("\tmap_script %s, %s\n", tableMapScript.Type, tableMapScript.Name))
+		tryEmitLineMarker(&sb, tableMapScript.Type, e.enableLineMarkers, e.inputFilepath)
+		sb.WriteString(fmt.Sprintf("\tmap_script %s, %s\n", tableMapScript.Type.Literal, tableMapScript.Name))
 	}
 	sb.WriteString("\t.byte 0\n\n")
 
@@ -132,7 +138,8 @@ func (e *Emitter) emitMapScriptStatement(mapScriptStmt *ast.MapScriptsStatement,
 	for _, tableMapScript := range mapScriptStmt.TableMapScripts {
 		sb.WriteString(fmt.Sprintf("%s:\n", tableMapScript.Name))
 		for _, scriptEntry := range tableMapScript.Entries {
-			sb.WriteString(fmt.Sprintf("\tmap_script_2 %s, %s, %s\n", scriptEntry.Condition, scriptEntry.Comparison, scriptEntry.Name))
+			tryEmitLineMarker(&sb, scriptEntry.Condition, e.enableLineMarkers, e.inputFilepath)
+			sb.WriteString(fmt.Sprintf("\tmap_script_2 %s, %s, %s\n", scriptEntry.Condition.Literal, scriptEntry.Comparison, scriptEntry.Name))
 		}
 		sb.WriteString("\t.2byte 0\n\n")
 		for _, scriptEntry := range tableMapScript.Entries {
@@ -611,11 +618,11 @@ func (e *Emitter) renderChunks(chunks map[int]*chunk, scriptName string, isGloba
 			nextChunkID = -1
 		}
 		chunk := chunks[chunkID]
-		err := chunk.renderStatements(&sb, chunkLabels, textLabels)
+		err := chunk.renderStatements(&sb, chunkLabels, textLabels, e.enableLineMarkers, e.inputFilepath)
 		if err != nil {
 			return "", err
 		}
-		isFallThrough := chunk.renderBranching(scriptName, &sb, nextChunkID, registerJumpChunk)
+		isFallThrough := chunk.renderBranching(scriptName, &sb, nextChunkID, registerJumpChunk, e.enableLineMarkers, e.inputFilepath)
 		if !isFallThrough {
 			sb.WriteString("\n")
 		}
@@ -683,13 +690,29 @@ func optimizeChunkOrder(chunks map[int]*chunk) []int {
 	return chunkIDs
 }
 
-func emitText(text ast.Text) string {
+func shouldEmitLineMarkers(enableLineMarkers bool, inputFilepath string) bool {
+	return enableLineMarkers && len(inputFilepath) > 0
+}
+
+func emitLineMarker(sb *strings.Builder, lineNumber int, inputFilepath string) {
+	sb.WriteString(fmt.Sprintf("# %d \"%s\"\n", lineNumber, strings.ReplaceAll(inputFilepath, `\`, `\\`)))
+}
+
+func tryEmitLineMarker(sb *strings.Builder, tok token.Token, enableLineMarkers bool, inputFilepath string) {
+	if !shouldEmitLineMarkers(enableLineMarkers, inputFilepath) {
+		return
+	}
+	emitLineMarker(sb, tok.LineNumber, inputFilepath)
+}
+
+func (e *Emitter) emitText(text ast.Text) string {
 	var sb strings.Builder
 	if text.IsGlobal {
 		sb.WriteString(fmt.Sprintf("%s::\n", text.Name))
 	} else {
 		sb.WriteString(fmt.Sprintf("%s:\n", text.Name))
 	}
+	tryEmitLineMarker(&sb, text.Token, e.enableLineMarkers, e.inputFilepath)
 	lines := strings.Split(text.Value, "\n")
 	for _, line := range lines {
 		directive := "string"
@@ -701,21 +724,31 @@ func emitText(text ast.Text) string {
 	return sb.String()
 }
 
-func emitRawStatement(rawStmt *ast.RawStatement) string {
+func (e *Emitter) emitRawStatement(rawStmt *ast.RawStatement) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s\n", rawStmt.Value))
+	if shouldEmitLineMarkers(e.enableLineMarkers, e.inputFilepath) {
+		lines := strings.Split(rawStmt.Value, "\n")
+		for i, line := range lines {
+			emitLineMarker(&sb, rawStmt.Token.LineNumber+i, e.inputFilepath)
+			sb.WriteString(fmt.Sprintf("%s\n", line))
+		}
+	} else {
+		sb.WriteString(fmt.Sprintf("%s\n", rawStmt.Value))
+	}
 	return sb.String()
 }
 
-func emitMovementStatement(movementStmt *ast.MovementStatement) string {
+func (e *Emitter) emitMovementStatement(movementStmt *ast.MovementStatement) string {
 	terminator := "step_end"
 	var sb strings.Builder
+	tryEmitLineMarker(&sb, movementStmt.Token, e.enableLineMarkers, e.inputFilepath)
 	if movementStmt.Scope == token.GLOBAL {
 		sb.WriteString(fmt.Sprintf("%s::\n", movementStmt.Name.Value))
 	} else {
 		sb.WriteString(fmt.Sprintf("%s:\n", movementStmt.Name.Value))
 	}
 	for _, cmd := range movementStmt.MovementCommands {
+		tryEmitLineMarker(&sb, cmd, e.enableLineMarkers, e.inputFilepath)
 		sb.WriteString(fmt.Sprintf("\t%s\n", cmd.Literal))
 		if cmd.Literal == terminator {
 			return sb.String()
@@ -725,19 +758,21 @@ func emitMovementStatement(movementStmt *ast.MovementStatement) string {
 	return sb.String()
 }
 
-func emitMartStatement(martStmt *ast.MartStatement) string {
+func (e *Emitter) emitMartStatement(martStmt *ast.MartStatement) string {
 	terminator := "ITEM_NONE"
 	var sb strings.Builder
 	sb.WriteString("\t.align 2\n")
+	tryEmitLineMarker(&sb, martStmt.Token, e.enableLineMarkers, e.inputFilepath)
 	if martStmt.Scope == token.GLOBAL {
 		sb.WriteString(fmt.Sprintf("%s::\n", martStmt.Name.Value))
 	} else {
 		sb.WriteString(fmt.Sprintf("%s:\n", martStmt.Name.Value))
 	}
-	for _, item := range martStmt.Items {
+	for i, item := range martStmt.Items {
 		if item == terminator {
 			break
 		}
+		tryEmitLineMarker(&sb, martStmt.TokenItems[i], e.enableLineMarkers, e.inputFilepath)
 		sb.WriteString(fmt.Sprintf("\t.2byte %s\n", item))
 	}
 	sb.WriteString(fmt.Sprintf("\t.2byte %s\n", terminator))

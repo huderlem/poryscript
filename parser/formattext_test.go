@@ -4,25 +4,36 @@ import "testing"
 
 func TestFormatText(t *testing.T) {
 	tests := []struct {
-		maxWidth  int
-		inputText string
-		expected  string
+		maxWidth           int
+		cursorOverlapWidth int
+		inputText          string
+		expected           string
 	}{
-		{40, "", ""},
-		{40, "Hello", "Hello"},
-		{100, "Foo bar", "Foo bar"},
-		{140, "Foo {MUS} baz", "Foo {MUS}\\n\nbaz"},
-		{139, "Foo {MUS} baz", "Foo\\n\n{MUS}\\l\nbaz"},
-		{40, "ßŒœ ♂Üあ   ", "ßŒœ\\n\n♂Üあ"},
-		{40, "   Foo    bar          baz  baz2", "Foo\\n\nbar\\l\nbaz\\l\nbaz2"},
-		{100, `Hello.\pI am writing a test.`, "Hello.\\p\nI am\\n\nwriting a\\l\ntest."},
-		{100, `Hello.\nI am writing a longer \l“test.”`, "Hello.\\n\nI am\\l\nwriting a\\l\nlonger\\l\n“test.”"},
+		{40, 0, "", ""},
+		{40, 0, "Hello", "Hello"},
+		{100, 0, "Foo bar", "Foo bar"},
+		{140, 0, "Foo {MUS} baz", "Foo {MUS}\\n\nbaz"},
+		{139, 0, "Foo {MUS} baz", "Foo\\n\n{MUS}\\l\nbaz"},
+		{40, 0, "ßŒœ ♂Üあ   ", "ßŒœ\\n\n♂Üあ"},
+		{40, 0, "   Foo    bar          baz  baz2", "Foo\\n\nbar\\l\nbaz\\l\nbaz2"},
+		{100, 0, `Hello.\pI am writing a test.`, "Hello.\\p\nI am\\n\nwriting a\\l\ntest."},
+		{100, 0, `Hello.\nI am writing a longer \l“test.”`, "Hello.\\n\nI am\\l\nwriting a\\l\nlonger\\l\n“test.”"},
+		{190, 0, `First\nSecond Third Fourth`, "First\\n\nSecond Third Fourth"},
+		{190, 1, `First\nSecond Third Fourth`, "First\\n\nSecond Third Fourth"},
+		{190, 0, `First\nSecond Third Fourth Second Third Fourth`, "First\\n\nSecond Third Fourth\\l\nSecond Third Fourth"},
+		{190, 1, `First\nSecond Third Fourth Second Third Fourth`, "First\\n\nSecond Third\\l\nFourth Second\\l\nThird Fourth"},
+		{130, 0, `Apple Banana\pOrange`, "Apple Banana\\p\nOrange"},
+		{130, 10, `Apple Banana\pOrange`, "Apple Banana\\p\nOrange"},
+		{130, 11, `Apple Banana\pOrange`, "Apple\\n\nBanana\\p\nOrange"},
+		{100, 0, `Hello.\NI am writing a longer \N“test.”`, "Hello.\\n\nI am\\l\nwriting a\\l\nlonger\\l\n“test.”"},
+		{100, 0, `Hello.\NI am\Nwriting\la longer \N“test.”`, "Hello.\\n\nI am\\l\nwriting\\l\na longer\\l\n“test.”"},
+		{100, 0, `Hello.\NI am\Nwriting\pa longer \N“test.”`, "Hello.\\n\nI am\\l\nwriting\\p\na longer\\n\n“test.”"},
 	}
 
 	fc := FontConfig{}
 
 	for i, tt := range tests {
-		result, _ := fc.FormatText(tt.inputText, tt.maxWidth, testFontID)
+		result, _ := fc.FormatText(tt.inputText, tt.maxWidth, tt.cursorOverlapWidth, testFontID)
 		if result != tt.expected {
 			t.Errorf("FormatText Test %d: Expected '%s', but Got '%s'", i, tt.expected, result)
 		}
@@ -59,7 +70,7 @@ func TestGetNextWord(t *testing.T) {
 	fc := FontConfig{}
 
 	for i, tt := range tests {
-		resultPos, resultValue, _ := fc.getNextWord(tt.inputText)
+		resultPos, resultValue := fc.getNextWord(tt.inputText)
 		if resultPos != tt.expectedPos {
 			t.Errorf("TestGetNextWord Test %d: Expected Pos '%d', but Got '%d'", i, tt.expectedPos, resultPos)
 		}
