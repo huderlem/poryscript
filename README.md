@@ -434,6 +434,8 @@ The font configuration JSON file informs Poryscript how many pixels wide each ch
 
 `cursorOverlapWidth` can be used to ensure there is always enough room for the cursor icon to be displayed in the text box. (This "cursor icon" is the small icon that's shown when the player needs to press A to advance the text box.)
 
+`numLines` is the number of lines displayed within a single message box. If editing text for a taller space, this can be adjusted in `font_config.json`.
+
 The length of a line can optionally be specified as the third parameter to `format()` if a font id was specified as the second parameter.
 
 ```

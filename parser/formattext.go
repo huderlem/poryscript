@@ -19,6 +19,7 @@ type Fonts struct {
 	Widths             map[string]int `json:"widths"`
 	CursorOverlapWidth int            `json:"cursorOverlapWidth"`
 	MaxLineLength      int            `json:"maxLineLength"`
+    NumLines           int            `json:"numLines"`
 }
 
 // LoadFontConfig reads a font width config JSON file.
@@ -40,7 +41,7 @@ const testFontID = "TEST"
 
 // FormatText automatically inserts line breaks into text
 // according to in-game text box widths.
-func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth int, fontID string) (string, error) {
+func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth int, fontID string, NumLines int) (string, error) {
 	if !fc.isFontIDValid(fontID) && len(fontID) > 0 && fontID != testFontID {
 		validFontIDs := make([]string, len(fc.Fonts))
 		i := 0
@@ -56,8 +57,7 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth i
 	var formattedSb strings.Builder
 	var curLineSb strings.Builder
 	curWidth := 0
-	isFirstLine := true
-    isSecondLine := false
+    lineNumber := 1
 	isFirstWord := true
 	spaceCharWidth := fc.getRunePixelWidth(' ', fontID)
 	pos, word := fc.getNextWord(text)
@@ -72,7 +72,7 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth i
 			curWidth = 0
 			formattedSb.WriteString(curLineSb.String())
 			if fc.isAutoLineBreak(word) {
-				if isFirstLine {
+                if fc.isFirstLine(lineNumber) {
 					formattedSb.WriteString(`\n`)
 				} else {
 					formattedSb.WriteString(`\l`)
@@ -81,10 +81,8 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth i
 				formattedSb.WriteString(word)
 			}
 			formattedSb.WriteByte('\n')
-			if fc.isParagraphBreak(word) {
-				isFirstLine = true
-			} else {
-				isFirstLine = false
+			if !fc.isParagraphBreak(word) {
+                lineNumber++
 			}
 			isFirstWord = true
 			curLineSb.Reset()
@@ -99,23 +97,21 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth i
 			// it could span multiple words. The true solution would require optimistically trying to fit all
 			// remaining words onto the same line, rather than only looking at the current word + cursor. However,
 			// this is "good enough" and likely works for almost all actual use cases in practice.
-			if len(nextWord) > 0 && (!isFirstLine || fc.isParagraphBreak(nextWord)) {
+			if len(nextWord) > 0 && (fc.isFirstLine(lineNumber) == false || fc.isParagraphBreak(nextWord)) {
 				nextWidth += cursorOverlapWidth
 			}
 			if nextWidth > maxWidth && curLineSb.Len() > 0 {
 				formattedSb.WriteString(curLineSb.String())
-                if isFirstLine {
+
+                if fc.isFirstLine(lineNumber) {
                     formattedSb.WriteString(`\n`)
-                    isFirstLine = false
-                    // Start 3_line_message_box
-                    isSecondLine = true
-                } else if isSecondLine {
-                    formattedSb.WriteString(`\n`)
-                    isSecondLine = false
-                    // End 3_line_message_box
-				} else {
+				} else if fc.isMaxLineOrGreater(lineNumber, NumLines) {
 					formattedSb.WriteString(`\l`)
-				}
+				} else {
+                    formattedSb.WriteString(`\n`)
+                }
+
+                lineNumber++
 				formattedSb.WriteByte('\n')
 				isFirstWord = false
 				curLineSb.Reset()
@@ -138,6 +134,14 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth i
 	}
 
 	return formattedSb.String(), nil
+}
+
+func (fc *FontConfig) isFirstLine(lineNumber int) bool {
+   return lineNumber == 1
+}
+
+func (fc *FontConfig) isMaxLineOrGreater(lineNumber int, NumLines int) bool {
+   return lineNumber >= NumLines
 }
 
 func (fc *FontConfig) getNextWord(text string) (int, string) {

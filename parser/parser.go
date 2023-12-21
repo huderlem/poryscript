@@ -1114,7 +1114,7 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 		maxTextLength = p.fonts.Fonts[fontID].MaxLineLength
 	}
 
-	formatted, err := p.fonts.FormatText(textToken.Literal, maxTextLength, p.fonts.Fonts[fontID].CursorOverlapWidth, fontID)
+	formatted, err := p.fonts.FormatText(textToken.Literal, maxTextLength, p.fonts.Fonts[fontID].CursorOverlapWidth, fontID, p.fonts.Fonts[fontID].NumLines)
 	if err != nil && p.enableEnvironmentErrors {
 		return token.Token{}, "", "", NewParseError(fontIdToken, err.Error())
 	}
