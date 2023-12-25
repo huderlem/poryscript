@@ -57,7 +57,7 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth i
 	var formattedSb strings.Builder
 	var curLineSb strings.Builder
 	curWidth := 0
-	curLineNum := 1
+	curLineNum := 0
 	isFirstWord := true
 	spaceCharWidth := fc.getRunePixelWidth(' ', fontID)
 	pos, word := fc.getNextWord(text)
@@ -135,11 +135,11 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth i
 }
 
 func (fc *FontConfig) isFirstLine(curLineNum int) bool {
-	return curLineNum == 1
+	return curLineNum == 0
 }
 
 func (fc *FontConfig) shouldUseLineFeed(curLineNum int, NumLines int) bool {
-	return curLineNum >= NumLines
+	return (curLineNum >= (NumLines - 1))
 }
 
 func (fc *FontConfig) getNextWord(text string) (int, string) {
