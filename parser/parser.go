@@ -1084,6 +1084,14 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 		}
 
 		p.nextToken()
+
+        if p.peekTokenIs(token.INT) {
+            num, _ := strconv.ParseInt(p.peekToken.Literal, 0, 64)
+			maxTextLength = int(num)
+            p.nextToken()
+            continue;
+        }
+
 		paramName := p.peekToken.Literal
 		p.nextToken()
 
