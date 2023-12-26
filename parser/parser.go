@@ -61,15 +61,14 @@ type Parser struct {
 // New creates a new Poryscript AST Parser.
 func New(l *lexer.Lexer, fontConfigFilepath string, defaultFontID string, maxLineLength int, compileSwitches map[string]string) *Parser {
 	p := &Parser{
-		l:                       l,
-		inlineTexts:             make([]ast.Text, 0),
-		inlineTextsSet:          make(map[textKey]string),
-		inlineTextCounts:        make(map[string]int),
-		textStatements:          make([]*ast.TextStatement, 0),
-		fontConfigFilepath:      fontConfigFilepath,
-		defaultFontID:           defaultFontID,
-		maxLineLength:           maxLineLength,
-		numLines:                maxLineLength,
+		l:                  l,
+		inlineTexts:        make([]ast.Text, 0),
+		inlineTextsSet:     make(map[textKey]string),
+		inlineTextCounts:   make(map[string]int),
+		textStatements:     make([]*ast.TextStatement, 0),
+		fontConfigFilepath: fontConfigFilepath,
+		defaultFontID:      defaultFontID,
+		maxLineLength:      maxLineLength,
 		compileSwitches:         compileSwitches,
 		constants:               make(map[string]string),
 		enableEnvironmentErrors: true,

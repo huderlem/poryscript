@@ -41,7 +41,7 @@ const testFontID = "TEST"
 
 // FormatText automatically inserts line breaks into text
 // according to in-game text box widths.
-func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth int, fontID string, NumLines int) (string, error) {
+func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth int, fontID string, numLines int) (string, error) {
 	if !fc.isFontIDValid(fontID) && len(fontID) > 0 && fontID != testFontID {
 		validFontIDs := make([]string, len(fc.Fonts))
 		i := 0
@@ -103,7 +103,7 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth i
 			if nextWidth > maxWidth && curLineSb.Len() > 0 {
 				formattedSb.WriteString(curLineSb.String())
 
-				if fc.shouldUseLineFeed(curLineNum, NumLines) {
+				if fc.shouldUseLineFeed(curLineNum, numLines) {
 					formattedSb.WriteString(`\l`)
 				} else {
 					formattedSb.WriteString(`\n`)
@@ -138,8 +138,8 @@ func (fc *FontConfig) isFirstLine(curLineNum int) bool {
 	return curLineNum == 0
 }
 
-func (fc *FontConfig) shouldUseLineFeed(curLineNum int, NumLines int) bool {
-	return (curLineNum >= (NumLines - 1))
+func (fc *FontConfig) shouldUseLineFeed(curLineNum int, numLines int) bool {
+	return (curLineNum >= (numLines - 1))
 }
 
 func (fc *FontConfig) getNextWord(text string) (int, string) {
