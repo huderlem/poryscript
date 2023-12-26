@@ -99,7 +99,7 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth i
 			// it could span multiple words. The true solution would require optimistically trying to fit all
 			// remaining words onto the same line, rather than only looking at the current word + cursor. However,
 			// this is "good enough" and likely works for almost all actual use cases in practice.
-			if len(nextWord) > 0 && (fc.isFirstLine(curLineNum) == false || fc.isParagraphBreak(nextWord)) {
+			if len(nextWord) > 0 && (!fc.isFirstLine(curLineNum) || fc.isParagraphBreak(nextWord)) {
 				nextWidth += cursorOverlapWidth
 			}
 			if nextWidth > maxWidth && curLineSb.Len() > 0 {
