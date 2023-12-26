@@ -141,7 +141,7 @@ func (fc *FontConfig) isFirstLine(curLineNum int) bool {
 }
 
 func (fc *FontConfig) shouldUseLineFeed(curLineNum int, numLines int) bool {
-	return (curLineNum >= (numLines - 1))
+	return curLineNum >= numLines - 1
 }
 
 func (fc *FontConfig) getNextWord(text string) (int, string) {

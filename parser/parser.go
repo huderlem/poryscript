@@ -1144,17 +1144,16 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 		return token.Token{}, "", "", NewParseError(p.curToken, "missing closing parenthesis ')' for format()")
 	}
 
-	if maxTextLength <= 0 {
-		maxTextLength = p.fonts.Fonts[fontID].MaxLineLength
+	setEmptyParametersToDefault := func(paramName string, paramValue *int, defaultValue int) {
+		if *paramValue <= 0 {
+			//log.Printf("WARNING: %s was not defined, so the default value from the specified fontID is being used.\n", paramName)
+			*paramValue = defaultValue
+		}
 	}
 
-	if numLines <= 0 {
-		numLines = p.fonts.Fonts[fontID].NumLines
-	}
-
-	if cursorOverlapWidth <= 0 {
-		cursorOverlapWidth = p.fonts.Fonts[fontID].CursorOverlapWidth
-	}
+	setEmptyParametersToDefault("maxTextLength", &maxTextLength, p.fonts.Fonts[fontID].MaxLineLength)
+	setEmptyParametersToDefault("numLines", &numLines, p.fonts.Fonts[fontID].NumLines)
+	setEmptyParametersToDefault("cursorOverlapWidth", &cursorOverlapWidth, p.fonts.Fonts[fontID].CursorOverlapWidth)
 
 	formatted, err := p.fonts.FormatText(textToken.Literal, maxTextLength, cursorOverlapWidth, fontID, numLines)
 	if err != nil && p.enableEnvironmentErrors {
