@@ -52,6 +52,7 @@ type Parser struct {
 	defaultFontID           string
 	fonts                   *FontConfig
 	maxLineLength           int
+	numLines                int
 	compileSwitches         map[string]string
 	constants               map[string]string
 	enableEnvironmentErrors bool
@@ -68,6 +69,7 @@ func New(l *lexer.Lexer, fontConfigFilepath string, defaultFontID string, maxLin
 		fontConfigFilepath:      fontConfigFilepath,
 		defaultFontID:           defaultFontID,
 		maxLineLength:           maxLineLength,
+		numLines:                maxLineLength,
 		compileSwitches:         compileSwitches,
 		constants:               make(map[string]string),
 		enableEnvironmentErrors: true,
@@ -1075,46 +1077,56 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 	}
 
 	maxTextLength := p.maxLineLength
+	numLines := p.numLines
 
-	if p.peekTokenIs(token.COMMA) {
-		p.nextToken()
-		if p.peekTokenIs(token.STRING) {
-			p.nextToken()
-			fontID = p.curToken.Literal
-			fontIdToken = p.curToken
-			if p.peekTokenIs(token.COMMA) {
-				p.nextToken()
-				if err := p.expectPeek(token.INT); err != nil {
-					return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() maxLineLength '%s'. Expected integer", p.peekToken.Literal))
-				}
-				num, _ := strconv.ParseInt(p.curToken.Literal, 0, 64)
-				maxTextLength = int(num)
-			}
-		} else if p.peekTokenIs(token.INT) {
-			p.nextToken()
-			num, _ := strconv.ParseInt(p.curToken.Literal, 0, 64)
-			maxTextLength = int(num)
-			if p.peekTokenIs(token.COMMA) {
-				p.nextToken()
-				if err := p.expectPeek(token.STRING); err != nil {
-					return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() fontId '%s'. Expected string", p.peekToken.Literal))
-				}
-				fontID = p.curToken.Literal
-				fontIdToken = p.curToken
-			}
-		} else {
-			return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() parameter '%s'. Expected either fontId (string) or maxLineLength (integer)", p.peekToken.Literal))
+	for !p.peekTokenIs(token.RPAREN) {
+		if !p.peekTokenIs(token.COMMA) {
+			return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() parameter '%s'. Expected a comma", p.peekToken.Literal))
 		}
+
+		p.nextToken()
+		paramName := p.peekToken.Literal
+		p.nextToken()
+
+		if !p.peekTokenIs(token.ASSIGN) {
+			return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() parameter '%s'. Expected an equals sign", p.peekToken.Literal))
+		}
+
+		p.nextToken()
+		paramValue := p.peekToken.Literal
+
+		log.Printf("paramName %v", paramName)
+		log.Printf("paramValue %v", paramValue)
+
+		switch paramName {
+		case "fontId":
+			fontID = paramValue
+			fontIdToken = p.peekToken
+		case "maxLineLength":
+			num, _ := strconv.ParseInt(paramValue, 0, 64)
+			maxTextLength = int(num)
+		case "numLines":
+			num, _ := strconv.ParseInt(paramValue, 0, 64)
+			numLines = int(num)
+
+		default:
+			return token.Token{}, "", "", NewParseError(p.curToken, fmt.Sprintf("invalid format() parameter '%s'. Expected either fontId (string) or maxLineLength (integer)", paramName))
+		}
+		p.nextToken()
 	}
 	if err := p.expectPeek(token.RPAREN); err != nil {
-		return token.Token{}, "", "", NewParseError(p.peekToken, "missing closing parenthesis ')' for format()")
+		return token.Token{}, "", "", NewParseError(p.curToken, "missing closing parenthesis ')' for format()")
 	}
 
 	if maxTextLength <= 0 {
 		maxTextLength = p.fonts.Fonts[fontID].MaxLineLength
 	}
 
-	formatted, err := p.fonts.FormatText(textToken.Literal, maxTextLength, p.fonts.Fonts[fontID].CursorOverlapWidth, fontID, p.fonts.Fonts[fontID].NumLines)
+	if numLines <= 0 {
+		numLines = p.fonts.Fonts[fontID].NumLines
+	}
+
+	formatted, err := p.fonts.FormatText(textToken.Literal, maxTextLength, p.fonts.Fonts[fontID].CursorOverlapWidth, fontID, numLines)
 	if err != nil && p.enableEnvironmentErrors {
 		return token.Token{}, "", "", NewParseError(fontIdToken, err.Error())
 	}
