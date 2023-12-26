@@ -1079,6 +1079,26 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 	maxTextLength := p.maxLineLength
 	numLines := p.numLines
 	cursorOverlapWidth := p.cursorOverlapWidth
+	paramValue := ""
+
+	namedParameters := map[string]func(){
+		"fontId": func() {
+			fontID = paramValue
+			fontIdToken = p.peekToken
+		},
+		"maxLineLength": func() {
+			num, _ := strconv.ParseInt(paramValue, 0, 64)
+			maxTextLength = int(num)
+		},
+		"numLines": func() {
+			num, _ := strconv.ParseInt(paramValue, 0, 64)
+			numLines = int(num)
+		},
+		"cursorOverlapWidth": func() {
+			num, _ := strconv.ParseInt(paramValue, 0, 64)
+			cursorOverlapWidth = int(num)
+		},
+	}
 
 	for !p.peekTokenIs(token.RPAREN) {
 		if !p.peekTokenIs(token.COMMA) {
@@ -1095,6 +1115,14 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 		}
 
 		paramName := p.peekToken.Literal
+		_, ok := namedParameters[paramName]
+		if !ok {
+			fontID = p.peekToken.Literal
+			fontIdToken = p.peekToken
+			p.nextToken()
+			continue
+		}
+
 		p.nextToken()
 
 		if !p.peekTokenIs(token.ASSIGN) {
@@ -1102,28 +1130,14 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 		}
 
 		p.nextToken()
-		paramValue := p.peekToken.Literal
+		paramValue = p.peekToken.Literal
 
-		log.Printf("paramName %v", paramName)
-		log.Printf("paramValue %v", paramValue)
+		setNamedParameters, ok := namedParameters[paramName]
 
-		switch paramName {
-		case "fontId":
-			fontID = paramValue
-			fontIdToken = p.peekToken
-		case "maxLineLength":
-			num, _ := strconv.ParseInt(paramValue, 0, 64)
-			maxTextLength = int(num)
-		case "numLines":
-			num, _ := strconv.ParseInt(paramValue, 0, 64)
-			numLines = int(num)
-		case "cursorOverlapWidth":
-			num, _ := strconv.ParseInt(paramValue, 0, 64)
-			cursorOverlapWidth = int(num)
-
-		default:
-			return token.Token{}, "", "", NewParseError(p.curToken, fmt.Sprintf("invalid format() parameter '%s'. Expected either fontId (string) or maxLineLength (integer)", paramName))
+		if !ok {
+			return token.Token{}, "", "", NewParseError(p.curToken, fmt.Sprintf("invalid format() parameter '%s'. Expected one of the following: fontId (string), maxLineLength (integer), cursorOverlapWidth (integer), numLines (integer).", paramName))
 		}
+		setNamedParameters()
 		p.nextToken()
 	}
 	if err := p.expectPeek(token.RPAREN); err != nil {
@@ -1139,7 +1153,7 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 	}
 
 	if cursorOverlapWidth <= 0 {
-		cursorOverlapWidth = p.fonts.Fonts[fontID].cursorOverlapWidth
+		cursorOverlapWidth = p.fonts.Fonts[fontID].CursorOverlapWidth
 	}
 
 	formatted, err := p.fonts.FormatText(textToken.Literal, maxTextLength, cursorOverlapWidth, fontID, numLines)
