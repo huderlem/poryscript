@@ -1107,38 +1107,16 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 
 		p.nextToken()
 
-		if p.peekTokenIs(token.INT) {
-			num, _ := strconv.ParseInt(p.peekToken.Literal, 0, 64)
-			maxTextLength = int(num)
+		if p.peekTokenIs(token.INT) || !isNamedParameter(p.peekToken.Literal, namedParameters) {
+			p.handleUnnamedParameter(&maxTextLength, &fontID, &fontIdToken)
 			p.nextToken()
 			continue
+		} else {
+			paramName := p.peekToken.Literal
+			if err := p.handleNamedParameter(paramName, namedParameters, &paramValue); err != nil {
+				return token.Token{}, "", "", err
+			}
 		}
-
-		paramName := p.peekToken.Literal
-		_, ok := namedParameters[paramName]
-		if !ok {
-			fontID = p.peekToken.Literal
-			fontIdToken = p.peekToken
-			p.nextToken()
-			continue
-		}
-
-		p.nextToken()
-
-		if !p.peekTokenIs(token.ASSIGN) {
-			return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() parameter '%s'. Expected an equals sign", p.peekToken.Literal))
-		}
-
-		p.nextToken()
-		paramValue = p.peekToken.Literal
-
-		setNamedParameters, ok := namedParameters[paramName]
-
-		if !ok {
-			return token.Token{}, "", "", NewParseError(p.curToken, fmt.Sprintf("invalid format() parameter '%s'. Expected one of the following: fontId (string), maxLineLength (integer), cursorOverlapWidth (integer), numLines (integer).", paramName))
-		}
-		setNamedParameters()
-		p.nextToken()
 	}
 	if err := p.expectPeek(token.RPAREN); err != nil {
 		return token.Token{}, "", "", NewParseError(p.curToken, "missing closing parenthesis ')' for format()")
@@ -1160,6 +1138,41 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 		return token.Token{}, "", "", NewParseError(fontIdToken, err.Error())
 	}
 	return textToken, formatted, stringType, nil
+}
+
+func isNamedParameter(paramName string, namedParameters map[string]func()) bool {
+	_, ok := namedParameters[paramName]
+	return ok
+}
+
+func (p *Parser) handleNamedParameter(paramName string, namedParameters map[string]func(), paramValue *string) error {
+	setNamedParameters, ok := namedParameters[paramName]
+	if !ok {
+		return NewParseError(p.curToken, fmt.Sprintf("invalid format() parameter '%s'. Expected one of the following: fontId (string), maxLineLength (integer), cursorOverlapWidth (integer), numLines (integer).", paramName))
+	}
+
+	p.nextToken()
+
+	if !p.peekTokenIs(token.ASSIGN) {
+		return NewParseError(p.peekToken, fmt.Sprintf("invalid format() parameter '%s'. Expected an equals sign", p.peekToken.Literal))
+	}
+
+	p.nextToken()
+	*paramValue = p.peekToken.Literal
+	setNamedParameters()
+	p.nextToken()
+
+	return nil
+}
+
+func (p *Parser) handleUnnamedParameter(maxTextLength *int, fontID *string, fontIdToken *token.Token) {
+	if p.peekTokenIs(token.INT) {
+		num, _ := strconv.ParseInt(p.peekToken.Literal, 0, 64)
+		*maxTextLength = int(num)
+	} else {
+		*fontID = p.peekToken.Literal
+		*fontIdToken = p.peekToken
+	}
 }
 
 func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, []impText, error) {
