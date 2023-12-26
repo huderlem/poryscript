@@ -83,6 +83,8 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth i
 			formattedSb.WriteByte('\n')
 			if !fc.isParagraphBreak(word) {
 				curLineNum++
+			} else {
+				curLineNum = 0
 			}
 			isFirstWord = true
 			curLineSb.Reset()
