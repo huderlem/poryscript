@@ -53,6 +53,7 @@ type Parser struct {
 	fonts                   *FontConfig
 	maxLineLength           int
 	numLines                int
+	cursorOverlapWidth      int
 	compileSwitches         map[string]string
 	constants               map[string]string
 	enableEnvironmentErrors bool
@@ -61,14 +62,14 @@ type Parser struct {
 // New creates a new Poryscript AST Parser.
 func New(l *lexer.Lexer, fontConfigFilepath string, defaultFontID string, maxLineLength int, compileSwitches map[string]string) *Parser {
 	p := &Parser{
-		l:                  l,
-		inlineTexts:        make([]ast.Text, 0),
-		inlineTextsSet:     make(map[textKey]string),
-		inlineTextCounts:   make(map[string]int),
-		textStatements:     make([]*ast.TextStatement, 0),
-		fontConfigFilepath: fontConfigFilepath,
-		defaultFontID:      defaultFontID,
-		maxLineLength:      maxLineLength,
+		l:                       l,
+		inlineTexts:             make([]ast.Text, 0),
+		inlineTextsSet:          make(map[textKey]string),
+		inlineTextCounts:        make(map[string]int),
+		textStatements:          make([]*ast.TextStatement, 0),
+		fontConfigFilepath:      fontConfigFilepath,
+		defaultFontID:           defaultFontID,
+		maxLineLength:           maxLineLength,
 		compileSwitches:         compileSwitches,
 		constants:               make(map[string]string),
 		enableEnvironmentErrors: true,
@@ -1077,6 +1078,7 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 
 	maxTextLength := p.maxLineLength
 	numLines := p.numLines
+	cursorOverlapWidth := p.cursorOverlapWidth
 
 	for !p.peekTokenIs(token.RPAREN) {
 		if !p.peekTokenIs(token.COMMA) {
@@ -1085,12 +1087,12 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 
 		p.nextToken()
 
-        if p.peekTokenIs(token.INT) {
-            num, _ := strconv.ParseInt(p.peekToken.Literal, 0, 64)
+		if p.peekTokenIs(token.INT) {
+			num, _ := strconv.ParseInt(p.peekToken.Literal, 0, 64)
 			maxTextLength = int(num)
-            p.nextToken()
-            continue;
-        }
+			p.nextToken()
+			continue
+		}
 
 		paramName := p.peekToken.Literal
 		p.nextToken()
@@ -1115,6 +1117,9 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 		case "numLines":
 			num, _ := strconv.ParseInt(paramValue, 0, 64)
 			numLines = int(num)
+		case "cursorOverlapWidth":
+			num, _ := strconv.ParseInt(paramValue, 0, 64)
+			cursorOverlapWidth = int(num)
 
 		default:
 			return token.Token{}, "", "", NewParseError(p.curToken, fmt.Sprintf("invalid format() parameter '%s'. Expected either fontId (string) or maxLineLength (integer)", paramName))
@@ -1133,7 +1138,11 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 		numLines = p.fonts.Fonts[fontID].NumLines
 	}
 
-	formatted, err := p.fonts.FormatText(textToken.Literal, maxTextLength, p.fonts.Fonts[fontID].CursorOverlapWidth, fontID, numLines)
+	if cursorOverlapWidth <= 0 {
+		cursorOverlapWidth = p.fonts.Fonts[fontID].cursorOverlapWidth
+	}
+
+	formatted, err := p.fonts.FormatText(textToken.Literal, maxTextLength, cursorOverlapWidth, fontID, numLines)
 	if err != nil && p.enableEnvironmentErrors {
 		return token.Token{}, "", "", NewParseError(fontIdToken, err.Error())
 	}
