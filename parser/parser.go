@@ -1081,22 +1081,38 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 	cursorOverlapWidth := p.cursorOverlapWidth
 	paramValue := ""
 
-	namedParameters := map[string]func(){
-		"fontId": func() {
+	namedParameters := map[string]func() error{
+		"fontId": func() error {
+			if (fontID != p.defaultFontID) && (fontID != p.fonts.DefaultFontID) {
+				return p.reportDuplicateParameterError("fontId", fontID, paramValue)
+			}
 			fontID = paramValue
 			fontIdToken = p.peekToken
+			return nil
 		},
-		"maxLineLength": func() {
+		"maxLineLength": func() error {
+			if maxTextLength != p.maxLineLength {
+				return p.reportDuplicateParameterError("maxLineLength", strconv.Itoa(maxTextLength), paramValue)
+			}
 			num, _ := strconv.ParseInt(paramValue, 0, 64)
 			maxTextLength = int(num)
+			return nil
 		},
-		"numLines": func() {
+		"numLines": func() error {
+			if numLines != p.numLines {
+				return p.reportDuplicateParameterError("numLines", strconv.Itoa(numLines), paramValue)
+			}
 			num, _ := strconv.ParseInt(paramValue, 0, 64)
 			numLines = int(num)
+			return nil
 		},
-		"cursorOverlapWidth": func() {
+		"cursorOverlapWidth": func() error {
+			if cursorOverlapWidth != p.cursorOverlapWidth {
+				return p.reportDuplicateParameterError("cursorOverlapWidth", strconv.Itoa(cursorOverlapWidth), paramValue)
+			}
 			num, _ := strconv.ParseInt(paramValue, 0, 64)
 			cursorOverlapWidth = int(num)
+			return nil
 		},
 	}
 
@@ -1108,7 +1124,10 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 		p.nextToken()
 
 		if p.peekTokenIs(token.INT) || !isNamedParameter(p.peekToken.Literal, namedParameters) {
-			p.handleUnnamedParameter(&maxTextLength, &fontID, &fontIdToken)
+			if err := p.handleUnnamedParameter(&maxTextLength, &fontID, &fontIdToken); err != nil {
+				return token.Token{}, "", "", err
+			}
+
 			p.nextToken()
 			continue
 		} else {
@@ -1140,12 +1159,16 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 	return textToken, formatted, stringType, nil
 }
 
-func isNamedParameter(paramName string, namedParameters map[string]func()) bool {
+func (p *Parser) reportDuplicateParameterError(paramName string, oldValue string, newValue string) error {
+	return NewParseError(p.peekToken, fmt.Sprintf("'%s' was already set to '%s', attempted change to: '%s'", paramName, oldValue, newValue))
+}
+
+func isNamedParameter(paramName string, namedParameters map[string]func() error) bool {
 	_, ok := namedParameters[paramName]
 	return ok
 }
 
-func (p *Parser) handleNamedParameter(paramName string, namedParameters map[string]func(), paramValue *string) error {
+func (p *Parser) handleNamedParameter(paramName string, namedParameters map[string]func() error, paramValue *string) error {
 	setNamedParameters, ok := namedParameters[paramName]
 	if !ok {
 		return NewParseError(p.curToken, fmt.Sprintf("invalid format() parameter '%s'. Expected one of the following: fontId (string), maxLineLength (integer), cursorOverlapWidth (integer), numLines (integer).", paramName))
@@ -1159,20 +1182,30 @@ func (p *Parser) handleNamedParameter(paramName string, namedParameters map[stri
 
 	p.nextToken()
 	*paramValue = p.peekToken.Literal
-	setNamedParameters()
+	err := setNamedParameters()
+	if err != nil {
+		return err
+	}
 	p.nextToken()
 
 	return nil
 }
 
-func (p *Parser) handleUnnamedParameter(maxTextLength *int, fontID *string, fontIdToken *token.Token) {
+func (p *Parser) handleUnnamedParameter(maxTextLength *int, fontID *string, fontIdToken *token.Token) error {
 	if p.peekTokenIs(token.INT) {
+		if *maxTextLength != p.maxLineLength {
+			return p.reportDuplicateParameterError("maxTextLength", strconv.Itoa(*maxTextLength), p.peekToken.Literal)
+		}
 		num, _ := strconv.ParseInt(p.peekToken.Literal, 0, 64)
 		*maxTextLength = int(num)
 	} else {
+		if *fontID != p.defaultFontID && *fontID != p.fonts.DefaultFontID {
+			return p.reportDuplicateParameterError("fontId", *fontID, p.peekToken.Literal)
+		}
 		*fontID = p.peekToken.Literal
 		*fontIdToken = p.peekToken
 	}
+	return nil
 }
 
 func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, []impText, error) {
