@@ -58,7 +58,7 @@ type Parser struct {
 }
 
 // New creates a new Poryscript AST Parser.
-func New(l *lexer.Lexer, fontConfigFilepath string, defaultFontID string, maxLineLength int, compileSwitches map[string]string) *Parser {
+func New(l *lexer.Lexer, fontConfigFilepath string, defaultFontID string, maxLineLength int, compileSwitches map[string]string) (*Parser, error) {
 	p := &Parser{
 		l:                       l,
 		inlineTexts:             make([]ast.Text, 0),
@@ -73,19 +73,23 @@ func New(l *lexer.Lexer, fontConfigFilepath string, defaultFontID string, maxLin
 		enableEnvironmentErrors: true,
 	}
 	// Read five tokens, so curToken, peekToken, peek2Token, peek3Token, and peek4Token are all set.
-	p.nextToken()
-	p.nextToken()
-	p.nextToken()
-	p.nextToken()
-	p.nextToken()
-	return p
+  for i:=0; i < 5; i++ {
+    err := p.nextToken()
+    if err != nil {
+      return p, err
+    }
+  }
+	return p, nil
 }
 
 // New creates a new Poryscript AST Parser.
-func NewLintParser(l *lexer.Lexer) *Parser {
-	p := New(l, "", "", 0, nil)
+func NewLintParser(l *lexer.Lexer) (*Parser, error) {
+	p, err := New(l, "", "", 0, nil)
+  if err != nil {
+    return p, err
+  }
 	p.enableEnvironmentErrors = false
-	return p
+	return p, nil
 }
 
 func (p *Parser) pushBreakStack(statement ast.Statement) {
@@ -118,12 +122,17 @@ func (p *Parser) peekContinueStack() ast.Statement {
 	return p.continueStack[len(p.continueStack)-1]
 }
 
-func (p *Parser) nextToken() {
+func (p *Parser) nextToken() error {
 	p.curToken = p.peekToken
 	p.peekToken = p.peek2Token
 	p.peek2Token = p.peek3Token
 	p.peek3Token = p.peek4Token
-	p.peek4Token = p.l.NextToken()
+  peek4Token, err := p.l.NextToken()
+  p.peek4Token = peek4Token
+  if err != nil{
+    return err
+  }
+  return nil
 }
 
 func (p *Parser) peekTokenIs(expectedType token.Type) bool {
@@ -142,13 +151,16 @@ func (p *Parser) peek4TokenIs(expectedType token.Type) bool {
 	return p.peek4Token.Type == expectedType
 }
 
-func (p *Parser) expectPeek(expectedType token.Type) error {
+func (p *Parser) expectPeek(expectedType token.Type) (error, error) {
 	if p.peekTokenIs(expectedType) {
-		p.nextToken()
-		return nil
+    err := p.nextToken()
+    if err != nil {
+      return nil, err
+    }
+		return nil, nil
 	}
 
-	return NewParseError(p.peekToken, fmt.Sprintf("expected next token to be '%s', got '%s' instead", expectedType, p.peekToken.Literal))
+	return NewParseError(p.peekToken, fmt.Sprintf("expected next token to be '%s', got '%s' instead", expectedType, p.peekToken.Literal)), nil
 }
 
 func getImplicitTextLabel(scriptName string, i int) string {
@@ -293,7 +305,11 @@ func (p *Parser) parseScriptStatement() (*ast.ScriptStatement, []impText, error)
 		return nil, nil, err
 	}
 	statement.Scope = scope
-	if err := p.expectPeek(token.IDENT); err != nil {
+  err, err2 := p.expectPeek(token.IDENT)
+  if err2 != nil {
+    return nil, nil, err2
+  }
+	if err != nil {
 		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing name for script")
 	}
 
@@ -302,7 +318,11 @@ func (p *Parser) parseScriptStatement() (*ast.ScriptStatement, []impText, error)
 		Value: p.curToken.Literal,
 	}
 
-	if err := p.expectPeek(token.LBRACE); err != nil {
+  err, err2 = p.expectPeek(token.LBRACE)
+  if err2 != nil {
+    return nil, nil, err2
+  }
+	if err != nil {
 		return nil, nil, NewRangeParseError(statement.Token, p.peekToken, fmt.Sprintf("missing opening curly brace for script '%s'", statement.Name.Value))
 	}
 
@@ -541,7 +561,11 @@ func (p *Parser) parseRawStatement() (*ast.RawStatement, error) {
 		Token: p.curToken,
 	}
 
-	if err := p.expectPeek(token.RAWSTRING); err != nil {
+  err, err2 := p.expectPeek(token.RAWSTRING)
+  if err2 != nil {
+    return nil, err2
+  }
+	if err != nil {
 		return nil, NewRangeParseError(p.curToken, p.peekToken, "raw statement must begin with a backtick character '`'")
 	}
 
@@ -558,7 +582,11 @@ func (p *Parser) parseTextStatement() (*ast.TextStatement, error) {
 		return nil, err
 	}
 	statement.Scope = scope
-	if err := p.expectPeek(token.IDENT); err != nil {
+  err, err2 := p.expectPeek(token.IDENT)
+  if err2 != nil {
+    return nil, err2
+  }
+	if err != nil {
 		return nil, NewRangeParseError(statement.Token, p.peekToken, "missing name for text statement")
 	}
 
@@ -567,7 +595,11 @@ func (p *Parser) parseTextStatement() (*ast.TextStatement, error) {
 		Value: p.curToken.Literal,
 	}
 
-	if err := p.expectPeek(token.LBRACE); err != nil {
+  err, err2 = p.expectPeek(token.LBRACE)
+  if err2 != nil {
+    return nil, err2
+  }
+	if err != nil {
 		return nil, NewRangeParseError(statement.Token, p.peekToken, fmt.Sprintf("missing opening curly brace for text '%s'", statement.Name.Value))
 	}
 	p.nextToken()
@@ -589,7 +621,11 @@ func (p *Parser) parseTextStatement() (*ast.TextStatement, error) {
 	statement.Value = strValue
 	statement.StringType = strType
 	p.textStatements = append(p.textStatements, statement)
-	if err := p.expectPeek(token.RBRACE); err != nil {
+  err, err2 = p.expectPeek(token.RBRACE)
+  if err2 != nil {
+    return nil, err2
+  }
+	if err != nil {
 		return nil, NewParseError(p.peekToken, fmt.Sprintf("expected closing curly brace for text. Got '%s' instead", p.peekToken.Literal))
 	}
 	return statement, nil
@@ -621,10 +657,19 @@ func (p *Parser) parsePoryswitchHeader() (string, string, error) {
 	if len(p.compileSwitches) == 0 && p.enableEnvironmentErrors {
 		return "", "", NewParseError(p.curToken, "poryswitch used, but no compile switches were specified with the '-s' option")
 	}
-	if err := p.expectPeek(token.LPAREN); err != nil {
+  err, err2 := p.expectPeek(token.LPAREN)
+  if err2 != nil {
+    return "", "", err2
+  }
+	if err != nil {
 		return "", "", NewParseError(p.peekToken, fmt.Sprintf("expected opening parenthesis for poryswitch value. Got '%s' instead", p.peekToken.Literal))
 	}
-	if err := p.expectPeek(token.IDENT); err != nil {
+
+  err, err2 = p.expectPeek(token.IDENT)
+  if err2 != nil {
+    return "", "", err2
+  }
+	if err != nil {
 		return "", "", NewParseError(p.peekToken, fmt.Sprintf("expected poryswitch identifier value. Got '%s' instead", p.peekToken.Literal))
 	}
 	switchCase := p.curToken.Literal
@@ -634,10 +679,19 @@ func (p *Parser) parsePoryswitchHeader() (string, string, error) {
 		return "", "", NewParseError(p.curToken, fmt.Sprintf("no poryswitch for '%s' was specified with the '-s' option", switchCase))
 	}
 
-	if err := p.expectPeek(token.RPAREN); err != nil {
+  err, err2 = p.expectPeek(token.RPAREN)
+  if err2 != nil {
+    return "", "", err2
+  }
+	if err != nil {
 		return "", "", NewParseError(p.peekToken, fmt.Sprintf("expected closing parenthesis for poryswitch value. Got '%s' instead", p.peekToken.Literal))
 	}
-	if err := p.expectPeek(token.LBRACE); err != nil {
+
+  err, err2 = p.expectPeek(token.LBRACE)
+  if err2 != nil {
+    return "", "", err2
+  }
+	if err != nil {
 		return "", "", NewParseError(p.peekToken, fmt.Sprintf("expected opening curly brace for poryswitch statement. Got '%s' instead", p.peekToken.Literal))
 	}
 	p.nextToken()
@@ -711,7 +765,11 @@ func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
 		return nil, err
 	}
 	statement.Scope = scope
-	if err := p.expectPeek(token.IDENT); err != nil {
+  err, err2 := p.expectPeek(token.IDENT)
+  if err2 != nil {
+    return nil, err2
+  }
+	if err != nil {
 		return nil, NewRangeParseError(statement.Token, p.peekToken, "missing name for movement statement")
 	}
 
@@ -720,7 +778,11 @@ func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
 		Value: p.curToken.Literal,
 	}
 
-	if err := p.expectPeek(token.LBRACE); err != nil {
+  err, err2 = p.expectPeek(token.LBRACE)
+  if err2 != nil {
+    return nil, err2
+  }
+	if err != nil {
 		return nil, NewRangeParseError(statement.Token, p.peekToken, fmt.Sprintf("missing opening curly brace for movement '%s'", statement.Name.Value))
 	}
 	p.nextToken()
@@ -845,7 +907,11 @@ func (p *Parser) parseMartStatement() (*ast.MartStatement, error) {
 		return nil, err
 	}
 	statement.Scope = scope
-	if err := p.expectPeek(token.IDENT); err != nil {
+  err, err2 := p.expectPeek(token.IDENT)
+  if err2 != nil {
+    return nil, err2
+  }
+	if err != nil {
 		return nil, NewRangeParseError(statement.Token, p.peekToken, "missing name for mart statement")
 	}
 
@@ -854,7 +920,11 @@ func (p *Parser) parseMartStatement() (*ast.MartStatement, error) {
 		Value: p.curToken.Literal,
 	}
 
-	if err := p.expectPeek(token.LBRACE); err != nil {
+  err, err2 = p.expectPeek(token.LBRACE)
+  if err2 != nil {
+    return nil, err2
+  }
+	if err != nil {
 		return nil, NewRangeParseError(statement.Token, p.peekToken, fmt.Sprintf("missing opening curly brace for mart '%s'", statement.Name.Value))
 	}
 	p.nextToken()
@@ -897,7 +967,11 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 		return nil, nil, err
 	}
 	mapscriptsToken := p.curToken
-	if err := p.expectPeek(token.IDENT); err != nil {
+  err, err2 := p.expectPeek(token.IDENT)
+  if err2 != nil {
+    return nil, nil, err2
+  }
+	if err != nil {
 		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing name for mapscripts statement")
 	}
 
@@ -913,7 +987,11 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 	}
 	implicitTexts := make([]impText, 0)
 
-	if err := p.expectPeek(token.LBRACE); err != nil {
+  err, err2 = p.expectPeek(token.LBRACE)
+  if err2 != nil {
+    return nil, nil, err2
+  }
+	if err != nil {
 		return nil, nil, NewRangeParseError(mapscriptsToken, p.peekToken, fmt.Sprintf("missing opening curly brace for mapscripts '%s'", statement.Name.Value))
 	}
 	p.nextToken()
@@ -925,7 +1003,11 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 		mapScriptTypeToken := p.curToken
 		p.nextToken()
 		if p.curToken.Type == token.COLON {
-			if err := p.expectPeek(token.IDENT); err != nil {
+      err, err2 := p.expectPeek(token.IDENT)
+      if err2 != nil {
+        return nil, nil, err2
+      }
+			if err != nil {
 				return nil, nil, NewParseError(p.peekToken, fmt.Sprintf("expected map script label after ':', but got '%s' instead", p.peekToken.Literal))
 			}
 			statement.MapScripts = append(statement.MapScripts, ast.MapScript{
@@ -997,7 +1079,11 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 				conditionToken := startToken
 				conditionToken.Literal = conditionValue
 				if p.curToken.Type == token.COLON {
-					if err := p.expectPeek(token.IDENT); err != nil {
+          err, err2 := p.expectPeek(token.IDENT)
+          if err2 != nil {
+            return nil, nil, err2
+          }
+					if err != nil {
 						return nil, nil, NewParseError(p.peekToken, fmt.Sprintf("expected map script label after ':', but got '%s' instead", p.peekToken.Literal))
 					}
 					tableEntries = append(tableEntries, ast.TableMapScriptEntry{
@@ -1045,7 +1131,11 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 }
 
 func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error) {
-	if err := p.expectPeek(token.LPAREN); err != nil {
+  err, err2 := p.expectPeek(token.LPAREN)
+  if err2 != nil {
+    return token.Token{}, "", "", err2
+  }
+	if err != nil {
 		return token.Token{}, "", "", NewRangeParseError(p.curToken, p.peekToken, "format operator must begin with an open parenthesis '('")
 	}
 	stringType := ""
@@ -1053,7 +1143,11 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 		p.nextToken()
 		stringType = p.curToken.Literal
 	}
-	if err := p.expectPeek(token.STRING); err != nil {
+  err, err2 = p.expectPeek(token.STRING)
+  if err2 != nil {
+    return token.Token{}, "", "", err2
+  }
+	if err != nil {
 		return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() argument '%s'. Expected a string literal", p.peekToken.Literal))
 	}
 	textToken := p.curToken
@@ -1084,7 +1178,11 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 			fontIdToken = p.curToken
 			if p.peekTokenIs(token.COMMA) {
 				p.nextToken()
-				if err := p.expectPeek(token.INT); err != nil {
+        err, err2 := p.expectPeek(token.INT)
+        if err2 != nil {
+          return token.Token{}, "", "", err2
+        }
+				if err != nil {
 					return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() maxLineLength '%s'. Expected integer", p.peekToken.Literal))
 				}
 				num, _ := strconv.ParseInt(p.curToken.Literal, 0, 64)
@@ -1096,7 +1194,11 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 			maxTextLength = int(num)
 			if p.peekTokenIs(token.COMMA) {
 				p.nextToken()
-				if err := p.expectPeek(token.STRING); err != nil {
+        err, err2 := p.expectPeek(token.STRING)
+        if err2 != nil {
+          return token.Token{}, "", "", err2
+        }
+				if err != nil {
 					return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() fontId '%s'. Expected string", p.peekToken.Literal))
 				}
 				fontID = p.curToken.Literal
@@ -1106,7 +1208,11 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 			return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() parameter '%s'. Expected either fontId (string) or maxLineLength (integer)", p.peekToken.Literal))
 		}
 	}
-	if err := p.expectPeek(token.RPAREN); err != nil {
+  err, err2 = p.expectPeek(token.RPAREN)
+  if err2 != nil {
+    return token.Token{}, "", "", err2
+  }
+	if err != nil {
 		return token.Token{}, "", "", NewParseError(p.peekToken, "missing closing parenthesis ')' for format()")
 	}
 
@@ -1149,7 +1255,11 @@ func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, []impTex
 	// Trailing else block
 	if p.peekToken.Type == token.ELSE {
 		p.nextToken()
-		if err := p.expectPeek(token.LBRACE); err != nil {
+    err, err2 := p.expectPeek(token.LBRACE)
+    if err2 != nil {
+      return nil, nil, err2
+    }
+		if err != nil {
 			return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing opening curly brace of else statement")
 		}
 		braceToken := p.curToken
@@ -1196,7 +1306,11 @@ func (p *Parser) parseDoWhileStatement(scriptName string) (*ast.DoWhileStatement
 	p.pushContinueStack(statement)
 	expression := &ast.ConditionExpression{}
 
-	if err := p.expectPeek(token.LBRACE); err != nil {
+  err, err2 := p.expectPeek(token.LBRACE)
+  if err2 != nil {
+    return nil, nil, err2
+  }
+	if err != nil {
 		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing opening curly brace of do...while statement")
 	}
 	braceToken := p.curToken
@@ -1210,10 +1324,18 @@ func (p *Parser) parseDoWhileStatement(scriptName string) (*ast.DoWhileStatement
 	p.popBreakStack()
 	p.popContinueStack()
 
-	if err := p.expectPeek(token.WHILE); err != nil {
+  err, err2 = p.expectPeek(token.WHILE)
+  if err2 != nil {
+    return nil, nil, err2
+  }
+	if err != nil {
 		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing 'while' after body of do...while statement")
 	}
-	if err := p.expectPeek(token.LPAREN); err != nil {
+  err, err2 = p.expectPeek(token.LPAREN)
+  if err2 != nil {
+    return nil, nil, err2
+  }
+	if err != nil {
 		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing '(' to start condition for do...while statement")
 	}
 
@@ -1265,13 +1387,25 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	p.pushBreakStack(statement)
 	originalToken := p.curToken
 
-	if err := p.expectPeek(token.LPAREN); err != nil {
+  err, err2 := p.expectPeek(token.LPAREN)
+  if err2 != nil {
+    return nil, nil, err2
+  }
+	if err != nil {
 		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing opening parenthesis of switch statement operand")
 	}
-	if err := p.expectPeek(token.VAR); err != nil {
+  err, err2 = p.expectPeek(token.VAR)
+  if err2 != nil {
+    return nil, nil, err2
+  }
+	if err != nil {
 		return nil, nil, NewParseError(p.peekToken, fmt.Sprintf("invalid switch statement operand '%s'. Must be 'var`", p.peekToken.Literal))
 	}
-	if err := p.expectPeek(token.LPAREN); err != nil {
+  err, err2 = p.expectPeek(token.LPAREN)
+  if err2 != nil {
+    return nil, nil, err2
+  }
+	if err != nil {
 		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, fmt.Sprintf("missing '(' after var operator. Got '%s` instead", p.peekToken.Literal))
 	}
 
@@ -1289,7 +1423,11 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	operandToken.Literal = strings.Join(parts, " ")
 	statement.Operand = operandToken
 
-	if err := p.expectPeek(token.LBRACE); err != nil {
+  err, err2 = p.expectPeek(token.LBRACE)
+  if err2 != nil {
+    return nil, nil, err2
+  }
+	if err != nil {
 		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing opening curly brace of switch statement")
 	}
 	braceToken := p.curToken
@@ -1331,7 +1469,11 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 			if statement.DefaultCase != nil {
 				return nil, nil, NewParseError(p.curToken, "multiple `default` cases found in switch statement. Only one `default` case is allowed")
 			}
-			if err := p.expectPeek(token.COLON); err != nil {
+      err, err2 := p.expectPeek(token.COLON)
+      if err2 != nil {
+        return nil, nil, err2
+      }
+			if err != nil {
 				return nil, nil, NewParseError(p.curToken, "missing `:` after default")
 			}
 			p.nextToken()
@@ -1366,7 +1508,11 @@ func (p *Parser) parseConditionExpression(scriptName string, requireExpression b
 	implicitTexts := make([]impText, 0)
 
 	if requireExpression || !p.peekTokenIs(token.LBRACE) {
-		if err := p.expectPeek(token.LPAREN); err != nil {
+    err, err2 := p.expectPeek(token.LPAREN)
+    if err2 != nil {
+      return nil, nil, err2
+    }
+		if err != nil {
 			return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing '(' to start boolean expression")
 		}
 		boolExpression, err := p.parseBooleanExpression(false, false)
@@ -1375,7 +1521,11 @@ func (p *Parser) parseConditionExpression(scriptName string, requireExpression b
 		}
 		expression.Expression = boolExpression
 	}
-	if err := p.expectPeek(token.LBRACE); err != nil {
+  err, err2 := p.expectPeek(token.LBRACE)
+  if err2 != nil {
+    return nil, nil, err2
+  }
+	if err != nil {
 		return nil, nil, err
 	}
 	braceToken := p.curToken
@@ -1518,7 +1668,11 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 	operatorToken := p.curToken
 	operatorExpression.Type = operatorToken.Type
 
-	if err := p.expectPeek(token.LPAREN); err != nil {
+  err, err2 := p.expectPeek(token.LPAREN)
+  if err2 != nil {
+    return nil, err2
+  }
+	if err != nil {
 		return nil, NewRangeParseError(operatorToken, p.peekToken, fmt.Sprintf("missing opening parenthesis for condition operator '%s'", operatorExpression.Type))
 	}
 	if p.peekToken.Type == token.RPAREN {
@@ -1584,7 +1738,11 @@ func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) e
 
 	if p.curToken.Type == token.VALUE {
 		valueToken := p.curToken
-		if err := p.expectPeek(token.LPAREN); err != nil {
+    err, err2 := p.expectPeek(token.LPAREN)
+    if err2 != nil {
+      return err2
+    }
+		if err != nil {
 			return err
 		}
 		p.nextToken()
@@ -1763,14 +1921,22 @@ func (p *Parser) parsePoryswitchStatements(scriptName string, allowMultiple bool
 
 func (p *Parser) parseConstant() error {
 	initialToken := p.curToken
-	if err := p.expectPeek(token.IDENT); err != nil {
+  err, err2 := p.expectPeek(token.IDENT)
+  if err2 != nil {
+    return err2
+  }
+	if err != nil {
 		return NewParseError(p.peekToken, fmt.Sprintf("expected identifier after const, but got '%s' instead", p.peekToken.Literal))
 	}
 	constName := p.curToken.Literal
 	if _, ok := p.constants[constName]; ok {
 		return NewParseError(p.curToken, fmt.Sprintf("duplicate const '%s'. Must use unique const names", constName))
 	}
-	if err := p.expectPeek(token.ASSIGN); err != nil {
+  err, err2 = p.expectPeek(token.ASSIGN)
+  if err2 != nil {
+    return err2
+  }
+	if err != nil {
 		return NewParseError(p.curToken, fmt.Sprintf("missing equals sign after const name '%s'", constName))
 	}
 	equalsToken := p.curToken

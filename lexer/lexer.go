@@ -70,7 +70,7 @@ func (l *Lexer) peekChar() rune {
 }
 
 // NextToken builds the next token of the Poryscript file
-func (l *Lexer) NextToken() token.Token {
+func (l *Lexer) NextToken() (token.Token, error) {
 	var tok token.Token
 
 	// Return the next queued token, if there is one.
@@ -79,7 +79,7 @@ func (l *Lexer) NextToken() token.Token {
 	if len(l.queuedTokens) > 0 {
 		tok = l.queuedTokens[0]
 		l.queuedTokens = l.queuedTokens[1:]
-		return tok
+		return tok, nil
 	}
 
 	l.skipWhitespace()
@@ -96,8 +96,11 @@ func (l *Lexer) NextToken() token.Token {
 	for (l.ch == '/' && l.peekChar() == '*') {
     l.readChar()
     l.readChar()
-	  l.skipPastClosingMultilineComment()
+    err := l.skipPastClosingMultilineComment(tok)
 		l.skipWhitespace()
+    if err != nil{
+      return tok, err
+    }
 	}
 
 	switch l.ch {
@@ -218,7 +221,7 @@ func (l *Lexer) NextToken() token.Token {
 	case ':':
 		tok = newSingleCharToken(token.COLON, l.ch, l.lineNumber, l.charNumber, l.utf8CharNumber)
 	case '"':
-		return l.readStringToken()
+		return l.readStringToken(), nil
 	case '`':
 		tok.StartCharIndex = l.charNumber - 1
 		tok.StartUtf8CharIndex = l.utf8CharNumber - 1
@@ -228,7 +231,7 @@ func (l *Lexer) NextToken() token.Token {
 		tok.EndCharIndex = l.charNumber
 		tok.EndUtf8CharIndex = l.utf8CharNumber
 		tok.EndLineNumber = l.lineNumber
-		return tok
+		return tok, nil
 	case '{':
 		tok = newSingleCharToken(token.LBRACE, l.ch, l.lineNumber, l.charNumber, l.utf8CharNumber)
 	case '}':
@@ -245,7 +248,7 @@ func (l *Lexer) NextToken() token.Token {
 			tok.EndLineNumber = l.lineNumber
 			tok.EndCharIndex = l.charNumber - 1
 			tok.EndUtf8CharIndex = l.utf8CharNumber - 1
-			return tok
+			return tok, nil
 		}
 
 		tok.StartCharIndex = l.charNumber - 1
@@ -256,7 +259,7 @@ func (l *Lexer) NextToken() token.Token {
 		tok.EndLineNumber = l.lineNumber
 		tok.EndCharIndex = l.charNumber - 1
 		tok.EndUtf8CharIndex = l.utf8CharNumber - 1
-		return tok
+		return tok, nil
 	case 0:
 		tok.StartCharIndex = l.charNumber
 		tok.StartUtf8CharIndex = l.utf8CharNumber
@@ -284,7 +287,7 @@ func (l *Lexer) NextToken() token.Token {
 				l.queuedTokens = append(l.queuedTokens, nextToken)
 				tok.Type = token.STRINGTYPE
 			}
-			return tok
+			return tok, nil
 		} else if unicode.IsDigit(l.ch) || (l.ch == '-' && unicode.IsDigit(l.peekChar())) {
 			tok.StartCharIndex = l.prevCharNumber
 			tok.StartUtf8CharIndex = l.prevUtf8CharNumber
@@ -299,13 +302,13 @@ func (l *Lexer) NextToken() token.Token {
 			tok.EndLineNumber = l.lineNumber
 			tok.EndCharIndex = l.prevCharNumber
 			tok.EndUtf8CharIndex = l.prevUtf8CharNumber
-			return tok
+			return tok, nil
 		}
 		tok = newSingleCharToken(token.ILLEGAL, l.ch, l.lineNumber, l.charNumber, l.utf8CharNumber)
 	}
 
 	l.readChar()
-	return tok
+	return tok, nil
 }
 
 func (l *Lexer) readStringToken() token.Token {
@@ -337,15 +340,24 @@ func (l *Lexer) skipNewlineWhitespace() {
 	}
 }
 
-func (l *Lexer) skipPastClosingMultilineComment() {
+func (l *Lexer) skipPastClosingMultilineComment(tok token.Token) error {
 	for !(l.ch == '*' && l.peekChar() == '/') {
 		l.readChar()
     if l.peekChar()==0 {
-      break
+      tok.StartCharIndex = l.charNumber
+		  tok.StartUtf8CharIndex = l.utf8CharNumber
+		  tok.Literal = ""
+		  tok.Type = token.EOF
+		  tok.LineNumber = l.lineNumber
+		  tok.EndLineNumber = l.lineNumber
+		  tok.EndCharIndex = l.charNumber
+		  tok.EndUtf8CharIndex = l.utf8CharNumber
+      return NewLexerError(l, "Comment misses a closure")
     }
 	}
   l.readChar()
   l.readChar()
+  return nil
 }
 
 func newSingleCharToken(tokenType token.Type, ch rune, lineNumber, charNumber, utf8CharNumber int) token.Token {
