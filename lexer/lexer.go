@@ -98,6 +98,9 @@ func (l *Lexer) NextToken() token.Token {
 		for (l.ch !=  '*' && l.peekChar() != '/'){
 			l.skipToNextLine()
 			l.skipWhitespace()
+			if(l.peekChar()==0){
+				panic(fmt.Sprintf("There is an open multiline comment at %d:%d", l.lineNumber, l.charNumber))
+			}
 		}
 		l.skipToNextLine()
 		l.skipWhitespace()
