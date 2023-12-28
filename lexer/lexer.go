@@ -93,13 +93,10 @@ func (l *Lexer) NextToken() token.Token {
 
 	// Check for multi-line comment.
 	// Starts with /* and ends with */.
-	// /* and */ must be the only characters on their line
 	for (l.ch == '/' && l.peekChar() == '*') {
-		for (l.ch !=  '*' && l.peekChar() != '/'){
-			l.skipToNextLine()
-			l.skipWhitespace()
-		}
-		l.skipToNextLine()
+    l.readChar()
+    l.readChar()
+	  l.skipPastClosingMultilineComment()
 		l.skipWhitespace()
 	}
 
@@ -338,6 +335,17 @@ func (l *Lexer) skipNewlineWhitespace() {
 	for l.ch == '\n' || l.ch == '\r' {
 		l.readChar()
 	}
+}
+
+func (l *Lexer) skipPastClosingMultilineComment() {
+	for !(l.ch == '*' && l.peekChar() == '/') {
+		l.readChar()
+    if l.peekChar()==0 {
+      break
+    }
+	}
+  l.readChar()
+  l.readChar()
 }
 
 func newSingleCharToken(tokenType token.Type, ch rune, lineNumber, charNumber, utf8CharNumber int) token.Token {
