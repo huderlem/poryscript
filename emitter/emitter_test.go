@@ -12,6 +12,9 @@ func TestEmit1(t *testing.T) {
 const VAR_TIME = VAR_0x8002
 const HOURS_TO_ADVANCE=5
 
+/* This NPC is located on route 29.
+Talking to him should advance to day time */
+
 script Route29_EventScript_WaitingMan {
 	lock
 	faceplayer
@@ -58,6 +61,7 @@ script(local) Route29_EventScript_Dude {
 	release
 }
 
+/* Raw scripts are great for switching the project from .inc to .pory files*/
 raw ` + "`" + `
 Route29_Text_PokemonInTheGrass:
 	.string "POKéMON hide in the grass.\n"
@@ -307,6 +311,9 @@ script(global) Route29_EventScript_WaitingMan {
 			special(OtherThing)
 		}
 	} while (var(VAR_RESULT))
+  /*
+  This works by asking the user "...How about now?" again and again until they say yes
+  */
 	release
 }`
 
@@ -415,7 +422,7 @@ script MyScript {
 		lastinwhile
 	}
 	release
-}	
+}
 `
 
 	expectedUnoptimized := `MyScript::
@@ -1865,6 +1872,16 @@ script ScriptWithMovement {
 	release
 }
 
+/*
+Thanks to poryscript, when I create movement scripts,
+I can simply type <movement> * <number> !
+Poryscript will then translate it as
+<movement>
+<movement>
+<movement>
+...
+* is an awesome character ! Use * !
+*/
 movement MovementWalk {
 	walk_left * 2
 	walk_up * 3
@@ -2241,6 +2258,10 @@ mart MyMart {
 	}
 	ITEM_LAST
 }
+/*
+Whoops !
+I forgot to close this multiline comment :/
+I hope poryscript will still accept this code
 `
 
 	expectedRubyDe := `MapScripts::
