@@ -90,6 +90,18 @@ func (l *Lexer) NextToken() token.Token {
 		l.skipToNextLine()
 		l.skipWhitespace()
 	}
+	
+	// Check for multi-line comment.
+	// Starts with /* and ends with */.
+	// /* and */ must be the only characters on their line
+	for (l.ch == '/' && l.peekChar() == '*') {
+		for (l.ch !=  '*' && l.peekChar() != '/'){
+			l.skipToNextLine()
+			l.skipWhitespace()
+		}
+		l.skipToNextLine()
+		l.skipWhitespace()
+	}
 
 	switch l.ch {
 	case '*':
