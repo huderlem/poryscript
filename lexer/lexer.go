@@ -90,7 +90,7 @@ func (l *Lexer) NextToken() token.Token {
 		l.skipToNextLine()
 		l.skipWhitespace()
 	}
-	
+
 	// Check for multi-line comment.
 	// Starts with /* and ends with */.
 	// /* and */ must be the only characters on their line
@@ -98,9 +98,6 @@ func (l *Lexer) NextToken() token.Token {
 		for (l.ch !=  '*' && l.peekChar() != '/'){
 			l.skipToNextLine()
 			l.skipWhitespace()
-			if(l.peekChar()==0){
-				panic(fmt.Sprintf("There is an open multiline comment at %d:%d", l.lineNumber, l.charNumber))
-			}
 		}
 		l.skipToNextLine()
 		l.skipWhitespace()
