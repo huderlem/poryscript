@@ -21,7 +21,7 @@ func TestNextToken(t *testing.T) {
 		> //#
 		>= #
 		=
-		!
+		!/* comment */
 		/
 		&&&
 		|||
@@ -50,7 +50,12 @@ func TestNextToken(t *testing.T) {
 		raw RawTest ` + "`" + `
 	step` + "`" + `
 	>
-		mart`
+		mart
+    /*
+    multiline
+    comment
+    */
+    /*`
 
 	tests := []struct {
 		expectedType          token.Type
@@ -159,7 +164,7 @@ func TestNextToken(t *testing.T) {
 		{token.RAWSTRING, "\n\tstep", 41, 14, 14, 42, 7, 7},
 		{token.GT, ">", 43, 1, 1, 43, 2, 2},
 		{token.MART, "mart", 44, 2, 2, 44, 6, 6},
-		{token.EOF, "", 44, 6, 6, 44, 6, 6},
+		{token.EOF, "", 48, 6, 6, 48, 6, 6},
 	}
 
 	l := New(input)
