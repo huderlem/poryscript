@@ -54,8 +54,7 @@ func TestNextToken(t *testing.T) {
     /*
     multiline
     comment
-    */
-    /*`
+    */`
 
 	tests := []struct {
 		expectedType          token.Type
