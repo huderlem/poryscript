@@ -126,10 +126,10 @@ If you're working on a large project, you may want to convert all of the existin
 
      for directory in data/maps/* ; do
      	pory_exists=$(find $directory -name $"scripts.pory" | wc -l)
-     	if [[ $pory_exists -eq 0 ]]; 
+     	if [[ $pory_exists -eq 0 ]];
      	then
      		inc_exists=$(find $directory -name $"scripts.inc" | wc -l)
-     		if [[ $inc_exists -ne 0 ]]; 
+     		if [[ $inc_exists -ne 0 ]];
      		then
      			echo "Converting: $directory/scripts.inc"
      			touch "$directory/scripts.pory"
@@ -137,11 +137,11 @@ If you're working on a large project, you may want to convert all of the existin
      			cat "$directory/scripts.inc" >> "$directory/scripts.pory"
      			echo '`' >> "$directory/scripts.pory"
      		fi
-     	fi 	
+     	fi
      done
      ```
-  
-  2. Run `chmod 777 convert_inc.sh` to ensure the script executable. 
+
+  2. Run `chmod 777 convert_inc.sh` to ensure the script executable.
 
   Finally you can execute it in your `pokeemerald/` directory by running `./convert_inc.sh` or `bash convert_inc.sh` in the console. This script will iterate through all your `data/map/` directories and convert the `scripts.inc` files into `scripts.pory` files by adding a `raw` tag around the old scripts. `convert_inc.sh` will skip over any directories that already have `scripts.pory` files in them, so that it will not overwrite any maps that you have already switched over to Poryscript.
 </details>
@@ -627,7 +627,7 @@ MyScript_LongText:
 ```
 
 ## Comments
-Use single-line comments with `#` or `//`. Everything after the `#` or `//` will be ignored. Comments cannot be placed in a `raw` statement. (Users who wish to run the C preprocessor on Poryscript files should use `//` comments to avoid conflict with C preprocessor directives that use the `#` character.)
+Use single-line comments with `#` or `//`. Everything after the `#` or `//` will be ignored. (Users who wish to run the C preprocessor on Poryscript files should use `//` comments to avoid conflict with C preprocessor directives that use the `#` character.)
 ```
 # This script does some cool things.
 script MyScript {
@@ -635,6 +635,18 @@ script MyScript {
     ...
 }
 ```
+You can also comment multiple lines using `/*` and `*/`. Everything between those will be ignored.
+```
+/* This is the start of
+my very informative comment
+...
+And here's the end !*/
+script MyScript {
+    ...
+}/* I can also use it on a single line ! */
+
+```
+Comments cannot be placed in a `raw` statement.
 
 ## Constants
 Use `const` to define constants that can be used in the current script. This is especially useful for giving human-friendly names to event object ids, or temporary flags. Constants must be defined before they are used. Constants can also be composed of previously-defined constants.
