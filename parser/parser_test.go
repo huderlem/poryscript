@@ -34,10 +34,13 @@ script MyScript3 {
 		}
 `
 	l := lexer.New(input)
-	p := New(l, "../font_config.json", "", 0, nil)
-	program, err := p.ParseProgram()
+	p, err := New(l, "../font_config.json", "", 0, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	program, err2 := p.ParseProgram()
+	if err2 != nil {
+		t.Fatalf(err2.Error())
 	}
 	if len(program.TopLevelStatements) != 3 {
 		t.Fatalf("program.TopLevelStatements does not contain 3 statements. got=%d", len(program.TopLevelStatements))
@@ -205,10 +208,13 @@ mart MyMart {
 
 	for _, tt := range scriptTests {
 		l := lexer.New(input)
-		p := New(l, "../font_config.json", "", 0, tt.switches)
-		program, err := p.ParseProgram()
-		if err != nil {
-			t.Fatalf(err.Error())
+		p, err := New(l, "../font_config.json", "", 0, tt.switches)
+	  if err != nil {
+	  	t.Fatalf(err.Error())
+  	}
+		program, err2 := p.ParseProgram()
+		if err2 != nil {
+			t.Fatalf(err2.Error())
 		}
 		stmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
 		if len(stmt.Body.Statements) != len(tt.commands) {
@@ -233,10 +239,13 @@ mart MyMart {
 
 	for i, tt := range textTests {
 		l := lexer.New(input)
-		p := New(l, "../font_config.json", "", 0, tt.switches)
-		program, err := p.ParseProgram()
-		if err != nil {
-			t.Fatalf(err.Error())
+		p, err := New(l, "../font_config.json", "", 0, tt.switches)
+	  if err != nil {
+	  	t.Fatalf(err.Error())
+  	}
+		program, err2 := p.ParseProgram()
+		if err2 != nil {
+			t.Fatalf(err2.Error())
 		}
 		stmt := program.TopLevelStatements[1].(*ast.TextStatement)
 		text := stmt.Value
@@ -256,10 +265,13 @@ mart MyMart {
 
 	for _, tt := range movementTests {
 		l := lexer.New(input)
-		p := New(l, "../font_config.json", "", 0, tt.switches)
-		program, err := p.ParseProgram()
-		if err != nil {
-			t.Fatalf(err.Error())
+		p, err := New(l, "../font_config.json", "", 0, tt.switches)
+	  if err != nil {
+	  	t.Fatalf(err.Error())
+  	}
+		program, err2 := p.ParseProgram()
+		if err2 != nil {
+			t.Fatalf(err2.Error())
 		}
 		stmt := program.TopLevelStatements[2].(*ast.MovementStatement)
 		if len(stmt.MovementCommands) != len(tt.commands) {
@@ -284,10 +296,13 @@ mart MyMart {
 
 	for _, tt := range martTests {
 		l := lexer.New(input)
-		p := New(l, "../font_config.json", "", 0, tt.switches)
-		program, err := p.ParseProgram()
-		if err != nil {
-			t.Fatalf(err.Error())
+		p, err := New(l, "../font_config.json", "", 0, tt.switches)
+	  if err != nil {
+	  	t.Fatalf(err.Error())
+  	}
+		program, err2 := p.ParseProgram()
+		if err2 != nil {
+			t.Fatalf(err2.Error())
 		}
 		stmt := program.TopLevelStatements[3].(*ast.MartStatement)
 		if len(stmt.Items) != len(tt.items) {
@@ -313,10 +328,13 @@ raw ` + "`" + `
 	step_down
 ` + "`"
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
-	program, err := p.ParseProgram()
+	p, err := New(l, "", "", 0, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	program, err2 := p.ParseProgram()
+	if err2 != nil {
+		t.Fatalf(err2.Error())
 	}
 	if len(program.TopLevelStatements) != 2 {
 		t.Fatalf("program.TopLevelStatements does not contain 2 statements. got=%d", len(program.TopLevelStatements))
@@ -387,7 +405,7 @@ script Test {
 	} elif (!flag(FLAG_4)) {
 		blah()
 	} elif (var(VAR_1)) {
-		blah()	
+		blah()
 	} elif (!var(VAR_2)) {
 		blah()
 	} elif (defeated(TRAINER_GARY)) {
@@ -408,10 +426,13 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
-	program, err := p.ParseProgram()
+	p, err := New(l, "", "", 0, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	program, err2 := p.ParseProgram()
+	if err2 != nil {
+		t.Fatalf(err2.Error())
 	}
 
 	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
@@ -481,10 +502,13 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
-	program, err := p.ParseProgram()
+	p, err := New(l, "", "", 0, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	program, err2 := p.ParseProgram()
+	if err2 != nil {
+		t.Fatalf(err2.Error())
 	}
 
 	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
@@ -531,10 +555,13 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
-	program, err := p.ParseProgram()
+	p, err := New(l, "", "", 0, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	program, err2 := p.ParseProgram()
+	if err2 != nil {
+		t.Fatalf(err2.Error())
 	}
 
 	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
@@ -608,10 +635,13 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
-	program, err := p.ParseProgram()
+	p, err := New(l, "", "", 0, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	program, err2 := p.ParseProgram()
+	if err2 != nil {
+		t.Fatalf(err2.Error())
 	}
 
 	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
@@ -665,10 +695,13 @@ script Script2 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
-	program, err := p.ParseProgram()
+	p, err := New(l, "", "", 0, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	program, err2 := p.ParseProgram()
+	if err2 != nil {
+		t.Fatalf(err2.Error())
 	}
 
 	if len(program.Texts) != 6 {
@@ -697,10 +730,13 @@ script MyScript1 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
-	program, err := p.ParseProgram()
+	p, err := New(l, "", "", 0, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	program, err2 := p.ParseProgram()
+	if err2 != nil {
+		t.Fatalf(err2.Error())
 	}
 
 	if len(program.Texts) != 4 {
@@ -735,10 +771,13 @@ text MyText4 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "../font_config.json", "1_latin_frlg", 0, nil)
-	program, err := p.ParseProgram()
+	p, err := New(l, "../font_config.json", "1_latin_frlg", 0, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	program, err2 := p.ParseProgram()
+	if err2 != nil {
+		t.Fatalf(err2.Error())
 	}
 
 	if len(program.Texts) != 6 {
@@ -788,10 +827,13 @@ movement MyMovement3 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
-	program, err := p.ParseProgram()
+	p, err := New(l, "", "", 0, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	program, err2 := p.ParseProgram()
+	if err2 != nil {
+		t.Fatalf(err2.Error())
 	}
 
 	if len(program.TopLevelStatements) != 3 {
@@ -840,10 +882,13 @@ mart EarlyTerminatedMart {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
-	program, err := p.ParseProgram()
+	p, err := New(l, "", "", 0, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	program, err2 := p.ParseProgram()
+	if err2 != nil {
+		t.Fatalf(err2.Error())
 	}
 
 	if len(program.TopLevelStatements) != 3 {
@@ -895,10 +940,13 @@ mapscripts MyMap_MapScripts {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
-	program, err := p.ParseProgram()
+	p, err := New(l, "", "", 0, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	program, err2 := p.ParseProgram()
+	if err2 != nil {
+		t.Fatalf(err2.Error())
 	}
 
 	if len(program.TopLevelStatements) != 1 {
@@ -1015,10 +1063,13 @@ mapscripts(local) MapScripts2 {}
 mapscripts(global) MapScripts3 {}
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
-	program, err := p.ParseProgram()
+	p, err := New(l, "", "", 0, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	program, err2 := p.ParseProgram()
+	if err2 != nil {
+		t.Fatalf(err2.Error())
 	}
 
 	if len(program.TopLevelStatements) != 12 {
@@ -1089,10 +1140,13 @@ mapscripts MyMapScript {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
-	program, err := p.ParseProgram()
+	p, err := New(l, "", "", 0, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	program, err2 := p.ParseProgram()
+	if err2 != nil {
+		t.Fatalf(err2.Error())
 	}
 
 	script := program.TopLevelStatements[0].(*ast.ScriptStatement)
@@ -1147,10 +1201,13 @@ MyLabel2(global): bar
 script MyScript2 {MyLabel3:}
 `
 	l := lexer.New(input)
-	p := New(l, "../font_config.json", "", 0, nil)
-	program, err := p.ParseProgram()
+	p, err := New(l, "../font_config.json", "", 0, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+	program, err2 := p.ParseProgram()
+	if err2 != nil {
+		t.Fatalf(err2.Error())
 	}
 	if len(program.TopLevelStatements) != 2 {
 		t.Fatalf("program.TopLevelStatements does not contain 2 statements. got=%d", len(program.TopLevelStatements))
@@ -2091,28 +2148,31 @@ script MyScript {
 
 func testForParseError(t *testing.T, input string, expectedError ParseError, expectedErrorMsg, expectedErrorRegex string) {
 	l := lexer.New(input)
-	p := New(l, "../font_config.json", "", 0, nil)
-	_, err := p.ParseProgram()
-	if err == nil {
+	p, err := New(l, "../font_config.json", "", 0, nil)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	_, err2 := p.ParseProgram()
+	if err2 == nil {
 		t.Fatalf("Expected error '%s', but no error occurred", expectedError)
 	}
 	var parseErr ParseError
-	if !errors.As(err, &parseErr) {
-		t.Fatalf("Expected ParseError type, but got '%s'", err.Error())
+	if !errors.As(err2, &parseErr) {
+		t.Fatalf("Expected ParseError type, but got '%s'", err2.Error())
 	}
 	if parseErr.CharEnd != expectedError.CharEnd || parseErr.CharStart != expectedError.CharStart ||
 		parseErr.LineNumberEnd != expectedError.LineNumberEnd || parseErr.LineNumberStart != expectedError.LineNumberStart {
 		t.Fatalf("Expected error:\n\n%s\n\nbut got\n\n%v", prettyPrintParseError(expectedError), prettyPrintParseError(parseErr))
 	}
 	if expectedErrorMsg != "" && expectedErrorRegex == "" {
-		if err.Error() != expectedErrorMsg {
-			t.Fatalf("Expected error message '%s', but got '%s'", expectedErrorMsg, err.Error())
+		if err2.Error() != expectedErrorMsg {
+			t.Fatalf("Expected error message '%s', but got '%s'", expectedErrorMsg, err2.Error())
 		}
 	}
 	if expectedErrorRegex != "" {
-		isMatch, _ := regexp.MatchString(expectedErrorRegex, err.Error())
+		isMatch, _ := regexp.MatchString(expectedErrorRegex, err2.Error())
 		if !isMatch {
-			t.Fatalf("Expected error to match regex '%s', but got '%s'", expectedErrorRegex, err.Error())
+			t.Fatalf("Expected error to match regex '%s', but got '%s'", expectedErrorRegex, err2.Error())
 		}
 	}
 }
