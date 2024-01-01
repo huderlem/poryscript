@@ -456,6 +456,17 @@ Becomes:
 .string "you!$"
 ```
 
+Finally, `format()` takes the following optional named parameters, which override settings from the font config:
+- `fontId`
+- `maxLineLength`
+- `numLines`
+- `cursorOverlapWidth`
+```
+text MyText {
+    format("This is an example of named parameters!", numLines=3, maxLineLength=100)
+}
+```
+
 ### Custom Text Encoding
 When Poryscript compiles text, the resulting text content is rendered using the `.string` assembler directive. The decomp projects' build process then processes those `.string` directives and substituted the string characters with the game-specific text representation. It can be useful to specify different types of strings, though. For example, implementing print-debugging commands might make use of ASCII text. Poryscript allows you to specify which assembler directive to use for text. Simply add the directive as a prefix to the string content like this:
 ```
