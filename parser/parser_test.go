@@ -733,6 +733,10 @@ text MyText3 {
 text MyText4 {
 	format("aaaa aaa aa aaa aa aaa aa aaa aa aaa aa aaa", "1_latin_frlg")
 }
+
+text MyText5 {
+	format("aaaa aaa aa a", numLines=3, maxLineLength=1, cursorOverlapWidth=100, fontId="1_latin_rse")
+}
 `
 	l := lexer.New(input)
 	p := New(l, "../font_config.json", "1_latin_frlg", 0, nil)
@@ -741,18 +745,18 @@ text MyText4 {
 		t.Fatalf(err.Error())
 	}
 
-	if len(program.Texts) != 6 {
-		t.Fatalf("len(program.Texts) != 6. Got '%d' instead.", len(program.Texts))
+	if len(program.Texts) != 7 {
+		t.Fatalf("len(program.Texts) != 7. Got '%d' instead.", len(program.Texts))
 	}
 	defaultTest := "Test»{BLAH} and a bunch of extra stuff to\\n\noverflow the line$"
 	if program.Texts[0].Value != defaultTest {
 		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[0].Value, defaultTest)
 	}
-	testBlank := "FooBar\\n\nand\\l\na\\l\nbunch\\l\nof\\l\nextra\\l\nstuff\\l\nto\\l\noverflow\\l\nthe\\l\nline$"
+	testBlank := "FooBar\\l\nand\\l\na\\l\nbunch\\l\nof\\l\nextra\\l\nstuff\\l\nto\\l\noverflow\\l\nthe\\l\nline$"
 	if program.Texts[1].Value != testBlank {
 		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[1].Value, testBlank)
 	}
-	test100 := "FooBar and\\n\na bunch of\\l\nextra\\l\nstuff to\\l\noverflow\\l\nthe line$"
+	test100 := "FooBar and\\l\na bunch of\\l\nextra\\l\nstuff to\\l\noverflow\\l\nthe line$"
 	if program.Texts[2].Value != test100 {
 		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[2].Value, test100)
 	}
@@ -766,6 +770,10 @@ text MyText4 {
 	defaultFont := "aaaa aaa aa aaa aa aaa aa aaa aa\\n\naaa aa aaa$"
 	if program.Texts[5].Value != defaultFont {
 		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[5].Value, defaultFont)
+	}
+	namedParams := "aaaa\\n\naaa\\n\naa\\l\na$"
+	if program.Texts[6].Value != namedParams {
+		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[6].Value, namedParams)
 	}
 
 }
@@ -1855,8 +1863,8 @@ text Foo {
 text Foo {
 	format("Hi", )
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 14, Utf8CharStart: 14, CharEnd: 15, Utf8CharEnd: 15, Message: "invalid format() parameter ')'. Expected either fontId (string) or maxLineLength (integer)"},
-			expectedErrorMsg: "line 3: invalid format() parameter ')'. Expected either fontId (string) or maxLineLength (integer)",
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 14, Utf8CharStart: 14, CharEnd: 15, Utf8CharEnd: 15, Message: "invalid format() parameter ')'"},
+			expectedErrorMsg: "line 3: invalid format() parameter ')'",
 		},
 		{
 			input: `
@@ -1865,6 +1873,54 @@ text Foo {
 }`,
 			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 0, Utf8CharStart: 0, CharEnd: 1, Utf8CharEnd: 1, Message: "missing closing parenthesis ')' for format()"},
 			expectedErrorMsg: "line 4: missing closing parenthesis ')' for format()",
+		},
+		{
+			input: `
+text Foo {
+	format("Hi", invalid=5)
+}`,
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 14, Utf8CharStart: 14, CharEnd: 21, Utf8CharEnd: 21, Message: "invalid format() named parameter 'invalid'"},
+			expectedErrorMsg: "line 3: invalid format() named parameter 'invalid'",
+		},
+		{
+			input: `
+text Foo {
+	format("Hi", numLines 5)
+}`,
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 23, Utf8CharStart: 23, CharEnd: 24, Utf8CharEnd: 24, Message: "missing '=' after format() named parameter 'numLines'"},
+			expectedErrorMsg: "line 3: missing '=' after format() named parameter 'numLines'",
+		},
+		{
+			input: `
+text Foo {
+	format("Hi", fontId=5)
+}`,
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 21, Utf8CharStart: 21, CharEnd: 22, Utf8CharEnd: 22, Message: "invalid fontId '5'. Expected string"},
+			expectedErrorMsg: "line 3: invalid fontId '5'. Expected string",
+		},
+		{
+			input: `
+text Foo {
+	format("Hi", maxLineLength="hi")
+}`,
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 28, Utf8CharStart: 28, CharEnd: 32, Utf8CharEnd: 32, Message: "invalid maxLineLength 'hi'. Expected integer"},
+			expectedErrorMsg: "line 3: invalid maxLineLength 'hi'. Expected integer",
+		},
+		{
+			input: `
+text Foo {
+	format("Hi", numLines="hi")
+}`,
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 23, Utf8CharStart: 23, CharEnd: 27, Utf8CharEnd: 27, Message: "invalid numLines 'hi'. Expected integer"},
+			expectedErrorMsg: "line 3: invalid numLines 'hi'. Expected integer",
+		},
+		{
+			input: `
+text Foo {
+	format("Hi", cursorOverlapWidth="hi")
+}`,
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 33, Utf8CharStart: 33, CharEnd: 37, Utf8CharEnd: 37, Message: "invalid cursorOverlapWidth 'hi'. Expected integer"},
+			expectedErrorMsg: "line 3: invalid cursorOverlapWidth 'hi'. Expected integer",
 		},
 		{
 			input: `
@@ -1887,8 +1943,8 @@ text Foo {
 script Foo {
 	msgbox(format("Hi", ))
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 21, Utf8CharStart: 21, CharEnd: 22, Utf8CharEnd: 22, Message: "invalid format() parameter ')'. Expected either fontId (string) or maxLineLength (integer)"},
-			expectedErrorMsg: "line 3: invalid format() parameter ')'. Expected either fontId (string) or maxLineLength (integer)",
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 21, Utf8CharStart: 21, CharEnd: 22, Utf8CharEnd: 22, Message: "invalid format() parameter ')'"},
+			expectedErrorMsg: "line 3: invalid format() parameter ')'",
 		},
 		{
 			input: `
