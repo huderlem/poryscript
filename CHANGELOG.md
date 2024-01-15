@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 Nothing, yet.
 
+## [3.3.0] - 2024-01-15
+- Add ability to configure number of lines used by `format()`. For example, this is useful if the text is intended to render in, a 3-line textbox (instead of the usual 2).
+    - Additionally, `format()` now accepts named parameters, and `numLines` has been included in `font_config.json`.
+
 ## [3.2.0] - 2023-12-02
 ### Added
 - Add `-lm` option for [C Preprocessor line markers](https://gcc.gnu.org/onlinedocs/gcc-3.0.2/cpp_9.html) to improve error messages.
@@ -153,8 +157,9 @@ Nothing, yet.
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/poryscript/compare/3.2.0...HEAD
-[3.1.0]: https://github.com/huderlem/poryscript/compare/3.1.0...3.2.0
+[Unreleased]: https://github.com/huderlem/poryscript/compare/3.3.0...HEAD
+[3.3.0]: https://github.com/huderlem/poryscript/compare/3.2.0...3.3.0
+[3.2.0]: https://github.com/huderlem/poryscript/compare/3.1.0...3.2.0
 [3.1.0]: https://github.com/huderlem/poryscript/compare/3.0.3...3.1.0
 [3.0.3]: https://github.com/huderlem/poryscript/compare/3.0.2...3.0.3
 [3.0.2]: https://github.com/huderlem/poryscript/compare/3.0.1...3.0.2
