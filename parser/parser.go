@@ -1091,6 +1091,7 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 	maxLineLength := p.maxLineLength
 	numLines := -1
 	cursorOverlapWidth := -1
+	specifiedParams := map[string]struct{}{}
 
 	if p.peekTokenIs(token.COMMA) {
 		p.nextToken()
@@ -1105,6 +1106,7 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 				p.nextToken()
 				fontID = p.curToken.Literal
 				fontIdToken = p.curToken
+				specifiedParams[formatParamFontId] = struct{}{}
 				if p.peekTokenIs(token.COMMA) && !p.peek2TokenIs(token.IDENT) {
 					p.nextToken()
 					if err := p.expectPeek(token.INT); err != nil {
@@ -1117,6 +1119,7 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 				p.nextToken()
 				num, _ := strconv.ParseInt(p.curToken.Literal, 0, 64)
 				maxLineLength = int(num)
+				specifiedParams[formatParamMaxLineLength] = struct{}{}
 				if p.peekTokenIs(token.COMMA) && !p.peek2TokenIs(token.IDENT) {
 					p.nextToken()
 					if err := p.expectPeek(token.STRING); err != nil {
@@ -1140,11 +1143,16 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 				if _, ok := namedParameters[p.curToken.Literal]; !ok {
 					return token.Token{}, "", "", NewParseError(p.curToken, fmt.Sprintf("invalid format() named parameter '%s'", p.curToken.Literal))
 				}
+				paramToken := p.curToken
 				paramName := p.curToken.Literal
 				if err := p.expectPeek(token.ASSIGN); err != nil {
 					return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("missing '=' after format() named parameter '%s'", paramName))
 				}
+				if _, ok := specifiedParams[paramName]; ok {
+					return token.Token{}, "", "", NewParseError(paramToken, fmt.Sprintf("duplicate parameter '%s'", paramName))
+				}
 
+				specifiedParams[paramName] = struct{}{}
 				switch paramName {
 				case formatParamFontId:
 					if err := p.expectPeek(token.STRING); err != nil {
@@ -1174,6 +1182,9 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 
 				if p.peekTokenIs(token.COMMA) {
 					p.nextToken()
+					if !(p.peekTokenIs(token.IDENT) || p.peekTokenIs(token.RPAREN)) {
+						return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid parameter '%s'. Expected named parameter", p.peekToken.Literal))
+					}
 				}
 			}
 		}

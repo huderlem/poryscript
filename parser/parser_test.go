@@ -1956,6 +1956,38 @@ text Foo {
 		},
 		{
 			input: `
+text Foo {
+	format("Hi", cursorOverlapWidth=3, 100)
+}`,
+			expectedError:      ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 36, Utf8CharStart: 36, CharEnd: 39, Utf8CharEnd: 39, Message: "invalid parameter '100'. Expected named parameter"},
+			expectedErrorRegex: `line 3: invalid parameter '100'. Expected named parameter`,
+		},
+		{
+			input: `
+text Foo {
+	format("Hi", cursorOverlapWidth=3, cursorOverlapWidth=4)
+}`,
+			expectedError:      ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 36, Utf8CharStart: 36, CharEnd: 54, Utf8CharEnd: 54, Message: "duplicate parameter 'cursorOverlapWidth'"},
+			expectedErrorRegex: `line 3: duplicate parameter 'cursorOverlapWidth'`,
+		},
+		{
+			input: `
+text Foo {
+	format("Hi", "fakeFont", fontId="otherfont)
+}`,
+			expectedError:      ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 26, Utf8CharStart: 26, CharEnd: 32, Utf8CharEnd: 32, Message: "duplicate parameter 'fontId'"},
+			expectedErrorRegex: `line 3: duplicate parameter 'fontId'`,
+		},
+		{
+			input: `
+text Foo {
+	format("Hi", 100, maxLineLength=50)
+}`,
+			expectedError:      ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 19, Utf8CharStart: 19, CharEnd: 32, Utf8CharEnd: 32, Message: "duplicate parameter 'maxLineLength'"},
+			expectedErrorRegex: `line 3: duplicate parameter 'maxLineLength'`,
+		},
+		{
+			input: `
 mapscripts {
 }`,
 			expectedError:    ParseError{LineNumberStart: 2, LineNumberEnd: 2, CharStart: 0, Utf8CharStart: 0, CharEnd: 12, Utf8CharEnd: 12, Message: "missing name for mapscripts statement"},
