@@ -33,7 +33,7 @@ func TestFormatText(t *testing.T) {
 	fc := FontConfig{}
 
 	for i, tt := range tests {
-		result, _ := fc.FormatText(tt.inputText, tt.maxWidth, tt.cursorOverlapWidth, testFontID)
+		result, _ := fc.FormatText(tt.inputText, tt.maxWidth, tt.cursorOverlapWidth, testFontID, 2)
 		if result != tt.expected {
 			t.Errorf("FormatText Test %d: Expected '%s', but Got '%s'", i, tt.expected, result)
 		}

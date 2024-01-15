@@ -3,6 +3,7 @@
   "fonts": {
     "1_latin_rse": {
       "maxLineLength": 208,
+      "numLines": 2,
       "cursorOverlapWidth": 0,
       "widths": {
         " ": 3,
@@ -177,6 +178,7 @@
     },
     "1_latin_frlg": {
       "maxLineLength": 208,
+      "numLines": 2,
       "cursorOverlapWidth": 10,
       "widths": {
         " ": 6,
