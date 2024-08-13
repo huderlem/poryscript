@@ -34,6 +34,15 @@ type textKey struct {
 	strType string
 }
 
+type CommandConfig struct {
+	AutoVarCommands map[string]AutoVarCommand `json:"autovar_commands"`
+}
+
+type AutoVarCommand struct {
+	VarName            string `json:"var_name"`
+	VarNameArgPosition *int   `json:"var_name_arg_position"`
+}
+
 // Parser is a Poryscript AST parser.
 type Parser struct {
 	l                       *lexer.Lexer
@@ -48,6 +57,7 @@ type Parser struct {
 	textStatements          []*ast.TextStatement
 	breakStack              []ast.Statement
 	continueStack           []ast.Statement
+	commandConfig           CommandConfig
 	fontConfigFilepath      string
 	defaultFontID           string
 	fonts                   *FontConfig
@@ -58,13 +68,14 @@ type Parser struct {
 }
 
 // New creates a new Poryscript AST Parser.
-func New(l *lexer.Lexer, fontConfigFilepath string, defaultFontID string, maxLineLength int, compileSwitches map[string]string) *Parser {
+func New(l *lexer.Lexer, commandConfig CommandConfig, fontConfigFilepath, defaultFontID string, maxLineLength int, compileSwitches map[string]string) *Parser {
 	p := &Parser{
 		l:                       l,
 		inlineTexts:             make([]ast.Text, 0),
 		inlineTextsSet:          make(map[textKey]string),
 		inlineTextCounts:        make(map[string]int),
 		textStatements:          make([]*ast.TextStatement, 0),
+		commandConfig:           commandConfig,
 		fontConfigFilepath:      fontConfigFilepath,
 		defaultFontID:           defaultFontID,
 		maxLineLength:           maxLineLength,
@@ -83,7 +94,7 @@ func New(l *lexer.Lexer, fontConfigFilepath string, defaultFontID string, maxLin
 
 // New creates a new Poryscript AST Parser.
 func NewLintParser(l *lexer.Lexer) *Parser {
-	p := New(l, "", "", 0, nil)
+	p := New(l, CommandConfig{}, "", "", 0, nil)
 	p.enableEnvironmentErrors = false
 	return p
 }

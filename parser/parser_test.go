@@ -34,7 +34,7 @@ script MyScript3 {
 		}
 `
 	l := lexer.New(input)
-	p := New(l, "../font_config.json", "", 0, nil)
+	p := New(l, CommandConfig{}, "../font_config.json", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -205,7 +205,7 @@ mart MyMart {
 
 	for _, tt := range scriptTests {
 		l := lexer.New(input)
-		p := New(l, "../font_config.json", "", 0, tt.switches)
+		p := New(l, CommandConfig{}, "../font_config.json", "", 0, tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -233,7 +233,7 @@ mart MyMart {
 
 	for i, tt := range textTests {
 		l := lexer.New(input)
-		p := New(l, "../font_config.json", "", 0, tt.switches)
+		p := New(l, CommandConfig{}, "../font_config.json", "", 0, tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -256,7 +256,7 @@ mart MyMart {
 
 	for _, tt := range movementTests {
 		l := lexer.New(input)
-		p := New(l, "../font_config.json", "", 0, tt.switches)
+		p := New(l, CommandConfig{}, "../font_config.json", "", 0, tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -284,7 +284,7 @@ mart MyMart {
 
 	for _, tt := range martTests {
 		l := lexer.New(input)
-		p := New(l, "../font_config.json", "", 0, tt.switches)
+		p := New(l, CommandConfig{}, "../font_config.json", "", 0, tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -313,7 +313,7 @@ raw ` + "`" + `
 	step_down
 ` + "`"
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
+	p := New(l, CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -408,7 +408,7 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
+	p := New(l, CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -481,7 +481,7 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
+	p := New(l, CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -531,7 +531,7 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
+	p := New(l, CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -608,7 +608,7 @@ script Test {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
+	p := New(l, CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -665,7 +665,7 @@ script Script2 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
+	p := New(l, CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -697,7 +697,7 @@ script MyScript1 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
+	p := New(l, CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -739,7 +739,7 @@ text MyText5 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "../font_config.json", "1_latin_frlg", 0, nil)
+	p := New(l, CommandConfig{}, "../font_config.json", "1_latin_frlg", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -796,7 +796,7 @@ movement MyMovement3 {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
+	p := New(l, CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -848,7 +848,7 @@ mart EarlyTerminatedMart {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
+	p := New(l, CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -903,7 +903,7 @@ mapscripts MyMap_MapScripts {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
+	p := New(l, CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1023,7 +1023,7 @@ mapscripts(local) MapScripts2 {}
 mapscripts(global) MapScripts3 {}
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
+	p := New(l, CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1097,7 +1097,7 @@ mapscripts MyMapScript {
 }
 `
 	l := lexer.New(input)
-	p := New(l, "", "", 0, nil)
+	p := New(l, CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1155,7 +1155,7 @@ MyLabel2(global): bar
 script MyScript2 {MyLabel3:}
 `
 	l := lexer.New(input)
-	p := New(l, "../font_config.json", "", 0, nil)
+	p := New(l, CommandConfig{}, "../font_config.json", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -2179,7 +2179,7 @@ script MyScript {
 
 func testForParseError(t *testing.T, input string, expectedError ParseError, expectedErrorMsg, expectedErrorRegex string) {
 	l := lexer.New(input)
-	p := New(l, "../font_config.json", "", 0, nil)
+	p := New(l, CommandConfig{}, "../font_config.json", "", 0, nil)
 	_, err := p.ParseProgram()
 	if err == nil {
 		t.Fatalf("Expected error '%s', but no error occurred", expectedError)

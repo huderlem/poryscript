@@ -273,7 +273,7 @@ Route29_EventScript_Dude_Text_1:
 	.string "are easier to catch.$"
 `
 	l := lexer.New(input)
-	p := parser.New(l, "", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -376,7 +376,7 @@ Route29_EventScript_WaitingMan_Text_1:
 	.string "...How about now?$"
 `
 	l := lexer.New(input)
-	p := parser.New(l, "", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -504,7 +504,7 @@ MyScript_13:
 `
 
 	l := lexer.New(input)
-	p := parser.New(l, "", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -680,7 +680,7 @@ MyScript_21:
 
 `
 	l := lexer.New(input)
-	p := parser.New(l, "", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1093,7 +1093,7 @@ MyScript6_3:
 
 `
 	l := lexer.New(input)
-	p := parser.New(l, "", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1286,7 +1286,7 @@ MyScript_18:
 
 `
 	l := lexer.New(input)
-	p := parser.New(l, "", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1398,7 +1398,7 @@ MyScript_9:
 
 `
 	l := lexer.New(input)
-	p := parser.New(l, "", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1492,7 +1492,7 @@ MyText2:
 	.custom "Bye!"
 `
 	l := lexer.New(input)
-	p := parser.New(l, "../font_config.json", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "../font_config.json", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1552,7 +1552,7 @@ ScripText_2:
 
 `
 	l := lexer.New(input)
-	p := parser.New(l, "../font_config.json", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "../font_config.json", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1604,7 +1604,7 @@ Script_Text_0:
 	.string "this needs to be rendered$"
 `
 	l := lexer.New(input)
-	p := parser.New(l, "../font_config.json", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "../font_config.json", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1832,7 +1832,7 @@ PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	.string "map scripts much easier.$"
 `
 	l := lexer.New(input)
-	p := parser.New(l, "../font_config.json", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "../font_config.json", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -1964,7 +1964,7 @@ ScriptWithMovement_Text_0:
 	.string "Let's go for a walk.$"
 `
 	l := lexer.New(input)
-	p := parser.New(l, "", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -2056,7 +2056,7 @@ ScriptWithPokemart_Text_1:
 `
 
 	l := lexer.New(input)
-	p := parser.New(l, "", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -2145,7 +2145,7 @@ ScriptWithPokemart_Text_1:
 `
 
 	l := lexer.New(input)
-	p := parser.New(l, "", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -2530,7 +2530,7 @@ MyText::
 
 	for i, tt := range tests {
 		l := lexer.New(input)
-		p := parser.New(l, "../font_config.json", "", 0, tt.switches)
+		p := parser.New(l, parser.CommandConfig{}, "../font_config.json", "", 0, tt.switches)
 		program, err := p.ParseProgram()
 		if err != nil {
 			t.Fatalf(err.Error())
@@ -2646,7 +2646,7 @@ MyScript_12:
 `
 
 	l := lexer.New(input)
-	p := parser.New(l, "", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -2775,7 +2775,7 @@ ScriptWithLabels_Text_1:
 	.string "Come again soon.$"
 `
 	l := lexer.New(input)
-	p := parser.New(l, "", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -3196,7 +3196,7 @@ Text1::
 `
 
 	l := lexer.New(input)
-	p := parser.New(l, "", "", 0, nil)
+	p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -3289,7 +3289,7 @@ Route29_Text_Dude_CatchingTutRejected:
 	b.Run("unoptimized", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			l := lexer.New(input)
-			p := parser.New(l, "", "", 0, nil)
+			p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
 			program, _ := p.ParseProgram()
 			e := New(program, false, false, "")
 			result, _ = e.Emit()
@@ -3300,7 +3300,7 @@ Route29_Text_Dude_CatchingTutRejected:
 	b.Run("optimized", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			l := lexer.New(input)
-			p := parser.New(l, "", "", 0, nil)
+			p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
 			program, _ := p.ParseProgram()
 			e := New(program, true, false, "")
 			result, _ = e.Emit()

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -32,14 +33,15 @@ func (opt mapOption) Set(value string) error {
 }
 
 type options struct {
-	inputFilepath      string
-	outputFilepath     string
-	fontConfigFilepath string
-	defaultFontID      string
-	maxLineLength      int
-	optimize           bool
-	enableLineMarkers  bool
-	compileSwitches    map[string]string
+	inputFilepath         string
+	outputFilepath        string
+	commandConfigFilepath string
+	fontConfigFilepath    string
+	defaultFontID         string
+	maxLineLength         int
+	optimize              bool
+	enableLineMarkers     bool
+	compileSwitches       map[string]string
 }
 
 func parseOptions() options {
@@ -47,6 +49,7 @@ func parseOptions() options {
 	versionPtr := flag.Bool("v", false, "show version of poryscript")
 	inputPtr := flag.String("i", "", "input poryscript file (leave empty to read from standard input)")
 	outputPtr := flag.String("o", "", "output script file (leave empty to write to standard output)")
+	commandConfigPtr := flag.String("cc", "command_config.json", "command config JSON file")
 	fontsPtr := flag.String("fc", "font_config.json", "font config JSON file")
 	fontIDPtr := flag.String("f", "", "set default font id (leave empty to use default defined in font config file)")
 	lengthPtr := flag.Int("l", 0, "set default line length in pixels for formatted text (uses font config file for default)")
@@ -67,14 +70,15 @@ func parseOptions() options {
 	}
 
 	return options{
-		inputFilepath:      *inputPtr,
-		outputFilepath:     *outputPtr,
-		fontConfigFilepath: *fontsPtr,
-		defaultFontID:      *fontIDPtr,
-		maxLineLength:      *lengthPtr,
-		optimize:           *optimizePtr,
-		enableLineMarkers:  *enableLineMarkersPtr,
-		compileSwitches:    compileSwitches,
+		inputFilepath:         *inputPtr,
+		outputFilepath:        *outputPtr,
+		commandConfigFilepath: *commandConfigPtr,
+		fontConfigFilepath:    *fontsPtr,
+		defaultFontID:         *fontIDPtr,
+		maxLineLength:         *lengthPtr,
+		optimize:              *optimizePtr,
+		enableLineMarkers:     *enableLineMarkersPtr,
+		compileSwitches:       compileSwitches,
 	}
 }
 
@@ -107,6 +111,23 @@ func writeOutput(output string, filepath string) error {
 	return nil
 }
 
+func readCommandConfig(filepath string) parser.CommandConfig {
+	var config parser.CommandConfig
+	if len(filepath) == 0 {
+		return config
+	}
+	bytes, err := ioutil.ReadFile(filepath)
+	if err != nil {
+		log.Fatalf("PORYSCRIPT ERROR: Failed to read command config file: %s\n", err.Error())
+	}
+
+	if err := json.Unmarshal(bytes, &config); err != nil {
+		log.Fatalf("PORYSCRIPT ERROR: Failed to load command config file: %s\n", err.Error())
+	}
+
+	return config
+}
+
 func main() {
 	log.SetFlags(0)
 	options := parseOptions()
@@ -115,7 +136,8 @@ func main() {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
 	}
 
-	parser := parser.New(lexer.New(input), options.fontConfigFilepath, options.defaultFontID, options.maxLineLength, options.compileSwitches)
+	commandConfig := readCommandConfig(options.commandConfigFilepath)
+	parser := parser.New(lexer.New(input), commandConfig, options.fontConfigFilepath, options.defaultFontID, options.maxLineLength, options.compileSwitches)
 	program, err := parser.ParseProgram()
 	if err != nil {
 		log.Fatalf("PORYSCRIPT ERROR: %s\n", err.Error())
