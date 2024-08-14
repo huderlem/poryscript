@@ -1239,6 +1239,95 @@ func testLabels(t *testing.T, s ast.Statement, expectedLabels []labelTest) bool 
 	return true
 }
 
+var zero = 0
+
+func TestAutoVarCommandsSwitchStatement(t *testing.T) {
+	input := `
+script Test {
+	switch (multichoice(0, 0, MULTI_WHERES_RAYQUAZA, FALSE)) {
+		case 2:
+			two()
+		case 1:
+		case 0:
+			oneandzero()
+	}
+	switch (specialvar(VAR_FOO, DoSpecialThing)) {
+		case 4:
+			four()
+		case 5:
+		case 6:
+			fiveandsix()
+	}
+}
+`
+	l := lexer.New(input)
+	p := New(l, CommandConfig{
+		AutoVarCommands: map[string]AutoVarCommand{
+			"multichoice": {VarName: "VAR_MULTICHOICE_RESULT"},
+			"specialvar":  {VarNameArgPosition: &zero},
+		},
+	}, "", "", 0, nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	scriptStmt := program.TopLevelStatements[0].(*ast.ScriptStatement)
+	multichoiceStmt, ok := scriptStmt.Body.Statements[0].(*ast.CommandStatement)
+	if !ok {
+		t.Fatalf("not a command statement\n")
+	}
+	if multichoiceStmt.Name.Value != "multichoice" {
+		t.Fatalf("autovar switch command != 'multichoice'. Got '%s' instead.", multichoiceStmt.Name.Value)
+	}
+	if len(multichoiceStmt.Args) != 4 {
+		t.Fatalf("autovar switch multichoice should have 4 args. Got '%d' instead.", len(multichoiceStmt.Args))
+	}
+	switchStmt, ok := scriptStmt.Body.Statements[1].(*ast.SwitchStatement)
+	if !ok {
+		t.Fatalf("not a switch statement\n")
+	}
+	if switchStmt.Operand.Literal != "VAR_MULTICHOICE_RESULT" {
+		t.Fatalf("autovar switchStmt.Operand != VAR_MULTICHOICE_RESULT. Got '%s' instead.", switchStmt.Operand.Literal)
+	}
+	if len(switchStmt.Cases) != 3 {
+		t.Fatalf("len(switchStmt.Cases) != 3. Got '%d' instead.", len(switchStmt.Cases))
+	}
+	if switchStmt.DefaultCase != nil {
+		t.Fatalf("switchStmt.DefaultCase is expected to be nil")
+	}
+	testSwitchCase(t, switchStmt.Cases[0], "2", 1)
+	testSwitchCase(t, switchStmt.Cases[1], "1", 0)
+	testSwitchCase(t, switchStmt.Cases[2], "0", 1)
+
+	specialvar, ok := scriptStmt.Body.Statements[2].(*ast.CommandStatement)
+	if !ok {
+		t.Fatalf("not a command statement\n")
+	}
+	if specialvar.Name.Value != "specialvar" {
+		t.Fatalf("autovar switch command != 'specialvar'. Got '%s' instead.", specialvar.Name.Value)
+	}
+	if len(specialvar.Args) != 2 {
+		t.Fatalf("autovar switch specialvar should have 2 args. Got '%d' instead.", len(specialvar.Args))
+	}
+	switchStmt, ok = scriptStmt.Body.Statements[3].(*ast.SwitchStatement)
+	if !ok {
+		t.Fatalf("not a switch statement\n")
+	}
+	if switchStmt.Operand.Literal != "VAR_FOO" {
+		t.Fatalf("autovar switchStmt.Operand != VAR_FOO. Got '%s' instead.", switchStmt.Operand.Literal)
+	}
+	if len(switchStmt.Cases) != 3 {
+		t.Fatalf("len(switchStmt.Cases) != 3. Got '%d' instead.", len(switchStmt.Cases))
+	}
+	if switchStmt.DefaultCase != nil {
+		t.Fatalf("switchStmt.DefaultCase is expected to be nil")
+	}
+	testSwitchCase(t, switchStmt.Cases[0], "4", 1)
+	testSwitchCase(t, switchStmt.Cases[1], "5", 0)
+	testSwitchCase(t, switchStmt.Cases[2], "6", 1)
+}
+
 func TestErrors(t *testing.T) {
 	tests := []struct {
 		input              string
@@ -1423,8 +1512,8 @@ script MyScript {
 		foo
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 9, Utf8CharStart: 9, CharEnd: 13, Utf8CharEnd: 13, Message: "invalid switch statement operand 'flag'. Must be 'var`"},
-			expectedErrorMsg: "line 3: invalid switch statement operand 'flag'. Must be 'var`",
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 9, Utf8CharStart: 9, CharEnd: 13, Utf8CharEnd: 13, Message: "expected next token to be 'VAR' or auto-var command, got 'flag' instead"},
+			expectedErrorMsg: "line 3: expected next token to be 'VAR' or auto-var command, got 'flag' instead",
 		},
 		{
 			input: `

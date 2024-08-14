@@ -162,6 +162,31 @@ func (p *Parser) expectPeek(expectedType token.Type) error {
 	return NewParseError(p.peekToken, fmt.Sprintf("expected next token to be '%s', got '%s' instead", expectedType, p.peekToken.Literal))
 }
 
+func (p *Parser) expectPeekVarOrAutoVar(scriptName string) (*string, *ast.CommandStatement, []impText, error) {
+	if p.peekTokenIs(token.VAR) {
+		p.nextToken()
+		if err := p.expectPeek(token.LPAREN); err != nil {
+			return nil, nil, nil, NewRangeParseError(p.curToken, p.peekToken, fmt.Sprintf("missing '(' after var operator. Got '%s` instead", p.peekToken.Literal))
+		}
+		return nil, nil, nil, nil
+	}
+	cmdName := p.peekToken.Literal
+	if cmd, ok := p.commandConfig.AutoVarCommands[p.peekToken.Literal]; ok {
+		p.nextToken()
+		commandStmt, implicitTexts, err := p.parseCommandStatement(scriptName)
+		varName := cmd.VarName
+		if cmd.VarNameArgPosition != nil {
+			if *cmd.VarNameArgPosition > len(commandStmt.Args)-1 {
+				return nil, nil, nil, NewRangeParseError(p.curToken, p.peekToken, fmt.Sprintf("auto-var command %s has an arg position of %d, but only has %d arguments", cmdName, *cmd.VarNameArgPosition, len(commandStmt.Args)))
+			}
+			varName = commandStmt.Args[*cmd.VarNameArgPosition]
+		}
+		return &varName, commandStmt, implicitTexts, err
+	}
+
+	return nil, nil, nil, NewParseError(p.peekToken, fmt.Sprintf("expected next token to be '%s' or auto-var command, got '%s' instead", token.VAR, p.peekToken.Literal))
+}
+
 func getImplicitTextLabel(scriptName string, i int) string {
 	return fmt.Sprintf("%s_Text_%d", scriptName, i)
 }
@@ -383,6 +408,7 @@ func (p *Parser) parseStatement(scriptName string) ([]ast.Statement, []impText, 
 	var implicitTexts []impText
 	var err error
 	var statement ast.Statement
+	var preambleStatement *ast.CommandStatement
 	switch p.curToken.Type {
 	case token.IDENT:
 		label := p.tryParseLabelStatement()
@@ -408,7 +434,10 @@ func (p *Parser) parseStatement(scriptName string) ([]ast.Statement, []impText, 
 		statement, err = p.parseContinueStatement(scriptName)
 		statements = append(statements, statement)
 	case token.SWITCH:
-		statement, implicitTexts, err = p.parseSwitchStatement(scriptName)
+		statement, preambleStatement, implicitTexts, err = p.parseSwitchStatement(scriptName)
+		if preambleStatement != nil {
+			statements = append(statements, preambleStatement)
+		}
 		statements = append(statements, statement)
 	case token.PORYSWITCH:
 		var stmts []ast.Statement
@@ -425,7 +454,7 @@ func (p *Parser) parseStatement(scriptName string) ([]ast.Statement, []impText, 
 	return statements, implicitTexts, nil
 }
 
-func (p *Parser) parseCommandStatement(scriptName string) (ast.Statement, []impText, error) {
+func (p *Parser) parseCommandStatement(scriptName string) (*ast.CommandStatement, []impText, error) {
 	command := &ast.CommandStatement{
 		Token: p.curToken,
 		Name: &ast.Identifier{
@@ -1361,7 +1390,7 @@ func (p *Parser) parseContinueStatement(scriptName string) (*ast.ContinueStateme
 	return statement, nil
 }
 
-func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, []impText, error) {
+func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, *ast.CommandStatement, []impText, error) {
 	statement := &ast.SwitchStatement{
 		Token: p.curToken,
 		Cases: []*ast.SwitchCase{},
@@ -1370,32 +1399,44 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	p.pushBreakStack(statement)
 	originalToken := p.curToken
 
-	if err := p.expectPeek(token.LPAREN); err != nil {
-		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing opening parenthesis of switch statement operand")
+	var err error
+	if err = p.expectPeek(token.LPAREN); err != nil {
+		return nil, nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing opening parenthesis of switch statement operand")
 	}
-	if err := p.expectPeek(token.VAR); err != nil {
-		return nil, nil, NewParseError(p.peekToken, fmt.Sprintf("invalid switch statement operand '%s'. Must be 'var`", p.peekToken.Literal))
+	var autoVarName *string
+	var preambleStatement *ast.CommandStatement
+	var autovarTexts []impText
+	if autoVarName, preambleStatement, autovarTexts, err = p.expectPeekVarOrAutoVar(scriptName); err != nil {
+		return nil, nil, nil, err
 	}
-	if err := p.expectPeek(token.LPAREN); err != nil {
-		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, fmt.Sprintf("missing '(' after var operator. Got '%s` instead", p.peekToken.Literal))
-	}
+	implicitTexts = append(implicitTexts, autovarTexts...)
 
-	p.nextToken()
-	parts := []string{}
-	operandToken := p.curToken
-	for p.curToken.Type != token.RPAREN {
-		if p.curToken.Type == token.EOF {
-			return nil, nil, NewParseError(originalToken, "missing closing parenthesis of switch statement value")
-		}
-		parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
+	if autoVarName == nil {
 		p.nextToken()
+		parts := []string{}
+		operandToken := p.curToken
+		for p.curToken.Type != token.RPAREN {
+			if p.curToken.Type == token.EOF {
+				return nil, nil, nil, NewParseError(originalToken, "missing closing parenthesis of switch statement value")
+			}
+			parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
+			p.nextToken()
+		}
+		p.nextToken()
+		operandToken.Literal = strings.Join(parts, " ")
+		statement.Operand = operandToken
+	} else {
+		statement.Operand = token.Token{
+			Type:    token.IDENT,
+			Literal: *autoVarName,
+		}
+		if err := p.expectPeek(token.RPAREN); err != nil {
+			return nil, nil, nil, NewParseError(originalToken, "missing closing parenthesis of switch statement value")
+		}
 	}
-	p.nextToken()
-	operandToken.Literal = strings.Join(parts, " ")
-	statement.Operand = operandToken
 
 	if err := p.expectPeek(token.LBRACE); err != nil {
-		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing opening curly brace of switch statement")
+		return nil, nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing opening curly brace of switch statement")
 	}
 	braceToken := p.curToken
 	p.nextToken()
@@ -1412,19 +1453,19 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 				parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 				p.nextToken()
 				if p.curToken.Type == token.EOF {
-					return nil, nil, NewParseError(caseToken, "missing `:` after 'case'")
+					return nil, nil, nil, NewParseError(caseToken, "missing `:` after 'case'")
 				}
 			}
 			caseValue := strings.Join(parts, " ")
 			if caseValues[caseValue] {
-				return nil, nil, NewRangeParseError(caseToken, p.curToken, fmt.Sprintf("duplicate switch cases detected for case '%s'", caseValue))
+				return nil, nil, nil, NewRangeParseError(caseToken, p.curToken, fmt.Sprintf("duplicate switch cases detected for case '%s'", caseValue))
 			}
 			caseValues[caseValue] = true
 			p.nextToken()
 
 			body, stmtTexts, err := p.parseSwitchBlockStatement(scriptName, braceToken)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 			implicitTexts = append(implicitTexts, stmtTexts...)
 			caseValueToken.Literal = caseValue
@@ -1434,15 +1475,15 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 			})
 		} else if p.curToken.Type == token.DEFAULT {
 			if statement.DefaultCase != nil {
-				return nil, nil, NewParseError(p.curToken, "multiple `default` cases found in switch statement. Only one `default` case is allowed")
+				return nil, nil, nil, NewParseError(p.curToken, "multiple `default` cases found in switch statement. Only one `default` case is allowed")
 			}
 			if err := p.expectPeek(token.COLON); err != nil {
-				return nil, nil, NewParseError(p.curToken, "missing `:` after default")
+				return nil, nil, nil, NewParseError(p.curToken, "missing `:` after default")
 			}
 			p.nextToken()
 			body, stmtTexts, err := p.parseSwitchBlockStatement(scriptName, braceToken)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 			implicitTexts = append(implicitTexts, stmtTexts...)
 			statement.Cases = append(statement.Cases, &ast.SwitchCase{
@@ -1453,17 +1494,17 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 				Body: body,
 			}
 		} else {
-			return nil, nil, NewParseError(p.curToken, fmt.Sprintf("invalid start of switch case '%s'. Expected 'case' or 'default'", p.curToken.Literal))
+			return nil, nil, nil, NewParseError(p.curToken, fmt.Sprintf("invalid start of switch case '%s'. Expected 'case' or 'default'", p.curToken.Literal))
 		}
 	}
 
 	p.popBreakStack()
 
 	if len(statement.Cases) == 0 && statement.DefaultCase == nil {
-		return nil, nil, NewRangeParseError(statement.Token, p.curToken, "switch statement has no cases or default case")
+		return nil, nil, nil, NewRangeParseError(statement.Token, p.curToken, "switch statement has no cases or default case")
 	}
 
-	return statement, implicitTexts, nil
+	return statement, preambleStatement, implicitTexts, nil
 }
 
 func (p *Parser) parseConditionExpression(scriptName string, requireExpression bool) (*ast.ConditionExpression, []impText, error) {
