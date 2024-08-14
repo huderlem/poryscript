@@ -1359,10 +1359,11 @@ func (p *Parser) parseDoWhileStatement(scriptName string) (*ast.DoWhileStatement
 		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing '(' to start condition for do...while statement")
 	}
 
-	boolExpression, err := p.parseBooleanExpression(false, false, scriptName)
+	boolExpression, expressionTexts, err := p.parseBooleanExpression(false, false, scriptName)
 	if err != nil {
 		return nil, nil, err
 	}
+	implicitTexts = append(implicitTexts, expressionTexts...)
 	expression.Expression = boolExpression
 	statement.Consequence = expression
 	return statement, implicitTexts, nil
@@ -1523,10 +1524,11 @@ func (p *Parser) parseConditionExpression(scriptName string, requireExpression b
 		if err := p.expectPeek(token.LPAREN); err != nil {
 			return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing '(' to start boolean expression")
 		}
-		boolExpression, err := p.parseBooleanExpression(false, false, scriptName)
+		boolExpression, expressionTexts, err := p.parseBooleanExpression(false, false, scriptName)
 		if err != nil {
 			return nil, nil, err
 		}
+		implicitTexts = append(implicitTexts, expressionTexts...)
 		expression.Expression = boolExpression
 	}
 	if err := p.expectPeek(token.LBRACE); err != nil {
@@ -1544,7 +1546,8 @@ func (p *Parser) parseConditionExpression(scriptName string, requireExpression b
 	return expression, implicitTexts, nil
 }
 
-func (p *Parser) parseBooleanExpression(single bool, negated bool, scriptName string) (ast.BooleanExpression, error) {
+func (p *Parser) parseBooleanExpression(single bool, negated bool, scriptName string) (ast.BooleanExpression, []impText, error) {
+	implicitTexts := make([]impText, 0)
 	nested := p.peekTokenIs(token.LPAREN)
 	negatedNested := p.peekTokenIs(token.NOT) && p.peek2TokenIs(token.LPAREN)
 	if nested || negatedNested {
@@ -1559,33 +1562,45 @@ func (p *Parser) parseBooleanExpression(single bool, negated bool, scriptName st
 			p.nextToken()
 			negatedNested = !negated
 		}
-		nestedExpression, err := p.parseBooleanExpression(false, negatedNested, scriptName)
+		nestedExpression, expressionTexts, err := p.parseBooleanExpression(false, negatedNested, scriptName)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+		implicitTexts = append(implicitTexts, expressionTexts...)
 		if p.curToken.Type != token.RPAREN {
-			return nil, NewRangeParseError(openToken, p.curToken, "missing closing ')' for nested boolean expression")
+			return nil, nil, NewRangeParseError(openToken, p.curToken, "missing closing ')' for nested boolean expression")
 		}
 		if p.peekTokenIs(token.AND) || p.peekTokenIs(token.OR) {
 			p.nextToken()
-			return p.parseRightSideExpression(nestedExpression, single, negated, scriptName)
+			rightExpression, rightTexts, err := p.parseRightSideExpression(nestedExpression, single, negated, scriptName)
+			if err != nil {
+				return nil, nil, err
+			}
+			implicitTexts = append(implicitTexts, rightTexts...)
+			return rightExpression, implicitTexts, nil
 		}
 		p.nextToken()
-		return nestedExpression, nil
+		return nestedExpression, implicitTexts, nil
 	}
 
-	leaf, err := p.parseLeafBooleanExpression(scriptName)
+	leaf, leafTexts, err := p.parseLeafBooleanExpression(scriptName)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	implicitTexts = append(implicitTexts, leafTexts...)
 
 	if negated {
 		leaf.Operator = getNegatedBooleanOperator(leaf.Operator)
 	}
 	if single {
-		return leaf, nil
+		return leaf, implicitTexts, nil
 	}
-	return p.parseRightSideExpression(leaf, single, negated, scriptName)
+	rightExpression, rightTexts, err := p.parseRightSideExpression(leaf, single, negated, scriptName)
+	if err != nil {
+		return nil, nil, err
+	}
+	implicitTexts = append(implicitTexts, rightTexts...)
+	return rightExpression, implicitTexts, nil
 }
 
 func getNegatedBooleanOperator(operator token.Type) token.Type {
@@ -1611,7 +1626,8 @@ func getNegatedBooleanOperator(operator token.Type) token.Type {
 	}
 }
 
-func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single bool, negated bool, scriptName string) (ast.BooleanExpression, error) {
+func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single bool, negated bool, scriptName string) (ast.BooleanExpression, []impText, error) {
+	implicitTexts := make([]impText, 0)
 	curTokenType := p.curToken.Type
 	if negated {
 		curTokenType = getNegatedBooleanOperator(curTokenType)
@@ -1619,43 +1635,46 @@ func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single boo
 
 	if p.curToken.Type == token.AND {
 		operator := curTokenType
-		right, err := p.parseBooleanExpression(true, negated, scriptName)
+		right, expressionTexts, err := p.parseBooleanExpression(true, negated, scriptName)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+		implicitTexts = append(implicitTexts, expressionTexts...)
 		grouped := &ast.BinaryExpression{
 			Left:     left,
 			Operator: operator,
 			Right:    right,
 		}
 		if p.curToken.Literal == token.RPAREN {
-			return grouped, nil
+			return grouped, implicitTexts, nil
 		}
 		operator = p.curToken.Type
 		if negated {
 			operator = getNegatedBooleanOperator(p.curToken.Type)
 		}
 		binaryExpression := &ast.BinaryExpression{Left: grouped, Operator: operator}
-		boolExpression, err := p.parseBooleanExpression(false, negated, scriptName)
+		boolExpression, texts, err := p.parseBooleanExpression(false, negated, scriptName)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+		implicitTexts = append(implicitTexts, texts...)
 		binaryExpression.Right = boolExpression
-		return binaryExpression, nil
+		return binaryExpression, implicitTexts, nil
 	} else if p.curToken.Type == token.OR {
 		operator := curTokenType
-		right, err := p.parseBooleanExpression(false, negated, scriptName)
+		right, texts, err := p.parseBooleanExpression(false, negated, scriptName)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+		implicitTexts = append(implicitTexts, texts...)
 		binaryExpression := &ast.BinaryExpression{Left: left, Operator: operator, Right: right}
-		return binaryExpression, nil
+		return binaryExpression, implicitTexts, nil
 	} else {
-		return left, nil
+		return left, implicitTexts, nil
 	}
 }
 
-func (p *Parser) parseLeafBooleanExpression(scriptName string) (*ast.OperatorExpression, error) {
+func (p *Parser) parseLeafBooleanExpression(scriptName string) (*ast.OperatorExpression, []impText, error) {
 	// Left-side of binary expression must be a special condition statement.
 	usedNotOperator := false
 	operatorExpression := &ast.OperatorExpression{ComparisonValueType: ast.NormalComparison}
@@ -1667,19 +1686,20 @@ func (p *Parser) parseLeafBooleanExpression(scriptName string) (*ast.OperatorExp
 
 	isAutoVar := p.peekTokenIsAutoVar()
 	if !p.peekTokenIs(token.VAR) && !isAutoVar && !p.peekTokenIs(token.FLAG) && !p.peekTokenIs(token.DEFEATED) {
-		return nil, NewParseError(p.peekToken, fmt.Sprintf("left side of binary expression must be var(), flag(), defeated(), or autovar command. Instead, found '%s'", p.peekToken.Literal))
+		return nil, nil, NewParseError(p.peekToken, fmt.Sprintf("left side of binary expression must be var(), flag(), defeated(), or autovar command. Instead, found '%s'", p.peekToken.Literal))
 	}
 
+	implicitTexts := make([]impText, 0)
 	var err error
 	if !isAutoVar {
 		p.nextToken()
 		operatorToken := p.curToken
 		operatorExpression.Type = operatorToken.Type
 		if err := p.expectPeek(token.LPAREN); err != nil {
-			return nil, NewRangeParseError(operatorToken, p.peekToken, fmt.Sprintf("missing opening parenthesis for condition operator '%s'", operatorExpression.Type))
+			return nil, nil, NewRangeParseError(operatorToken, p.peekToken, fmt.Sprintf("missing opening parenthesis for condition operator '%s'", operatorExpression.Type))
 		}
 		if p.peekToken.Type == token.RPAREN {
-			return nil, NewRangeParseError(operatorToken, p.peekToken, fmt.Sprintf("missing value for condition operator '%s'", operatorExpression.Type))
+			return nil, nil, NewRangeParseError(operatorToken, p.peekToken, fmt.Sprintf("missing value for condition operator '%s'", operatorExpression.Type))
 		}
 		p.nextToken()
 		parts := []string{}
@@ -1688,7 +1708,7 @@ func (p *Parser) parseLeafBooleanExpression(scriptName string) (*ast.OperatorExp
 			parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
 			p.nextToken()
 			if p.curToken.Type == token.EOF {
-				return nil, NewParseError(operatorToken, "missing closing ')' for condition operator value")
+				return nil, nil, NewParseError(operatorToken, "missing closing ')' for condition operator value")
 			}
 		}
 		operandToken.Literal = strings.Join(parts, " ")
@@ -1696,8 +1716,9 @@ func (p *Parser) parseLeafBooleanExpression(scriptName string) (*ast.OperatorExp
 	} else {
 		var autoVarOperand *string
 		var preambleStatement *ast.CommandStatement
-		if autoVarOperand, preambleStatement, _, err = p.expectPeekVarOrAutoVar(scriptName); err != nil {
-			return nil, err
+		var autoVarTexts []impText
+		if autoVarOperand, preambleStatement, autoVarTexts, err = p.expectPeekVarOrAutoVar(scriptName); err != nil {
+			return nil, nil, err
 		}
 		operatorExpression.Type = token.VAR
 		operatorExpression.Operand = token.Token{
@@ -1705,6 +1726,7 @@ func (p *Parser) parseLeafBooleanExpression(scriptName string) (*ast.OperatorExp
 			Literal: *autoVarOperand,
 		}
 		operatorExpression.PreambleStatement = preambleStatement
+		implicitTexts = append(implicitTexts, autoVarTexts...)
 	}
 
 	p.nextToken()
@@ -1718,22 +1740,22 @@ func (p *Parser) parseLeafBooleanExpression(scriptName string) (*ast.OperatorExp
 		if operatorExpression.Type == token.VAR {
 			err := p.parseConditionVarOperator(operatorExpression)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		} else if operatorExpression.Type == token.FLAG {
 			err := p.parseConditionFlagLikeOperator(operatorExpression, "flag")
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		} else if operatorExpression.Type == token.DEFEATED {
 			err := p.parseConditionFlagLikeOperator(operatorExpression, "defeated")
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 	}
 
-	return operatorExpression, nil
+	return operatorExpression, implicitTexts, nil
 }
 
 func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) error {
