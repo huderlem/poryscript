@@ -1606,8 +1606,8 @@ script MyScript {
 script MyScript {
 	if (var(FLAG_1) ||) {
 	}`,
-			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 19, Utf8CharStart: 19, CharEnd: 20, Utf8CharEnd: 20, Message: "left side of binary expression must be var(), flag(), or defeated() operator. Instead, found ')'"},
-			expectedErrorMsg: "line 3: left side of binary expression must be var(), flag(), or defeated() operator. Instead, found ')'",
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 19, Utf8CharStart: 19, CharEnd: 20, Utf8CharEnd: 20, Message: "left side of binary expression must be var(), flag(), defeated(), or autovar command. Instead, found ')'"},
+			expectedErrorMsg: "line 3: left side of binary expression must be var(), flag(), defeated(), or autovar command. Instead, found ')'",
 		},
 		{
 			input: `
@@ -1672,8 +1672,8 @@ script MyScript {
 		bar
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 9, Utf8CharStart: 9, CharEnd: 12, Utf8CharEnd: 12, Message: "left side of binary expression must be var(), flag(), or defeated() operator. Instead, found 'fla'"},
-			expectedErrorMsg: "line 5: left side of binary expression must be var(), flag(), or defeated() operator. Instead, found 'fla'",
+			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 9, Utf8CharStart: 9, CharEnd: 12, Utf8CharEnd: 12, Message: "left side of binary expression must be var(), flag(), defeated(), or autovar command. Instead, found 'fla'"},
+			expectedErrorMsg: "line 5: left side of binary expression must be var(), flag(), defeated(), or autovar command. Instead, found 'fla'",
 		},
 		{
 			input: `
@@ -2112,8 +2112,8 @@ mapscripts MyMapScripts {
 		if (sdf)
 	}
 }`,
-			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 6, Utf8CharStart: 6, CharEnd: 9, Utf8CharEnd: 9, Message: "left side of binary expression must be var(), flag(), or defeated() operator. Instead, found 'sdf'"},
-			expectedErrorMsg: "line 4: left side of binary expression must be var(), flag(), or defeated() operator. Instead, found 'sdf'",
+			expectedError:    ParseError{LineNumberStart: 4, LineNumberEnd: 4, CharStart: 6, Utf8CharStart: 6, CharEnd: 9, Utf8CharEnd: 9, Message: "left side of binary expression must be var(), flag(), defeated(), or autovar command. Instead, found 'sdf'"},
+			expectedErrorMsg: "line 4: left side of binary expression must be var(), flag(), defeated(), or autovar command. Instead, found 'sdf'",
 		},
 		{
 			input: `

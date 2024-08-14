@@ -376,7 +376,7 @@ func splitBooleanExpressionChunks(expression ast.BooleanExpression, chunkCounter
 		newChunk := &chunk{
 			id:             *chunkCounter,
 			statements:     []ast.Statement{},
-			branchBehavior: &leafExpressionBranch{truthyDest: dest, falseyReturnID: failureChunkID},
+			branchBehavior: &leafExpressionBranch{truthyDest: dest, falseyReturnID: failureChunkID, preambleStatement: operatorExpression.PreambleStatement},
 		}
 		remainingChunks = append(remainingChunks, newChunk)
 		if firstID == -1 {

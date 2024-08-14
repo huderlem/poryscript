@@ -233,7 +233,8 @@ type OperatorExpression struct {
 	Operator        token.Type
 	ComparisonValue string
 	ComparisonValueType
-	Type token.Type
+	Type              token.Type
+	PreambleStatement *CommandStatement
 }
 
 func (oe *OperatorExpression) booleanExpressionNode() {}

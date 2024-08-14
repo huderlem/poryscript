@@ -187,6 +187,14 @@ func (p *Parser) expectPeekVarOrAutoVar(scriptName string) (*string, *ast.Comman
 	return nil, nil, nil, NewParseError(p.peekToken, fmt.Sprintf("expected next token to be '%s' or auto-var command, got '%s' instead", token.VAR, p.peekToken.Literal))
 }
 
+func (p *Parser) peekTokenIsAutoVar() bool {
+	if p.peekToken.Type != token.IDENT {
+		return false
+	}
+	_, ok := p.commandConfig.AutoVarCommands[p.peekToken.Literal]
+	return ok
+}
+
 func getImplicitTextLabel(scriptName string, i int) string {
 	return fmt.Sprintf("%s_Text_%d", scriptName, i)
 }
@@ -1351,7 +1359,7 @@ func (p *Parser) parseDoWhileStatement(scriptName string) (*ast.DoWhileStatement
 		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing '(' to start condition for do...while statement")
 	}
 
-	boolExpression, err := p.parseBooleanExpression(false, false)
+	boolExpression, err := p.parseBooleanExpression(false, false, scriptName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1403,15 +1411,15 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	if err = p.expectPeek(token.LPAREN); err != nil {
 		return nil, nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing opening parenthesis of switch statement operand")
 	}
-	var autoVarName *string
+	var autoVarOperand *string
 	var preambleStatement *ast.CommandStatement
 	var autovarTexts []impText
-	if autoVarName, preambleStatement, autovarTexts, err = p.expectPeekVarOrAutoVar(scriptName); err != nil {
+	if autoVarOperand, preambleStatement, autovarTexts, err = p.expectPeekVarOrAutoVar(scriptName); err != nil {
 		return nil, nil, nil, err
 	}
 	implicitTexts = append(implicitTexts, autovarTexts...)
 
-	if autoVarName == nil {
+	if autoVarOperand == nil {
 		p.nextToken()
 		parts := []string{}
 		operandToken := p.curToken
@@ -1428,7 +1436,7 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	} else {
 		statement.Operand = token.Token{
 			Type:    token.IDENT,
-			Literal: *autoVarName,
+			Literal: *autoVarOperand,
 		}
 		if err := p.expectPeek(token.RPAREN); err != nil {
 			return nil, nil, nil, NewParseError(originalToken, "missing closing parenthesis of switch statement value")
@@ -1515,7 +1523,7 @@ func (p *Parser) parseConditionExpression(scriptName string, requireExpression b
 		if err := p.expectPeek(token.LPAREN); err != nil {
 			return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing '(' to start boolean expression")
 		}
-		boolExpression, err := p.parseBooleanExpression(false, false)
+		boolExpression, err := p.parseBooleanExpression(false, false, scriptName)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1536,7 +1544,7 @@ func (p *Parser) parseConditionExpression(scriptName string, requireExpression b
 	return expression, implicitTexts, nil
 }
 
-func (p *Parser) parseBooleanExpression(single bool, negated bool) (ast.BooleanExpression, error) {
+func (p *Parser) parseBooleanExpression(single bool, negated bool, scriptName string) (ast.BooleanExpression, error) {
 	nested := p.peekTokenIs(token.LPAREN)
 	negatedNested := p.peekTokenIs(token.NOT) && p.peek2TokenIs(token.LPAREN)
 	if nested || negatedNested {
@@ -1551,7 +1559,7 @@ func (p *Parser) parseBooleanExpression(single bool, negated bool) (ast.BooleanE
 			p.nextToken()
 			negatedNested = !negated
 		}
-		nestedExpression, err := p.parseBooleanExpression(false, negatedNested)
+		nestedExpression, err := p.parseBooleanExpression(false, negatedNested, scriptName)
 		if err != nil {
 			return nil, err
 		}
@@ -1560,13 +1568,13 @@ func (p *Parser) parseBooleanExpression(single bool, negated bool) (ast.BooleanE
 		}
 		if p.peekTokenIs(token.AND) || p.peekTokenIs(token.OR) {
 			p.nextToken()
-			return p.parseRightSideExpression(nestedExpression, single, negated)
+			return p.parseRightSideExpression(nestedExpression, single, negated, scriptName)
 		}
 		p.nextToken()
 		return nestedExpression, nil
 	}
 
-	leaf, err := p.parseLeafBooleanExpression()
+	leaf, err := p.parseLeafBooleanExpression(scriptName)
 	if err != nil {
 		return nil, err
 	}
@@ -1577,7 +1585,7 @@ func (p *Parser) parseBooleanExpression(single bool, negated bool) (ast.BooleanE
 	if single {
 		return leaf, nil
 	}
-	return p.parseRightSideExpression(leaf, single, negated)
+	return p.parseRightSideExpression(leaf, single, negated, scriptName)
 }
 
 func getNegatedBooleanOperator(operator token.Type) token.Type {
@@ -1603,7 +1611,7 @@ func getNegatedBooleanOperator(operator token.Type) token.Type {
 	}
 }
 
-func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single bool, negated bool) (ast.BooleanExpression, error) {
+func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single bool, negated bool, scriptName string) (ast.BooleanExpression, error) {
 	curTokenType := p.curToken.Type
 	if negated {
 		curTokenType = getNegatedBooleanOperator(curTokenType)
@@ -1611,7 +1619,7 @@ func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single boo
 
 	if p.curToken.Type == token.AND {
 		operator := curTokenType
-		right, err := p.parseBooleanExpression(true, negated)
+		right, err := p.parseBooleanExpression(true, negated, scriptName)
 		if err != nil {
 			return nil, err
 		}
@@ -1628,7 +1636,7 @@ func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single boo
 			operator = getNegatedBooleanOperator(p.curToken.Type)
 		}
 		binaryExpression := &ast.BinaryExpression{Left: grouped, Operator: operator}
-		boolExpression, err := p.parseBooleanExpression(false, negated)
+		boolExpression, err := p.parseBooleanExpression(false, negated, scriptName)
 		if err != nil {
 			return nil, err
 		}
@@ -1636,7 +1644,7 @@ func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single boo
 		return binaryExpression, nil
 	} else if p.curToken.Type == token.OR {
 		operator := curTokenType
-		right, err := p.parseBooleanExpression(false, negated)
+		right, err := p.parseBooleanExpression(false, negated, scriptName)
 		if err != nil {
 			return nil, err
 		}
@@ -1647,7 +1655,7 @@ func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single boo
 	}
 }
 
-func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
+func (p *Parser) parseLeafBooleanExpression(scriptName string) (*ast.OperatorExpression, error) {
 	// Left-side of binary expression must be a special condition statement.
 	usedNotOperator := false
 	operatorExpression := &ast.OperatorExpression{ComparisonValueType: ast.NormalComparison}
@@ -1657,33 +1665,49 @@ func (p *Parser) parseLeafBooleanExpression() (*ast.OperatorExpression, error) {
 		usedNotOperator = true
 	}
 
-	if !p.peekTokenIs(token.VAR) && !p.peekTokenIs(token.FLAG) && !p.peekTokenIs(token.DEFEATED) {
-		return nil, NewParseError(p.peekToken, fmt.Sprintf("left side of binary expression must be var(), flag(), or defeated() operator. Instead, found '%s'", p.peekToken.Literal))
+	isAutoVar := p.peekTokenIsAutoVar()
+	if !p.peekTokenIs(token.VAR) && !isAutoVar && !p.peekTokenIs(token.FLAG) && !p.peekTokenIs(token.DEFEATED) {
+		return nil, NewParseError(p.peekToken, fmt.Sprintf("left side of binary expression must be var(), flag(), defeated(), or autovar command. Instead, found '%s'", p.peekToken.Literal))
 	}
-	p.nextToken()
-	operatorToken := p.curToken
-	operatorExpression.Type = operatorToken.Type
 
-	if err := p.expectPeek(token.LPAREN); err != nil {
-		return nil, NewRangeParseError(operatorToken, p.peekToken, fmt.Sprintf("missing opening parenthesis for condition operator '%s'", operatorExpression.Type))
-	}
-	if p.peekToken.Type == token.RPAREN {
-		return nil, NewRangeParseError(operatorToken, p.peekToken, fmt.Sprintf("missing value for condition operator '%s'", operatorExpression.Type))
-	}
-	p.nextToken()
-	parts := []string{}
-	operandToken := p.curToken
-	for p.curToken.Type != token.RPAREN {
-		parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
+	var err error
+	if !isAutoVar {
 		p.nextToken()
-		if p.curToken.Type == token.EOF {
-			return nil, NewParseError(operatorToken, "missing closing ')' for condition operator value")
+		operatorToken := p.curToken
+		operatorExpression.Type = operatorToken.Type
+		if err := p.expectPeek(token.LPAREN); err != nil {
+			return nil, NewRangeParseError(operatorToken, p.peekToken, fmt.Sprintf("missing opening parenthesis for condition operator '%s'", operatorExpression.Type))
 		}
+		if p.peekToken.Type == token.RPAREN {
+			return nil, NewRangeParseError(operatorToken, p.peekToken, fmt.Sprintf("missing value for condition operator '%s'", operatorExpression.Type))
+		}
+		p.nextToken()
+		parts := []string{}
+		operandToken := p.curToken
+		for p.curToken.Type != token.RPAREN {
+			parts = append(parts, p.tryReplaceWithConstant(p.curToken.Literal))
+			p.nextToken()
+			if p.curToken.Type == token.EOF {
+				return nil, NewParseError(operatorToken, "missing closing ')' for condition operator value")
+			}
+		}
+		operandToken.Literal = strings.Join(parts, " ")
+		operatorExpression.Operand = operandToken
+	} else {
+		var autoVarOperand *string
+		var preambleStatement *ast.CommandStatement
+		if autoVarOperand, preambleStatement, _, err = p.expectPeekVarOrAutoVar(scriptName); err != nil {
+			return nil, err
+		}
+		operatorExpression.Type = token.VAR
+		operatorExpression.Operand = token.Token{
+			Type:    token.IDENT,
+			Literal: *autoVarOperand,
+		}
+		operatorExpression.PreambleStatement = preambleStatement
 	}
-	operandToken.Literal = strings.Join(parts, " ")
-	operatorExpression.Operand = operandToken
-	p.nextToken()
 
+	p.nextToken()
 	if usedNotOperator {
 		if operatorExpression.Type == token.VAR {
 			operatorExpression.ComparisonValue = "0"

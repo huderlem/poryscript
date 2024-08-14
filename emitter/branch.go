@@ -65,13 +65,17 @@ func (bc *breakContext) getTailChunkID() int {
 
 // Represents a leaf expression of a compound boolean expression.
 type leafExpressionBranch struct {
-	truthyDest     *conditionDestination
-	falseyReturnID int
+	truthyDest        *conditionDestination
+	falseyReturnID    int
+	preambleStatement *ast.CommandStatement
 }
 
 // Satisfies brancher interface.
 func (l *leafExpressionBranch) renderBranchConditions(sb *strings.Builder, scriptName string, nextChunkID int, registerJumpChunk func(int), enableLineMarkers bool, inputFilepath string) bool {
 	registerJumpChunk(l.truthyDest.id)
+	if l.preambleStatement != nil {
+		sb.WriteString(renderCommandStatement(l.preambleStatement))
+	}
 	renderBranchComparison(sb, l.truthyDest, scriptName, enableLineMarkers, inputFilepath)
 	if l.falseyReturnID == -1 {
 		sb.WriteString("\treturn\n")
