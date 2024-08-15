@@ -2794,6 +2794,165 @@ ScriptWithLabels_Text_1:
 	}
 }
 
+var zero = 0
+
+func TestEmitAutoVarCommands(t *testing.T) {
+	input := `
+script MyScript {
+	if (getpartysize == 3) {
+		first
+	} elif (!(specialvar(VAR_SPECIAL, DoThing) || dotext("Wow, text!"))) {
+		second
+	}
+	switch (getpartysize) {
+		case 2:
+			third
+	}
+	switch (specialvar(VAR_SPECIAL, DoOtherThing, "with text")) {
+		case 4:
+			fourth
+	}
+}
+`
+
+	expectedUnoptimized := `MyScript::
+	goto MyScript_7
+
+MyScript_1:
+	getpartysize
+	goto MyScript_9
+
+MyScript_2:
+	first
+	goto MyScript_1
+
+MyScript_3:
+	second
+	goto MyScript_1
+
+MyScript_4:
+	goto MyScript_6
+
+MyScript_5:
+	specialvar VAR_SPECIAL, DoThing
+	compare VAR_SPECIAL, 0
+	goto_if_eq MyScript_4
+	goto MyScript_1
+
+MyScript_6:
+	dotext MyScript_Text_0
+	compare VAR_1, 0
+	goto_if_eq MyScript_3
+	goto MyScript_1
+
+MyScript_7:
+	getpartysize
+	compare VAR_SIZE, 3
+	goto_if_eq MyScript_2
+	goto MyScript_5
+
+MyScript_8:
+	specialvar VAR_SPECIAL, DoOtherThing, MyScript_Text_1
+	goto MyScript_11
+
+MyScript_9:
+	switch VAR_SIZE
+	case 2, MyScript_10
+	goto MyScript_8
+
+MyScript_10:
+	third
+	goto MyScript_8
+
+MyScript_11:
+	switch VAR_SPECIAL
+	case 4, MyScript_12
+	return
+
+MyScript_12:
+	fourth
+	return
+
+
+MyScript_Text_0:
+	.string "Wow, text!$"
+
+MyScript_Text_1:
+	.string "with text$"
+`
+
+	expectedOptimized := `MyScript::
+	getpartysize
+	compare VAR_SIZE, 3
+	goto_if_eq MyScript_2
+	specialvar VAR_SPECIAL, DoThing
+	compare VAR_SPECIAL, 0
+	goto_if_eq MyScript_4
+MyScript_1:
+	getpartysize
+	switch VAR_SIZE
+	case 2, MyScript_10
+MyScript_8:
+	specialvar VAR_SPECIAL, DoOtherThing, MyScript_Text_1
+	switch VAR_SPECIAL
+	case 4, MyScript_12
+	return
+
+MyScript_2:
+	first
+	goto MyScript_1
+
+MyScript_3:
+	second
+	goto MyScript_1
+
+MyScript_4:
+	dotext MyScript_Text_0
+	compare VAR_1, 0
+	goto_if_eq MyScript_3
+	goto MyScript_1
+
+MyScript_10:
+	third
+	goto MyScript_8
+
+MyScript_12:
+	fourth
+	return
+
+
+MyScript_Text_0:
+	.string "Wow, text!$"
+
+MyScript_Text_1:
+	.string "with text$"
+`
+	l := lexer.New(input)
+	p := parser.New(l, parser.CommandConfig{
+		AutoVarCommands: map[string]parser.AutoVarCommand{
+			"specialvar":   {VarNameArgPosition: &zero},
+			"dotext":       {VarName: "VAR_1"},
+			"getpartysize": {VarName: "VAR_SIZE"},
+		},
+	}, "", "", 0, nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	e := New(program, false, false, "")
+	result, _ := e.Emit()
+	if result != expectedUnoptimized {
+		t.Errorf("Mismatching unoptimized emit -- Expected=%q, Got=%q", expectedUnoptimized, result)
+	}
+
+	e = New(program, true, false, "")
+	result, _ = e.Emit()
+	if result != expectedOptimized {
+		t.Errorf("Mismatching optimized emit -- Expected=%q, Got=%q", expectedOptimized, result)
+	}
+}
+
 func TestEmitLineMarkers(t *testing.T) {
 	input := `mapscripts MapScripts1 {
 	MAP_SCRIPT_ON_RESUME: Script1

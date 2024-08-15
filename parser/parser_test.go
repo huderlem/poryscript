@@ -522,16 +522,20 @@ script Test {
 	if (var(VAR_1) < value(1) || flag(FLAG_2) == true && var(VAR_3) > value(4)) {
 		message()
 	}
-	if (var(VAR_1) < 1 && flag(FLAG_2) == true || var(VAR_3) > 4) {
+	if (var(VAR_1) < 1 && flag(FLAG_2) == true || giveitem(ITEM, 1) > 4) {
 		message()
 	}
-	if ((var(VAR_1) == 10 || ((var(VAR_1) == 12))) && !flag(FLAG_1)) {
+	if ((var(VAR_1) == 10 || ((var(VAR_1) == 12))) && !(flag(FLAG_1))) {
 		message()
 	}
 }
 `
 	l := lexer.New(input)
-	p := New(l, CommandConfig{}, "", "", 0, nil)
+	p := New(l, CommandConfig{
+		AutoVarCommands: map[string]AutoVarCommand{
+			"giveitem": {VarName: "VAR_RESULT"},
+		},
+	}, "", "", 0, nil)
 	program, err := p.ParseProgram()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -560,7 +564,7 @@ script Test {
 	op = (ex.Left.(*ast.BinaryExpression)).Right.(*ast.OperatorExpression)
 	testOperatorExpression(t, op, token.FLAG, "TRUE", "FLAG_2", token.EQ)
 	op = ex.Right.(*ast.OperatorExpression)
-	testOperatorExpression(t, op, token.VAR, "4", "VAR_3", token.GT)
+	testOperatorExpression(t, op, token.VAR, "4", "VAR_RESULT", token.GT)
 
 	ifStmt = scriptStmt.Body.Statements[2].(*ast.IfStatement)
 	ex = ifStmt.Consequence.Expression.(*ast.BinaryExpression)
@@ -572,7 +576,7 @@ script Test {
 	op = (ex.Left.(*ast.BinaryExpression)).Right.(*ast.OperatorExpression)
 	testOperatorExpression(t, op, token.VAR, "12", "VAR_1", token.EQ)
 	op = ex.Right.(*ast.OperatorExpression)
-	testOperatorExpression(t, op, token.FLAG, "FALSE", "FLAG_1", token.EQ)
+	testOperatorExpression(t, op, token.FLAG, "TRUE", "FLAG_1", token.NEQ)
 }
 
 func testOperatorExpression(t *testing.T, ex *ast.OperatorExpression, expectType token.Type, comparisonValue string, operand string, operator token.Type) {
@@ -1518,6 +1522,17 @@ script MyScript {
 		{
 			input: `
 script MyScript {
+	switch (specialvar(foo, bar)) {
+	case 1:
+		foo
+	}
+}`,
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 9, Utf8CharStart: 9, CharEnd: 29, Utf8CharEnd: 29, Message: "auto-var command specialvar has an arg position of 2, but only 2 arguments were provided"},
+			expectedErrorMsg: "line 3: auto-var command specialvar has an arg position of 2, but only 2 arguments were provided",
+		},
+		{
+			input: `
+script MyScript {
 	switch (var FLéG_1) {
 	case 1:
 		foo
@@ -1525,6 +1540,13 @@ script MyScript {
 }`,
 			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 9, Utf8CharStart: 9, CharEnd: 20, Utf8CharEnd: 19, Message: "missing '(' after var operator. Got 'FLéG_1` instead"},
 			expectedErrorMsg: "line 3: missing '(' after var operator. Got 'FLéG_1` instead",
+		},
+		{
+			input: `
+script MyScript {
+	switch (var(FLAG_1 + 2`,
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 1, Utf8CharStart: 1, CharEnd: 7, Utf8CharEnd: 7, Message: "missing closing parenthesis of switch statement value"},
+			expectedErrorMsg: "line 3: missing closing parenthesis of switch statement value",
 		},
 		{
 			input: `
@@ -1626,6 +1648,16 @@ script MyScript {
 	}`,
 			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 5, CharStart: 35, Utf8CharStart: 35, CharEnd: 2, Utf8CharEnd: 2, Message: "missing ')', '&&' or '||' when evaluating 'var' operator"},
 			expectedErrorMsg: "line 3: missing ')', '&&' or '||' when evaluating 'var' operator",
+		},
+		{
+			input: `
+script MyScript {
+	if (specialvar(foo)) {
+		stuff
+	}
+}`,
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 5, Utf8CharStart: 5, CharEnd: 20, Utf8CharEnd: 20, Message: "auto-var command specialvar has an arg position of 2, but only 1 arguments were provided"},
+			expectedErrorMsg: "line 3: auto-var command specialvar has an arg position of 2, but only 1 arguments were provided",
 		},
 		{
 			input: `
@@ -2266,9 +2298,15 @@ script MyScript {
 	}
 }
 
+var two = 2
+
 func testForParseError(t *testing.T, input string, expectedError ParseError, expectedErrorMsg, expectedErrorRegex string) {
 	l := lexer.New(input)
-	p := New(l, CommandConfig{}, "../font_config.json", "", 0, nil)
+	p := New(l, CommandConfig{
+		AutoVarCommands: map[string]AutoVarCommand{
+			"specialvar": {VarNameArgPosition: &two},
+		},
+	}, "../font_config.json", "", 0, nil)
 	_, err := p.ParseProgram()
 	if err == nil {
 		t.Fatalf("Expected error '%s', but no error occurred", expectedError)

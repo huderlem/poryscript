@@ -173,11 +173,15 @@ func (p *Parser) expectPeekVarOrAutoVar(scriptName string) (*string, *ast.Comman
 	cmdName := p.peekToken.Literal
 	if cmd, ok := p.commandConfig.AutoVarCommands[p.peekToken.Literal]; ok {
 		p.nextToken()
+		commandToken := p.curToken
 		commandStmt, implicitTexts, err := p.parseCommandStatement(scriptName)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 		varName := cmd.VarName
 		if cmd.VarNameArgPosition != nil {
 			if *cmd.VarNameArgPosition > len(commandStmt.Args)-1 {
-				return nil, nil, nil, NewRangeParseError(p.curToken, p.peekToken, fmt.Sprintf("auto-var command %s has an arg position of %d, but only has %d arguments", cmdName, *cmd.VarNameArgPosition, len(commandStmt.Args)))
+				return nil, nil, nil, NewRangeParseError(commandToken, p.curToken, fmt.Sprintf("auto-var command %s has an arg position of %d, but only %v arguments were provided", cmdName, *cmd.VarNameArgPosition, len(commandStmt.Args)))
 			}
 			varName = commandStmt.Args[*cmd.VarNameArgPosition]
 		}
