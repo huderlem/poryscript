@@ -40,6 +40,7 @@ jobs:
         mkdir poryscript-linux
         cp poryscript poryscript-linux
         cp font_config.json poryscript-linux
+        cp command_config.json poryscript-linux
         cp CHANGELOG.md poryscript-linux
         cp README.md poryscript-linux
 
@@ -84,6 +85,7 @@ jobs:
         mkdir poryscript-mac
         cp poryscript poryscript-mac
         cp font_config.json poryscript-mac
+        cp command_config.json poryscript-mac
         cp CHANGELOG.md poryscript-mac
         cp README.md poryscript-mac
 
@@ -126,6 +128,7 @@ jobs:
         mkdir poryscript-windows
         cp poryscript.exe poryscript-windows
         cp font_config.json poryscript-windows
+        cp command_config.json poryscript-windows
         cp CHANGELOG.md poryscript-windows
         cp README.md poryscript-windows
 
