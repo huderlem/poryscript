@@ -93,8 +93,8 @@ func New(l *lexer.Lexer, commandConfig CommandConfig, fontConfigFilepath, defaul
 }
 
 // New creates a new Poryscript AST Parser.
-func NewLintParser(l *lexer.Lexer) *Parser {
-	p := New(l, CommandConfig{}, "", "", 0, nil)
+func NewLintParser(l *lexer.Lexer, commandConfig CommandConfig) *Parser {
+	p := New(l, commandConfig, "", "", 0, nil)
 	p.enableEnvironmentErrors = false
 	return p
 }

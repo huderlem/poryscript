@@ -53,6 +53,8 @@ Poryscript is a command-line program.  It reads an input script and outputs the 
 ```
 > ./poryscript -h
 Usage of poryscript:
+  -cc string
+        command config JSON file (default "command_config.json")
   -f string
         set default font id (leave empty to use default defined in font config file)
   -fc string
@@ -79,10 +81,11 @@ Convert a `.pory` script to a compiled `.inc` script, which can be directly incl
 ```
 
 To automatically convert your Poryscript scripts when compiling a decomp project, perform these two steps:
-1. Create a new `tools/poryscript/` directory, and add the `poryscript` command-line executable tool to it. Also copy `font_config.json` to the same location.
+1. Create a new `tools/poryscript/` directory, and add the `poryscript` command-line executable tool to it. Also copy `command_config.json` and `font_config.json` to the same location.
 ```
 # For example, on Windows, place the files here.
 pokeemerald/tools/poryscript/poryscript.exe
+pokeemerald/tools/poryscript/command_config.json
 pokeemerald/tools/poryscript/font_config.json
 ```
 It's also a good idea to add `tools/poryscript` to your `.gitignore` before your next commit.
@@ -262,12 +265,12 @@ The `while` statement can also be written as an infinite loop by omitting the bo
 `break` can be used to break out of a loop, like many programming languages. Similary, `continue` returns to the start of the loop.
 
 ### Conditional Operators
-The condition operators have strict rules about what conditions they accept. The operand on the left side of the condition must be a `flag()`, `var()`, or `defeated()` check. They each have a different set of valid comparison operators, described below.
+The condition operators have strict rules about what conditions they accept. The operand on the left side of the condition must be a `flag()`, `var()`, `defeated()`, or [AutoVar](#autovar-commands) check. They each have a different set of valid comparison operators, described below.
 
 | Type | Valid Operators |
 | ---- | --------------- |
 | `flag` | `==` |
-| `var` | `==`, `!=`, `>`, `>=`, `<`, `<=` |
+| `var` or [AutoVar](#autovar-commands) | `==`, `!=`, `>`, `>=`, `<`, `<=` |
 | `defeated` | `==` |
 
 All operators support implicit truthiness, which means you don't have to specify any of the above operators in a condition. Below are some examples of equivalent conditions:

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 Nothing, yet.
 
+## [3.4.0] - 2024-08-15
+- Add support for AutoVar commands.
+    - AutoVar commands can be used in place of the `var` operator to streamline comparisons.
+    - AutoVar commands are defined in a new config file `command_config.json`.
+- Fix missing semicon character in FireRed/LeafGreen font config
+
 ## [3.3.0] - 2024-01-15
 - Add ability to configure number of lines used by `format()`. For example, this is useful if the text is intended to render in, a 3-line textbox (instead of the usual 2).
     - Additionally, `format()` now accepts named parameters, and `numLines` has been included in `font_config.json`.
@@ -157,7 +163,8 @@ Nothing, yet.
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/poryscript/compare/3.3.0...HEAD
+[Unreleased]: https://github.com/huderlem/poryscript/compare/3.4.0...HEAD
+[3.4.0]: https://github.com/huderlem/poryscript/compare/3.3.0...3.4.0
 [3.3.0]: https://github.com/huderlem/poryscript/compare/3.2.0...3.3.0
 [3.2.0]: https://github.com/huderlem/poryscript/compare/3.1.0...3.2.0
 [3.1.0]: https://github.com/huderlem/poryscript/compare/3.0.3...3.1.0
