@@ -112,7 +112,7 @@ clean-assets:
 + %.pory: ;
 ```
 ```diff
-%.rl: % ; $(GFX) $< $@
+%.rl:     %      ; $(GFX) $< $@
 + data/%.inc: data/%.pory; $(SCRIPT) -i $< -o $@ -fc tools/poryscript/font_config.json -cc tools/poryscript/command_config.json
 ```
 
