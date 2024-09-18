@@ -92,16 +92,16 @@ It's also a good idea to add `tools/poryscript` to your `.gitignore` before your
 
 2. Update the Makefile with these changes (Note, don't add the `+` symbol at the start of the lines. That's just to show the line is being added.):
 ```diff
-FIX := tools/gbafix/gbafix$(EXE)
-MAPJSON := tools/mapjson/mapjson$(EXE)
-JSONPROC := tools/jsonproc/jsonproc$(EXE)
-+ SCRIPT := tools/poryscript/poryscript$(EXE)
+FIX       := $(TOOLS_DIR)/gbafix/gbafix$(EXE)
+MAPJSON   := $(TOOLS_DIR)/mapjson/mapjson$(EXE)
+JSONPROC  := $(TOOLS_DIR)/jsonproc/jsonproc$(EXE)
++ SCRIPT    := $(TOOLS_DIR)/poryscript/poryscript$(EXE)
 ```
 ```diff
-mostlyclean: tidynonmodern tidymodern
+clean-assets:
 	...
-	rm -f $(AUTO_GEN_TARGETS)
-	@$(MAKE) clean -C libagbsyscall
+	find . \( -iname '*.1bpp' -o -iname '*.4bpp' -o -iname '*.8bpp' -o -iname '*.gbapal' -o -iname '*.lz' -o -iname '*.rl' -o -iname '*.latfont' -o -iname '*.hwjpnfont' -o -iname '*.fwjpnfont' \) -exec rm {} +
+	find $(DATA_ASM_SUBDIR)/maps \( -iname 'connections.inc' -o -iname 'events.inc' -o -iname 'header.inc' \) -exec rm {} +
 +	rm -f $(patsubst %.pory,%.inc,$(shell find data/ -type f -name '*.pory'))
 ```
 ```diff
@@ -112,7 +112,7 @@ mostlyclean: tidynonmodern tidymodern
 + %.pory: ;
 ```
 ```diff
-sound/%.bin: sound/%.aif ; $(AIF) $< $@
+%.rl: % ; $(GFX) $< $@
 + data/%.inc: data/%.pory; $(SCRIPT) -i $< -o $@ -fc tools/poryscript/font_config.json -cc tools/poryscript/command_config.json
 ```
 
