@@ -98,11 +98,11 @@ JSONPROC  := $(TOOLS_DIR)/jsonproc/jsonproc$(EXE)
 + SCRIPT    := $(TOOLS_DIR)/poryscript/poryscript$(EXE)
 ```
 ```diff
-clean-assets:
-	...
-	find . \( -iname '*.1bpp' -o -iname '*.4bpp' -o -iname '*.8bpp' -o -iname '*.gbapal' -o -iname '*.lz' -o -iname '*.rl' -o -iname '*.latfont' -o -iname '*.hwjpnfont' -o -iname '*.fwjpnfont' \) -exec rm {} +
-	find $(DATA_ASM_SUBDIR)/maps \( -iname 'connections.inc' -o -iname 'events.inc' -o -iname 'header.inc' \) -exec rm {} +
-+	rm -f $(patsubst %.pory,%.inc,$(shell find data/ -type f -name '*.pory'))
+include audio_rules.mk
+
++AUTO_GEN_TARGETS += $(patsubst %.pory,%.inc,$(shell find data/ -type f -name '*.pory'))
+
+generated: $(AUTO_GEN_TARGETS)
 ```
 ```diff
 %.s: ;
