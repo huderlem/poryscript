@@ -11,6 +11,7 @@ if [ "$1" != "" ]; then
         exit 1
     fi
     cp font_config.json $1/tools/poryscript
+    cp command_config.json $1/tools/poryscript
 else
     echo "Usage: install.sh PATH"
 fi
