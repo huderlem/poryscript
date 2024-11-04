@@ -1255,6 +1255,10 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 	}
 	if numLines <= 0 {
 		numLines = p.fonts.Fonts[fontID].NumLines
+		if numLines <= 0 {
+			log.Printf("PORYSCRIPT WARNING: Font id '%s' has no 'numLines' in the font config file '%s'. Update the font config to include a 'numLines' value for that font. Defaulting to numLines=2 for now.\n", fontID, p.fontConfigFilepath)
+			numLines = 2
+		}
 	}
 	if cursorOverlapWidth <= 0 {
 		cursorOverlapWidth = p.fonts.Fonts[fontID].CursorOverlapWidth
