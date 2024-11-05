@@ -756,11 +756,11 @@ text MyText5 {
 	if program.Texts[0].Value != defaultTest {
 		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[0].Value, defaultTest)
 	}
-	testBlank := "FooBar\\l\nand\\l\na\\l\nbunch\\l\nof\\l\nextra\\l\nstuff\\l\nto\\l\noverflow\\l\nthe\\l\nline$"
+	testBlank := "FooBar\\n\nand\\l\na\\l\nbunch\\l\nof\\l\nextra\\l\nstuff\\l\nto\\l\noverflow\\l\nthe\\l\nline$"
 	if program.Texts[1].Value != testBlank {
 		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[1].Value, testBlank)
 	}
-	test100 := "FooBar and\\l\na bunch of\\l\nextra\\l\nstuff to\\l\noverflow\\l\nthe line$"
+	test100 := "FooBar and\\n\na bunch of\\l\nextra\\l\nstuff to\\l\noverflow\\l\nthe line$"
 	if program.Texts[2].Value != test100 {
 		t.Fatalf("Incorrect format() evaluation. Got '%s' instead of '%s'", program.Texts[2].Value, test100)
 	}
