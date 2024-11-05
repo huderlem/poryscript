@@ -322,10 +322,13 @@ func (l *Lexer) skipToNextLine() {
 	l.readChar()
 }
 
-func (l *Lexer) skipNewlineWhitespace() {
+func (l *Lexer) skipNewlineWhitespace() bool {
+	skipped := false
 	for l.ch == '\n' || l.ch == '\r' {
 		l.readChar()
+		skipped = true
 	}
+	return skipped
 }
 
 func newSingleCharToken(tokenType token.Type, ch rune, lineNumber, charNumber, utf8CharNumber int) token.Token {
@@ -358,6 +361,10 @@ func (l *Lexer) readString() (string, int, int, int) {
 		}
 		l.readChar()
 		for l.ch != '"' && l.ch != 0 {
+			if l.skipNewlineWhitespace() {
+				l.skipWhitespace()
+				sb.WriteRune(' ')
+			}
 			sb.WriteRune(l.ch)
 			l.readChar()
 		}
