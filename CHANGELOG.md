@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Print a warning message when `numLines` is missing from a font's config. Defaults to `numLines=2` in that case, rather than `0`.
+- Added `msgbox` to the default `command_config.json`, since `msgbox(.., MSGBOX_YESNO)` would be a very common use case.
 
 ## [3.4.0] - 2024-08-15
 - Add support for AutoVar commands.
