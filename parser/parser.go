@@ -21,12 +21,32 @@ var topLevelTokens = map[token.Type]bool{
 	token.CONST:      true,
 }
 
+type impMovement struct {
+	command    *ast.CommandStatement
+	argPos     int
+	movements  []token.Token
+	scriptName string
+}
+
 type impText struct {
 	command    *ast.CommandStatement
 	argPos     int
 	text       token.Token
 	stringType string
 	scriptName string
+}
+
+type impData struct {
+	texts     []impText
+	movements []impMovement
+}
+
+func (d *impData) add(other *impData) {
+	if other == nil {
+		return
+	}
+	d.texts = append(d.texts, other.texts...)
+	d.movements = append(d.movements, other.movements...)
 }
 
 type textKey struct {
@@ -51,9 +71,13 @@ type Parser struct {
 	peek2Token              token.Token
 	peek3Token              token.Token
 	peek4Token              token.Token
+	implicitData            impData
 	inlineTexts             []ast.Text
 	inlineTextsSet          map[textKey]string
 	inlineTextCounts        map[string]int
+	inlineMovements         []*ast.MovementStatement
+	inlineMovementsSet      map[string]string
+	inlineMovementCounts    map[string]int
 	textStatements          []*ast.TextStatement
 	breakStack              []ast.Statement
 	continueStack           []ast.Statement
@@ -71,9 +95,13 @@ type Parser struct {
 func New(l *lexer.Lexer, commandConfig CommandConfig, fontConfigFilepath, defaultFontID string, maxLineLength int, compileSwitches map[string]string) *Parser {
 	p := &Parser{
 		l:                       l,
+		implicitData:            impData{},
 		inlineTexts:             make([]ast.Text, 0),
 		inlineTextsSet:          make(map[textKey]string),
 		inlineTextCounts:        make(map[string]int),
+		inlineMovements:         make([]*ast.MovementStatement, 0),
+		inlineMovementsSet:      make(map[string]string),
+		inlineMovementCounts:    make(map[string]int),
 		textStatements:          make([]*ast.TextStatement, 0),
 		commandConfig:           commandConfig,
 		fontConfigFilepath:      fontConfigFilepath,
@@ -162,7 +190,7 @@ func (p *Parser) expectPeek(expectedType token.Type) error {
 	return NewParseError(p.peekToken, fmt.Sprintf("expected next token to be '%s', got '%s' instead", expectedType, p.peekToken.Literal))
 }
 
-func (p *Parser) expectPeekVarOrAutoVar(scriptName string) (*string, *ast.CommandStatement, []impText, error) {
+func (p *Parser) expectPeekVarOrAutoVar(scriptName string) (*string, *ast.CommandStatement, *impData, error) {
 	if p.peekTokenIs(token.VAR) {
 		p.nextToken()
 		if err := p.expectPeek(token.LPAREN); err != nil {
@@ -174,7 +202,7 @@ func (p *Parser) expectPeekVarOrAutoVar(scriptName string) (*string, *ast.Comman
 	if cmd, ok := p.commandConfig.AutoVarCommands[p.peekToken.Literal]; ok {
 		p.nextToken()
 		commandToken := p.curToken
-		commandStmt, implicitTexts, err := p.parseCommandStatement(scriptName)
+		commandStmt, impData, err := p.parseCommandStatement(scriptName)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -185,7 +213,7 @@ func (p *Parser) expectPeekVarOrAutoVar(scriptName string) (*string, *ast.Comman
 			}
 			varName = commandStmt.Args[*cmd.VarNameArgPosition]
 		}
-		return &varName, commandStmt, implicitTexts, err
+		return &varName, commandStmt, impData, err
 	}
 
 	return nil, nil, nil, NewParseError(p.peekToken, fmt.Sprintf("expected next token to be '%s' or auto-var command, got '%s' instead", token.VAR, p.peekToken.Literal))
@@ -203,10 +231,16 @@ func getImplicitTextLabel(scriptName string, i int) string {
 	return fmt.Sprintf("%s_Text_%d", scriptName, i)
 }
 
+func getImplicitMovementLabel(scriptName string, i int) string {
+	return fmt.Sprintf("%s_Movement_%d", scriptName, i)
+}
+
 // ParseProgram parses a Poryscript file into an AST.
 func (p *Parser) ParseProgram() (*ast.Program, error) {
 	p.inlineTexts = make([]ast.Text, 0)
 	p.inlineTextsSet = make(map[textKey]string)
+	p.inlineMovements = make([]*ast.MovementStatement, 0)
+	p.inlineMovementsSet = make(map[string]string)
 	p.textStatements = make([]*ast.TextStatement, 0)
 	program := &ast.Program{
 		TopLevelStatements: []ast.Statement{},
@@ -244,17 +278,35 @@ func (p *Parser) ParseProgram() (*ast.Program, error) {
 		names[text.Name] = struct{}{}
 	}
 
+	// Build list of Movements from both inline and explicit movements.
+	// Generate error if there are any name clashes.
+	for _, m := range p.inlineMovements {
+		program.TopLevelStatements = append(program.TopLevelStatements, m)
+	}
+	movementNames := make(map[string]*ast.MovementStatement, 0)
+	for _, stmt := range program.TopLevelStatements {
+		// TODO: checking for token.MOVEMENT is a hack--it's just used to differentiate explicit vs. implicit movement statements
+		// that exists as the program's top level statements.
+		if movementStmt, ok := stmt.(*ast.MovementStatement); ok {
+			movementName := movementStmt.Name.Value
+			if existingStmt, ok := movementNames[movementName]; ok {
+				return nil, NewParseError(existingStmt.Token, fmt.Sprintf("duplicate movement label '%s'. Choose a unique label that won't clash with the auto-generated movement labels", movementName))
+			}
+			movementNames[movementName] = movementStmt
+		}
+	}
+
 	return program, nil
 }
 
 func (p *Parser) parseTopLevelStatement() (ast.Statement, error) {
 	switch p.curToken.Type {
 	case token.SCRIPT:
-		statement, implicitTexts, err := p.parseScriptStatement()
+		statement, impData, err := p.parseScriptStatement()
 		if err != nil {
 			return nil, err
 		}
-		p.addImplicitTexts(implicitTexts)
+		p.addImplicitData(impData)
 		return statement, nil
 	case token.RAW:
 		statement, err := p.parseRawStatement()
@@ -281,11 +333,11 @@ func (p *Parser) parseTopLevelStatement() (ast.Statement, error) {
 		}
 		return statement, nil
 	case token.MAPSCRIPTS:
-		statement, implicitTexts, err := p.parseMapscriptsStatement()
+		statement, impData, err := p.parseMapscriptsStatement()
 		if err != nil {
 			return nil, err
 		}
-		p.addImplicitTexts(implicitTexts)
+		p.addImplicitData(impData)
 		return statement, nil
 	case token.CONST:
 		err := p.parseConstant()
@@ -295,8 +347,16 @@ func (p *Parser) parseTopLevelStatement() (ast.Statement, error) {
 	return nil, NewParseError(p.curToken, fmt.Sprintf("could not parse top-level statement for '%s'", p.curToken.Literal))
 }
 
-func (p *Parser) addImplicitTexts(implicitTexts []impText) {
-	for _, t := range implicitTexts {
+func (p *Parser) addImplicitData(implicitData *impData) {
+	if implicitData == nil {
+		return
+	}
+	p.addImplicitTexts(implicitData.texts)
+	p.addImplicitMovements(implicitData.movements)
+}
+
+func (p *Parser) addImplicitTexts(texts []impText) {
+	for _, t := range texts {
 		key := textKey{value: t.text.Literal, strType: t.stringType}
 		if textLabel, ok := p.inlineTextsSet[key]; ok {
 			t.command.Args[t.argPos] = textLabel
@@ -311,6 +371,36 @@ func (p *Parser) addImplicitTexts(implicitTexts []impText) {
 				Token:      t.text,
 				StringType: t.stringType,
 				IsGlobal:   false,
+			})
+		}
+	}
+}
+
+func getMovementsKey(movements []token.Token) string {
+	var sb strings.Builder
+	for _, m := range movements {
+		sb.WriteString(fmt.Sprintf("%s:", m.Literal))
+	}
+	return sb.String()
+}
+
+func (p *Parser) addImplicitMovements(movements []impMovement) {
+	for _, m := range movements {
+		key := getMovementsKey(m.movements)
+		if label, ok := p.inlineMovementsSet[key]; ok {
+			m.command.Args[m.argPos] = label
+		} else {
+			label := getImplicitMovementLabel(m.scriptName, p.inlineMovementCounts[m.scriptName])
+			m.command.Args[m.argPos] = label
+			p.inlineMovementCounts[m.scriptName]++
+			p.inlineMovementsSet[key] = label
+			p.inlineMovements = append(p.inlineMovements, &ast.MovementStatement{
+				Token: m.command.Token,
+				Name: &ast.Identifier{
+					Value: label,
+				},
+				MovementCommands: m.movements,
+				Scope:            token.LOCAL,
 			})
 		}
 	}
@@ -334,7 +424,7 @@ func (p *Parser) parseScopeModifier(defaultScope token.Type) (token.Type, error)
 	return scope, nil
 }
 
-func (p *Parser) parseScriptStatement() (*ast.ScriptStatement, []impText, error) {
+func (p *Parser) parseScriptStatement() (*ast.ScriptStatement, *impData, error) {
 	statement := &ast.ScriptStatement{Token: p.curToken}
 	scope, err := p.parseScopeModifier(token.GLOBAL)
 	if err != nil {
@@ -357,67 +447,67 @@ func (p *Parser) parseScriptStatement() (*ast.ScriptStatement, []impText, error)
 	braceToken := p.curToken
 	p.nextToken()
 
-	blockStmt, implicitTexts, err := p.parseBlockStatement(statement.Name.Value, braceToken)
+	blockStmt, impData, err := p.parseBlockStatement(statement.Name.Value, braceToken)
 	if err != nil {
 		return nil, nil, err
 	}
 	statement.Body = blockStmt
-	return statement, implicitTexts, nil
+	return statement, impData, nil
 }
 
-func (p *Parser) parseBlockStatement(scriptName string, startToken token.Token) (*ast.BlockStatement, []impText, error) {
+func (p *Parser) parseBlockStatement(scriptName string, startToken token.Token) (*ast.BlockStatement, *impData, error) {
 	block := &ast.BlockStatement{
 		Token:      p.curToken,
 		Statements: []ast.Statement{},
 	}
-	implicitTexts := make([]impText, 0)
+	impData := &impData{}
 
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.EOF {
 			return nil, nil, NewParseError(startToken, "missing closing curly brace for block statement")
 		}
 
-		statements, stmtTexts, err := p.parseStatement(scriptName)
+		statements, stmtImpData, err := p.parseStatement(scriptName)
 		if err != nil {
 			return nil, nil, err
 		}
-		implicitTexts = append(implicitTexts, stmtTexts...)
+		impData.add(stmtImpData)
 
 		block.Statements = append(block.Statements, statements...)
 		p.nextToken()
 	}
 
-	return block, implicitTexts, nil
+	return block, impData, nil
 }
 
-func (p *Parser) parseSwitchBlockStatement(scriptName string, startToken token.Token) (*ast.BlockStatement, []impText, error) {
+func (p *Parser) parseSwitchBlockStatement(scriptName string, startToken token.Token) (*ast.BlockStatement, *impData, error) {
 	block := &ast.BlockStatement{
 		Token:      p.curToken,
 		Statements: []ast.Statement{},
 	}
-	implicitTexts := make([]impText, 0)
+	impData := &impData{}
 
 	for p.curToken.Type != token.RBRACE && p.curToken.Type != token.CASE && p.curToken.Type != token.DEFAULT {
 		if p.curToken.Type == token.EOF {
 			return nil, nil, NewRangeParseError(startToken, p.curToken, "missing end for switch case body")
 		}
 
-		statements, stmtTexts, err := p.parseStatement(scriptName)
+		statements, stmtImpData, err := p.parseStatement(scriptName)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		implicitTexts = append(implicitTexts, stmtTexts...)
+		impData.add(stmtImpData)
 		block.Statements = append(block.Statements, statements...)
 		p.nextToken()
 	}
 
-	return block, implicitTexts, nil
+	return block, impData, nil
 }
 
-func (p *Parser) parseStatement(scriptName string) ([]ast.Statement, []impText, error) {
+func (p *Parser) parseStatement(scriptName string) ([]ast.Statement, *impData, error) {
 	statements := make([]ast.Statement, 0, 1)
-	var implicitTexts []impText
+	var impData *impData
 	var err error
 	var statement ast.Statement
 	var preambleStatement *ast.CommandStatement
@@ -427,17 +517,17 @@ func (p *Parser) parseStatement(scriptName string) ([]ast.Statement, []impText, 
 		if label != nil {
 			statements = append(statements, label)
 		} else {
-			statement, implicitTexts, err = p.parseCommandStatement(scriptName)
+			statement, impData, err = p.parseCommandStatement(scriptName)
 			statements = append(statements, statement)
 		}
 	case token.IF:
-		statement, implicitTexts, err = p.parseIfStatement(scriptName)
+		statement, impData, err = p.parseIfStatement(scriptName)
 		statements = append(statements, statement)
 	case token.WHILE:
-		statement, implicitTexts, err = p.parseWhileStatement(scriptName)
+		statement, impData, err = p.parseWhileStatement(scriptName)
 		statements = append(statements, statement)
 	case token.DO:
-		statement, implicitTexts, err = p.parseDoWhileStatement(scriptName)
+		statement, impData, err = p.parseDoWhileStatement(scriptName)
 		statements = append(statements, statement)
 	case token.BREAK:
 		statement, err = p.parseBreakStatement(scriptName)
@@ -446,14 +536,14 @@ func (p *Parser) parseStatement(scriptName string) ([]ast.Statement, []impText, 
 		statement, err = p.parseContinueStatement(scriptName)
 		statements = append(statements, statement)
 	case token.SWITCH:
-		statement, preambleStatement, implicitTexts, err = p.parseSwitchStatement(scriptName)
+		statement, preambleStatement, impData, err = p.parseSwitchStatement(scriptName)
 		if preambleStatement != nil {
 			statements = append(statements, preambleStatement)
 		}
 		statements = append(statements, statement)
 	case token.PORYSWITCH:
 		var stmts []ast.Statement
-		stmts, implicitTexts, err = p.parsePoryswitchStatement(scriptName)
+		stmts, impData, err = p.parsePoryswitchStatement(scriptName)
 		statements = append(statements, stmts...)
 	default:
 		err = NewParseError(p.curToken, fmt.Sprintf("could not parse statement for '%s'", p.curToken.Literal))
@@ -463,10 +553,10 @@ func (p *Parser) parseStatement(scriptName string) ([]ast.Statement, []impText, 
 		return nil, nil, err
 	}
 
-	return statements, implicitTexts, nil
+	return statements, impData, nil
 }
 
-func (p *Parser) parseCommandStatement(scriptName string) (*ast.CommandStatement, []impText, error) {
+func (p *Parser) parseCommandStatement(scriptName string) (*ast.CommandStatement, *impData, error) {
 	command := &ast.CommandStatement{
 		Token: p.curToken,
 		Name: &ast.Identifier{
@@ -476,7 +566,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (*ast.CommandStatement
 		Args: []string{},
 	}
 
-	implicitTexts := make([]impText, 0)
+	impData := &impData{}
 
 	if p.peekTokenIs(token.LPAREN) {
 		p.nextToken()
@@ -504,7 +594,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (*ast.CommandStatement
 					return nil, nil, err
 				}
 				strToken.Literal = p.formatTextTerminator(strValue, strType)
-				implicitTexts = append(implicitTexts, impText{
+				impData.texts = append(impData.texts, impText{
 					command:    command,
 					argPos:     len(command.Args),
 					text:       strToken,
@@ -515,7 +605,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (*ast.CommandStatement
 			} else if p.curToken.Type == token.STRING {
 				strToken := p.curToken
 				strToken.Literal = p.formatTextTerminator(p.curToken.Literal, "")
-				implicitTexts = append(implicitTexts, impText{
+				impData.texts = append(impData.texts, impText{
 					command:    command,
 					argPos:     len(command.Args),
 					text:       strToken,
@@ -530,11 +620,23 @@ func (p *Parser) parseCommandStatement(scriptName string) (*ast.CommandStatement
 				}
 				strToken := p.curToken
 				strToken.Literal = p.formatTextTerminator(p.curToken.Literal, stringType)
-				implicitTexts = append(implicitTexts, impText{
+				impData.texts = append(impData.texts, impText{
 					command:    command,
 					argPos:     len(command.Args),
 					text:       strToken,
 					stringType: stringType,
+					scriptName: scriptName,
+				})
+				argParts = append(argParts, "")
+			} else if p.curToken.Type == token.MOVES {
+				movements, err := p.parseMovesOperator()
+				if err != nil {
+					return nil, nil, err
+				}
+				impData.movements = append(impData.movements, impMovement{
+					command:    command,
+					argPos:     len(command.Args),
+					movements:  movements,
 					scriptName: scriptName,
 				})
 				argParts = append(argParts, "")
@@ -551,7 +653,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (*ast.CommandStatement
 		}
 	}
 
-	return command, implicitTexts, nil
+	return command, impData, nil
 }
 
 func (p *Parser) tryParseLabelStatement() *ast.LabelStatement {
@@ -776,7 +878,7 @@ func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
 		return nil, NewRangeParseError(statement.Token, p.peekToken, fmt.Sprintf("missing opening curly brace for movement '%s'", statement.Name.Value))
 	}
 	p.nextToken()
-	statement.MovementCommands, err = parseMovementValue(p, true)
+	statement.MovementCommands, err = parseMovementValue(p, true, token.RBRACE)
 	if err != nil {
 		return nil, err
 	}
@@ -786,11 +888,13 @@ func (p *Parser) parseMovementStatement() (*ast.MovementStatement, error) {
 
 type poryswitchListValueParser func(p *Parser, allowMultiple bool) ([]token.Token, error)
 
-func parseMovementValue(p *Parser, allowMultiple bool) ([]token.Token, error) {
+func parseMovementValue(p *Parser, allowMultiple bool, closingToken token.Type) ([]token.Token, error) {
 	movementCommands := make([]token.Token, 0)
-	for p.curToken.Type != token.RBRACE {
+	for p.curToken.Type != closingToken {
 		if p.curToken.Type == token.PORYSWITCH {
-			poryswitchCommands, err := p.parsePoryswitchListStatement(parseMovementValue)
+			poryswitchCommands, err := p.parsePoryswitchListStatement(func(p *Parser, allowMultiple bool) ([]token.Token, error) {
+				return parseMovementValue(p, allowMultiple, closingToken)
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -822,6 +926,9 @@ func parseMovementValue(p *Parser, allowMultiple bool) ([]token.Token, error) {
 			} else {
 				movementCommands = append(movementCommands, moveCommand)
 			}
+		} else if p.curToken.Type == token.COMMA {
+			// just ignore commas, since that will probably be a common occurence
+			p.nextToken()
 		} else {
 			return nil, NewParseError(p.curToken, fmt.Sprintf("expected movement command, but got '%s' instead", p.curToken.Literal))
 		}
@@ -943,7 +1050,7 @@ func parseMartValue(p *Parser, allowMultiple bool) ([]token.Token, error) {
 	return martCommands, nil
 }
 
-func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText, error) {
+func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, *impData, error) {
 	scope, err := p.parseScopeModifier(token.GLOBAL)
 	if err != nil {
 		return nil, nil, err
@@ -963,7 +1070,7 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 		TableMapScripts: []ast.TableMapScript{},
 		Scope:           scope,
 	}
-	implicitTexts := make([]impText, 0)
+	impData := &impData{}
 
 	if err := p.expectPeek(token.LBRACE); err != nil {
 		return nil, nil, NewRangeParseError(mapscriptsToken, p.peekToken, fmt.Sprintf("missing opening curly brace for mapscripts '%s'", statement.Name.Value))
@@ -990,11 +1097,11 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 			braceToken := p.curToken
 			p.nextToken()
 			scriptName := fmt.Sprintf("%s_%s", statement.Name.Value, mapScriptTypeToken.Literal)
-			blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName, braceToken)
+			blockStmt, stmtImpData, err := p.parseBlockStatement(scriptName, braceToken)
 			if err != nil {
 				return nil, nil, err
 			}
-			implicitTexts = append(implicitTexts, stmtTexts...)
+			impData.add(stmtImpData)
 			statement.MapScripts = append(statement.MapScripts, ast.MapScript{
 				Type: mapScriptTypeToken,
 				Name: scriptName,
@@ -1063,11 +1170,11 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 					braceToken := p.curToken
 					p.nextToken()
 					scriptName := fmt.Sprintf("%s_%s_%d", statement.Name.Value, mapScriptTypeToken.Literal, i)
-					blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName, braceToken)
+					blockStmt, stmtImpData, err := p.parseBlockStatement(scriptName, braceToken)
 					if err != nil {
 						return nil, nil, err
 					}
-					implicitTexts = append(implicitTexts, stmtTexts...)
+					impData.add(stmtImpData)
 					tableEntries = append(tableEntries, ast.TableMapScriptEntry{
 						Condition:  conditionToken,
 						Comparison: comparisonValue,
@@ -1093,7 +1200,20 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, []impText
 		}
 	}
 
-	return statement, implicitTexts, nil
+	return statement, impData, nil
+}
+func (p *Parser) parseMovesOperator() ([]token.Token, error) {
+	if err := p.expectPeek(token.LPAREN); err != nil {
+		return nil, NewParseError(p.curToken, "moves operator must begin with an open parenthesis '('")
+	}
+
+	p.nextToken()
+	moveTokens, err := parseMovementValue(p, true, token.RPAREN)
+	if err != nil {
+		return nil, err
+	}
+
+	return moveTokens, nil
 }
 
 const (
@@ -1273,28 +1393,28 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 	return textToken, formatted, stringType, nil
 }
 
-func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, []impText, error) {
+func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, *impData, error) {
 	statement := &ast.IfStatement{
 		Token: p.curToken,
 	}
-	implicitTexts := make([]impText, 0)
+	impData := &impData{}
 
 	// First if statement condition
-	consequence, stmtTexts, err := p.parseConditionExpression(scriptName, true)
+	consequence, stmtImpData, err := p.parseConditionExpression(scriptName, true)
 	if err != nil {
 		return nil, nil, err
 	}
-	implicitTexts = append(implicitTexts, stmtTexts...)
+	impData.add(stmtImpData)
 	statement.Consequence = consequence
 
 	// Possibly-many elif conditions
 	for p.peekToken.Type == token.ELSEIF {
 		p.nextToken()
-		consequence, stmtTexts, err := p.parseConditionExpression(scriptName, true)
+		consequence, stmtImpData, err := p.parseConditionExpression(scriptName, true)
 		if err != nil {
 			return nil, nil, err
 		}
-		implicitTexts = append(implicitTexts, stmtTexts...)
+		impData.add(stmtImpData)
 		statement.ElifConsequences = append(statement.ElifConsequences, consequence)
 	}
 
@@ -1306,43 +1426,43 @@ func (p *Parser) parseIfStatement(scriptName string) (*ast.IfStatement, []impTex
 		}
 		braceToken := p.curToken
 		p.nextToken()
-		blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName, braceToken)
+		blockStmt, stmtImpData, err := p.parseBlockStatement(scriptName, braceToken)
 		if err != nil {
 			return nil, nil, err
 		}
-		implicitTexts = append(implicitTexts, stmtTexts...)
+		impData.add(stmtImpData)
 		statement.ElseConsequence = blockStmt
 	}
 
-	return statement, implicitTexts, nil
+	return statement, impData, nil
 }
 
-func (p *Parser) parseWhileStatement(scriptName string) (*ast.WhileStatement, []impText, error) {
+func (p *Parser) parseWhileStatement(scriptName string) (*ast.WhileStatement, *impData, error) {
 	statement := &ast.WhileStatement{
 		Token: p.curToken,
 	}
-	implicitTexts := make([]impText, 0)
+	impData := &impData{}
 	p.pushBreakStack(statement)
 	p.pushContinueStack(statement)
 
 	// while statement condition
-	consequence, stmtTexts, err := p.parseConditionExpression(scriptName, false)
+	consequence, stmtImpData, err := p.parseConditionExpression(scriptName, false)
 	if err != nil {
 		return nil, nil, err
 	}
-	implicitTexts = append(implicitTexts, stmtTexts...)
+	impData.add(stmtImpData)
 	p.popBreakStack()
 	p.popContinueStack()
 	statement.Consequence = consequence
 
-	return statement, implicitTexts, nil
+	return statement, impData, nil
 }
 
-func (p *Parser) parseDoWhileStatement(scriptName string) (*ast.DoWhileStatement, []impText, error) {
+func (p *Parser) parseDoWhileStatement(scriptName string) (*ast.DoWhileStatement, *impData, error) {
 	statement := &ast.DoWhileStatement{
 		Token: p.curToken,
 	}
-	implicitTexts := make([]impText, 0)
+	impData := &impData{}
 
 	p.pushBreakStack(statement)
 	p.pushContinueStack(statement)
@@ -1353,11 +1473,11 @@ func (p *Parser) parseDoWhileStatement(scriptName string) (*ast.DoWhileStatement
 	}
 	braceToken := p.curToken
 	p.nextToken()
-	blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName, braceToken)
+	blockStmt, stmtImpData, err := p.parseBlockStatement(scriptName, braceToken)
 	if err != nil {
 		return nil, nil, err
 	}
-	implicitTexts = append(implicitTexts, stmtTexts...)
+	impData.add(stmtImpData)
 	expression.Body = blockStmt
 	p.popBreakStack()
 	p.popContinueStack()
@@ -1369,14 +1489,14 @@ func (p *Parser) parseDoWhileStatement(scriptName string) (*ast.DoWhileStatement
 		return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing '(' to start condition for do...while statement")
 	}
 
-	boolExpression, expressionTexts, err := p.parseBooleanExpression(false, false, scriptName)
+	boolExpression, expressionImpData, err := p.parseBooleanExpression(false, false, scriptName)
 	if err != nil {
 		return nil, nil, err
 	}
-	implicitTexts = append(implicitTexts, expressionTexts...)
+	impData.add(expressionImpData)
 	expression.Expression = boolExpression
 	statement.Consequence = expression
-	return statement, implicitTexts, nil
+	return statement, impData, nil
 }
 
 func (p *Parser) parseBreakStatement(scriptName string) (*ast.BreakStatement, error) {
@@ -1409,12 +1529,12 @@ func (p *Parser) parseContinueStatement(scriptName string) (*ast.ContinueStateme
 	return statement, nil
 }
 
-func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, *ast.CommandStatement, []impText, error) {
+func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, *ast.CommandStatement, *impData, error) {
 	statement := &ast.SwitchStatement{
 		Token: p.curToken,
 		Cases: []*ast.SwitchCase{},
 	}
-	implicitTexts := make([]impText, 0)
+	resultImpData := &impData{}
 	p.pushBreakStack(statement)
 	originalToken := p.curToken
 
@@ -1424,11 +1544,11 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 	}
 	var autoVarOperand *string
 	var preambleStatement *ast.CommandStatement
-	var autovarTexts []impText
-	if autoVarOperand, preambleStatement, autovarTexts, err = p.expectPeekVarOrAutoVar(scriptName); err != nil {
+	var autovarImpData *impData
+	if autoVarOperand, preambleStatement, autovarImpData, err = p.expectPeekVarOrAutoVar(scriptName); err != nil {
 		return nil, nil, nil, err
 	}
-	implicitTexts = append(implicitTexts, autovarTexts...)
+	resultImpData.add(autovarImpData)
 
 	if autoVarOperand == nil {
 		p.nextToken()
@@ -1482,11 +1602,11 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 			caseValues[caseValue] = true
 			p.nextToken()
 
-			body, stmtTexts, err := p.parseSwitchBlockStatement(scriptName, braceToken)
+			body, stmtImpData, err := p.parseSwitchBlockStatement(scriptName, braceToken)
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			implicitTexts = append(implicitTexts, stmtTexts...)
+			resultImpData.add(stmtImpData)
 			caseValueToken.Literal = caseValue
 			statement.Cases = append(statement.Cases, &ast.SwitchCase{
 				Value: caseValueToken,
@@ -1500,11 +1620,11 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 				return nil, nil, nil, NewParseError(p.curToken, "missing `:` after default")
 			}
 			p.nextToken()
-			body, stmtTexts, err := p.parseSwitchBlockStatement(scriptName, braceToken)
+			body, stmtImpData, err := p.parseSwitchBlockStatement(scriptName, braceToken)
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			implicitTexts = append(implicitTexts, stmtTexts...)
+			resultImpData.add(stmtImpData)
 			statement.Cases = append(statement.Cases, &ast.SwitchCase{
 				IsDefault: true,
 				Body:      body,
@@ -1523,22 +1643,22 @@ func (p *Parser) parseSwitchStatement(scriptName string) (*ast.SwitchStatement, 
 		return nil, nil, nil, NewRangeParseError(statement.Token, p.curToken, "switch statement has no cases or default case")
 	}
 
-	return statement, preambleStatement, implicitTexts, nil
+	return statement, preambleStatement, resultImpData, nil
 }
 
-func (p *Parser) parseConditionExpression(scriptName string, requireExpression bool) (*ast.ConditionExpression, []impText, error) {
+func (p *Parser) parseConditionExpression(scriptName string, requireExpression bool) (*ast.ConditionExpression, *impData, error) {
 	expression := &ast.ConditionExpression{}
-	implicitTexts := make([]impText, 0)
+	impData := &impData{}
 
 	if requireExpression || !p.peekTokenIs(token.LBRACE) {
 		if err := p.expectPeek(token.LPAREN); err != nil {
 			return nil, nil, NewRangeParseError(p.curToken, p.peekToken, "missing '(' to start boolean expression")
 		}
-		boolExpression, expressionTexts, err := p.parseBooleanExpression(false, false, scriptName)
+		boolExpression, expressionImpData, err := p.parseBooleanExpression(false, false, scriptName)
 		if err != nil {
 			return nil, nil, err
 		}
-		implicitTexts = append(implicitTexts, expressionTexts...)
+		impData.add(expressionImpData)
 		expression.Expression = boolExpression
 	}
 	if err := p.expectPeek(token.LBRACE); err != nil {
@@ -1547,17 +1667,17 @@ func (p *Parser) parseConditionExpression(scriptName string, requireExpression b
 	braceToken := p.curToken
 	p.nextToken()
 
-	blockStmt, stmtTexts, err := p.parseBlockStatement(scriptName, braceToken)
+	blockStmt, stmtImpData, err := p.parseBlockStatement(scriptName, braceToken)
 	if err != nil {
 		return nil, nil, err
 	}
-	implicitTexts = append(implicitTexts, stmtTexts...)
+	impData.add(stmtImpData)
 	expression.Body = blockStmt
-	return expression, implicitTexts, nil
+	return expression, impData, nil
 }
 
-func (p *Parser) parseBooleanExpression(single bool, negated bool, scriptName string) (ast.BooleanExpression, []impText, error) {
-	implicitTexts := make([]impText, 0)
+func (p *Parser) parseBooleanExpression(single bool, negated bool, scriptName string) (ast.BooleanExpression, *impData, error) {
+	impData := &impData{}
 	nested := p.peekTokenIs(token.LPAREN)
 	negatedNested := p.peekTokenIs(token.NOT) && p.peek2TokenIs(token.LPAREN)
 	if nested || negatedNested {
@@ -1572,45 +1692,45 @@ func (p *Parser) parseBooleanExpression(single bool, negated bool, scriptName st
 			p.nextToken()
 			negatedNested = !negated
 		}
-		nestedExpression, expressionTexts, err := p.parseBooleanExpression(false, negatedNested, scriptName)
+		nestedExpression, expressionImpData, err := p.parseBooleanExpression(false, negatedNested, scriptName)
 		if err != nil {
 			return nil, nil, err
 		}
-		implicitTexts = append(implicitTexts, expressionTexts...)
+		impData.add(expressionImpData)
 		if p.curToken.Type != token.RPAREN {
 			return nil, nil, NewRangeParseError(openToken, p.curToken, "missing closing ')' for nested boolean expression")
 		}
 		if p.peekTokenIs(token.AND) || p.peekTokenIs(token.OR) {
 			p.nextToken()
-			rightExpression, rightTexts, err := p.parseRightSideExpression(nestedExpression, single, negated, scriptName)
+			rightExpression, rightImpData, err := p.parseRightSideExpression(nestedExpression, single, negated, scriptName)
 			if err != nil {
 				return nil, nil, err
 			}
-			implicitTexts = append(implicitTexts, rightTexts...)
-			return rightExpression, implicitTexts, nil
+			impData.add(rightImpData)
+			return rightExpression, impData, nil
 		}
 		p.nextToken()
-		return nestedExpression, implicitTexts, nil
+		return nestedExpression, impData, nil
 	}
 
-	leaf, leafTexts, err := p.parseLeafBooleanExpression(scriptName)
+	leaf, leafImpData, err := p.parseLeafBooleanExpression(scriptName)
 	if err != nil {
 		return nil, nil, err
 	}
-	implicitTexts = append(implicitTexts, leafTexts...)
+	impData.add(leafImpData)
 
 	if negated {
 		leaf.Operator = getNegatedBooleanOperator(leaf.Operator)
 	}
 	if single {
-		return leaf, implicitTexts, nil
+		return leaf, impData, nil
 	}
-	rightExpression, rightTexts, err := p.parseRightSideExpression(leaf, single, negated, scriptName)
+	rightExpression, rightImpData, err := p.parseRightSideExpression(leaf, single, negated, scriptName)
 	if err != nil {
 		return nil, nil, err
 	}
-	implicitTexts = append(implicitTexts, rightTexts...)
-	return rightExpression, implicitTexts, nil
+	impData.add(rightImpData)
+	return rightExpression, impData, nil
 }
 
 func getNegatedBooleanOperator(operator token.Type) token.Type {
@@ -1636,8 +1756,8 @@ func getNegatedBooleanOperator(operator token.Type) token.Type {
 	}
 }
 
-func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single bool, negated bool, scriptName string) (ast.BooleanExpression, []impText, error) {
-	implicitTexts := make([]impText, 0)
+func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single bool, negated bool, scriptName string) (ast.BooleanExpression, *impData, error) {
+	impData := &impData{}
 	curTokenType := p.curToken.Type
 	if negated {
 		curTokenType = getNegatedBooleanOperator(curTokenType)
@@ -1645,46 +1765,46 @@ func (p *Parser) parseRightSideExpression(left ast.BooleanExpression, single boo
 
 	if p.curToken.Type == token.AND {
 		operator := curTokenType
-		right, expressionTexts, err := p.parseBooleanExpression(true, negated, scriptName)
+		right, expressionImpData, err := p.parseBooleanExpression(true, negated, scriptName)
 		if err != nil {
 			return nil, nil, err
 		}
-		implicitTexts = append(implicitTexts, expressionTexts...)
+		impData.add(expressionImpData)
 		grouped := &ast.BinaryExpression{
 			Left:     left,
 			Operator: operator,
 			Right:    right,
 		}
 		if p.curToken.Literal == token.RPAREN {
-			return grouped, implicitTexts, nil
+			return grouped, impData, nil
 		}
 		operator = p.curToken.Type
 		if negated {
 			operator = getNegatedBooleanOperator(p.curToken.Type)
 		}
 		binaryExpression := &ast.BinaryExpression{Left: grouped, Operator: operator}
-		boolExpression, texts, err := p.parseBooleanExpression(false, negated, scriptName)
+		boolExpression, exprImpData, err := p.parseBooleanExpression(false, negated, scriptName)
 		if err != nil {
 			return nil, nil, err
 		}
-		implicitTexts = append(implicitTexts, texts...)
+		impData.add(exprImpData)
 		binaryExpression.Right = boolExpression
-		return binaryExpression, implicitTexts, nil
+		return binaryExpression, impData, nil
 	} else if p.curToken.Type == token.OR {
 		operator := curTokenType
-		right, texts, err := p.parseBooleanExpression(false, negated, scriptName)
+		right, exprImpData, err := p.parseBooleanExpression(false, negated, scriptName)
 		if err != nil {
 			return nil, nil, err
 		}
-		implicitTexts = append(implicitTexts, texts...)
+		impData.add(exprImpData)
 		binaryExpression := &ast.BinaryExpression{Left: left, Operator: operator, Right: right}
-		return binaryExpression, implicitTexts, nil
+		return binaryExpression, impData, nil
 	} else {
-		return left, implicitTexts, nil
+		return left, impData, nil
 	}
 }
 
-func (p *Parser) parseLeafBooleanExpression(scriptName string) (*ast.OperatorExpression, []impText, error) {
+func (p *Parser) parseLeafBooleanExpression(scriptName string) (*ast.OperatorExpression, *impData, error) {
 	// Left-side of binary expression must be a special condition statement.
 	usedNotOperator := false
 	operatorExpression := &ast.OperatorExpression{ComparisonValueType: ast.NormalComparison}
@@ -1699,7 +1819,7 @@ func (p *Parser) parseLeafBooleanExpression(scriptName string) (*ast.OperatorExp
 		return nil, nil, NewParseError(p.peekToken, fmt.Sprintf("left side of binary expression must be var(), flag(), defeated(), or autovar command. Instead, found '%s'", p.peekToken.Literal))
 	}
 
-	implicitTexts := make([]impText, 0)
+	resultImpData := &impData{}
 	var err error
 	if !isAutoVar {
 		p.nextToken()
@@ -1726,8 +1846,8 @@ func (p *Parser) parseLeafBooleanExpression(scriptName string) (*ast.OperatorExp
 	} else {
 		var autoVarOperand *string
 		var preambleStatement *ast.CommandStatement
-		var autoVarTexts []impText
-		if autoVarOperand, preambleStatement, autoVarTexts, err = p.expectPeekVarOrAutoVar(scriptName); err != nil {
+		var autoVarImpData *impData
+		if autoVarOperand, preambleStatement, autoVarImpData, err = p.expectPeekVarOrAutoVar(scriptName); err != nil {
 			return nil, nil, err
 		}
 		operatorExpression.Type = token.VAR
@@ -1736,7 +1856,7 @@ func (p *Parser) parseLeafBooleanExpression(scriptName string) (*ast.OperatorExp
 			Literal: *autoVarOperand,
 		}
 		operatorExpression.PreambleStatement = preambleStatement
-		implicitTexts = append(implicitTexts, autoVarTexts...)
+		resultImpData.add(autoVarImpData)
 	}
 
 	p.nextToken()
@@ -1765,7 +1885,7 @@ func (p *Parser) parseLeafBooleanExpression(scriptName string) (*ast.OperatorExp
 		}
 	}
 
-	return operatorExpression, implicitTexts, nil
+	return operatorExpression, resultImpData, nil
 }
 
 func (p *Parser) parseConditionVarOperator(expression *ast.OperatorExpression) error {
@@ -1873,13 +1993,13 @@ func (p *Parser) formatTextTerminator(text string, strType string) string {
 	return text
 }
 
-func (p *Parser) parsePoryswitchStatement(scriptName string) ([]ast.Statement, []impText, error) {
+func (p *Parser) parsePoryswitchStatement(scriptName string) ([]ast.Statement, *impData, error) {
 	startToken := p.curToken
 	switchCase, switchValue, err := p.parsePoryswitchHeader()
 	if err != nil {
 		return nil, nil, err
 	}
-	cases, caseTexts, err := p.parsePoryswitchStatementCases(scriptName)
+	cases, caseImpData, err := p.parsePoryswitchStatementCases(scriptName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1890,19 +2010,19 @@ func (p *Parser) parsePoryswitchStatement(scriptName string) ([]ast.Statement, [
 			return nil, nil, NewParseError(startToken, fmt.Sprintf("no poryswitch case found for '%s=%s', which was specified with the '-s' option", switchCase, switchValue))
 		}
 	}
-	implicitTexts, ok := caseTexts[switchValue]
+	impData, ok := caseImpData[switchValue]
 	if !ok {
-		implicitTexts, ok = caseTexts["_"]
+		impData, ok = caseImpData["_"]
 		if !ok && p.enableEnvironmentErrors {
 			return nil, nil, NewParseError(startToken, fmt.Sprintf("no poryswitch case found for '%s=%s', which was specified with the '-s' option", switchCase, switchValue))
 		}
 	}
-	return statements, implicitTexts, nil
+	return statements, impData, nil
 }
 
-func (p *Parser) parsePoryswitchStatementCases(scriptName string) (map[string][]ast.Statement, map[string][]impText, error) {
+func (p *Parser) parsePoryswitchStatementCases(scriptName string) (map[string][]ast.Statement, map[string]*impData, error) {
 	statementCases := make(map[string][]ast.Statement)
-	implicitTexts := make(map[string][]impText)
+	impDatas := make(map[string]*impData)
 	startToken := p.curToken
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.EOF {
@@ -1916,12 +2036,12 @@ func (p *Parser) parsePoryswitchStatementCases(scriptName string) (map[string][]
 		if p.curToken.Type == token.COLON || p.curToken.Type == token.LBRACE {
 			usedBrace := p.curToken.Type == token.LBRACE
 			p.nextToken()
-			statements, stmtTexts, err := p.parsePoryswitchStatements(scriptName, usedBrace)
+			statements, stmtImpData, err := p.parsePoryswitchStatements(scriptName, usedBrace)
 			if err != nil {
 				return nil, nil, err
 			}
 			statementCases[caseToken.Literal] = statements
-			implicitTexts[caseToken.Literal] = stmtTexts
+			impDatas[caseToken.Literal] = stmtImpData
 			if usedBrace {
 				if p.curToken.Type != token.RBRACE {
 					return nil, nil, NewParseError(caseToken, fmt.Sprintf("missing closing curly brace for poryswitch case '%s'", caseToken.Literal))
@@ -1932,35 +2052,35 @@ func (p *Parser) parsePoryswitchStatementCases(scriptName string) (map[string][]
 			return nil, nil, NewParseError(p.curToken, fmt.Sprintf("invalid token '%s' after poryswitch case '%s'. Expected ':' or '{'", p.curToken.Literal, caseToken.Literal))
 		}
 	}
-	return statementCases, implicitTexts, nil
+	return statementCases, impDatas, nil
 }
 
-func (p *Parser) parsePoryswitchStatements(scriptName string, allowMultiple bool) ([]ast.Statement, []impText, error) {
+func (p *Parser) parsePoryswitchStatements(scriptName string, allowMultiple bool) ([]ast.Statement, *impData, error) {
 	statements := make([]ast.Statement, 0)
-	implicitTexts := make([]impText, 0)
+	impData := &impData{}
 	for p.curToken.Type != token.RBRACE {
 		if p.curToken.Type == token.PORYSWITCH {
-			poryswitchStatements, stmtTexts, err := p.parsePoryswitchStatement(scriptName)
+			poryswitchStatements, stmtImpData, err := p.parsePoryswitchStatement(scriptName)
 			if err != nil {
 				return nil, nil, err
 			}
 			statements = append(statements, poryswitchStatements...)
-			implicitTexts = append(implicitTexts, stmtTexts...)
+			impData.add((stmtImpData))
 			p.nextToken()
 		} else {
-			stmts, stmtTexts, err := p.parseStatement(scriptName)
+			stmts, stmtImpData, err := p.parseStatement(scriptName)
 			if err != nil {
 				return nil, nil, err
 			}
 			statements = append(statements, stmts...)
-			implicitTexts = append(implicitTexts, stmtTexts...)
+			impData.add(stmtImpData)
 			p.nextToken()
 		}
 		if !allowMultiple {
 			break
 		}
 	}
-	return statements, implicitTexts, nil
+	return statements, impData, nil
 }
 
 func (p *Parser) parseConstant() error {

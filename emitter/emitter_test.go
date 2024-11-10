@@ -1642,7 +1642,12 @@ mapscripts PetalburgCity_MapScripts {
     MAP_SCRIPT_ON_FRAME_TABLE [
         VAR_TEMP_0, 0 {
             lockall
-            applymovement(EVENT_OBJ_ID_PLAYER, MyMovement0)
+            applymovement(EVENT_OBJ_ID_PLAYER, moves(
+				walk_left
+				walk_right
+				walk_left
+				walk_right
+			))
 	        waitmovement(0)
             setvar(VAR_TEMP_0, STATE)
             releaseall
@@ -1655,13 +1660,6 @@ mapscripts PetalburgCity_MapScripts {
         }
         VAR_TEMP_0, 2: PetalburgCity_MapScripts_OnResume
     ]
-}
-
-movement MyMovement0 {
-    walk_left
-    walk_right
-    walk_left
-    walk_right
 }
 
 script PetalburgCity_MapScripts_OnResume {
@@ -1712,7 +1710,7 @@ PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE:
 
 PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0:
 	lockall
-	applymovement EVENT_OBJ_ID_PLAYER, MyMovement0
+	applymovement EVENT_OBJ_ID_PLAYER, PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0_Movement_0
 	waitmovement 0
 	setvar VAR_TEMP_0, 1
 	releaseall
@@ -1725,13 +1723,6 @@ PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1:
 	release
 	return
 
-
-MyMovement0:
-	walk_left
-	walk_right
-	walk_left
-	walk_right
-	step_end
 
 PetalburgCity_MapScripts_OnResume::
 	lock
@@ -1749,6 +1740,13 @@ PetalburgCity_MapScripts_OnResume_3:
 	goto_if_set FLAG_1, PetalburgCity_MapScripts_OnResume_2
 	goto PetalburgCity_MapScripts_OnResume_1
 
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0_Movement_0:
+	walk_left
+	walk_right
+	walk_left
+	walk_right
+	step_end
 
 PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	.string "Haha it worked! This should make writing\n"
@@ -1794,7 +1792,7 @@ PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE:
 
 PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0:
 	lockall
-	applymovement EVENT_OBJ_ID_PLAYER, MyMovement0
+	applymovement EVENT_OBJ_ID_PLAYER, PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0_Movement_0
 	waitmovement 0
 	setvar VAR_TEMP_0, 1
 	releaseall
@@ -1808,13 +1806,6 @@ PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1:
 	return
 
 
-MyMovement0:
-	walk_left
-	walk_right
-	walk_left
-	walk_right
-	step_end
-
 PetalburgCity_MapScripts_OnResume::
 	lock
 	goto_if_set FLAG_1, PetalburgCity_MapScripts_OnResume_2
@@ -1826,6 +1817,13 @@ PetalburgCity_MapScripts_OnResume_2:
 	setvar VAR_TEMP_1, 1
 	goto PetalburgCity_MapScripts_OnResume_1
 
+
+PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_0_Movement_0:
+	walk_left
+	walk_right
+	walk_left
+	walk_right
+	step_end
 
 PetalburgCity_MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	.string "Haha it worked! This should make writing\n"
@@ -1860,6 +1858,8 @@ script ScriptWithMovement {
 	waitmovement(0)
 	applymovement(2, MovementWalk2)
 	waitmovement(0)
+	applymovement(2, moves(run_down * 2, face_left))
+	waitmovement(0)
 	applymovement(2, MovementWalk3)
 	waitmovement(0)
 	release
@@ -1893,6 +1893,8 @@ movement(global) MovementWalk3 {
 	waitmovement 0
 	applymovement 2, MovementWalk2
 	waitmovement 0
+	applymovement 2, ScriptWithMovement_Movement_0
+	waitmovement 0
 	applymovement 2, MovementWalk3
 	waitmovement 0
 	release
@@ -1919,6 +1921,12 @@ MovementWalk2:
 MovementWalk3::
 	run_left
 	run_left
+	step_end
+
+ScriptWithMovement_Movement_0:
+	run_down
+	run_down
+	face_left
 	step_end
 
 ScriptWithMovement_Text_0:
@@ -1932,6 +1940,8 @@ ScriptWithMovement_Text_0:
 	waitmovement 0
 	applymovement 2, MovementWalk2
 	waitmovement 0
+	applymovement 2, ScriptWithMovement_Movement_0
+	waitmovement 0
 	applymovement 2, MovementWalk3
 	waitmovement 0
 	release
@@ -1958,6 +1968,12 @@ MovementWalk2:
 MovementWalk3::
 	run_left
 	run_left
+	step_end
+
+ScriptWithMovement_Movement_0:
+	run_down
+	run_down
+	face_left
 	step_end
 
 ScriptWithMovement_Text_0:
@@ -2177,6 +2193,7 @@ mapscripts MapScripts {
 					setvar(VAR_TEMP_0, 2)
 					msgbox("ruby")
 					msgbox("ruby 2")
+					applymovement(0, moves(walk_up * 2))
 				}
 				SAPPHIRE {
 					setvar(VAR_TEMP_0, 5)
@@ -2199,9 +2216,11 @@ script MyScript {
 					DE: msgbox("Das ist Sapphire")
 					EN {
 						msgbox(format(ascii"This is Sapphire"))
+						applymovement(0, moves(walk_left face_up))
 					}
 				}
 			}
+			applymovement(0, moves(walk_down * 2, face_left))
 			msgbox("Another sapphire message")
 		}
 		_:
@@ -2258,6 +2277,7 @@ MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1:
 	setvar VAR_TEMP_0, 2
 	msgbox MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_1
 	msgbox MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_2
+	applymovement 0, MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Movement_0
 	release
 	return
 
@@ -2281,6 +2301,11 @@ MyMart:
 	.2byte ITEM_RUBY
 	.2byte ITEM_LAST
 	.2byte ITEM_NONE
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Movement_0:
+	walk_up
+	walk_up
+	step_end
 
 MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	.string "This script is inlined.$"
@@ -2313,6 +2338,7 @@ MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1:
 	setvar VAR_TEMP_0, 2
 	msgbox MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_1
 	msgbox MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_2
+	applymovement 0, MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Movement_0
 	release
 	return
 
@@ -2336,6 +2362,11 @@ MyMart:
 	.2byte ITEM_RUBY
 	.2byte ITEM_LAST
 	.2byte ITEM_NONE
+
+MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Movement_0:
+	walk_up
+	walk_up
+	step_end
 
 MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	.string "This script is inlined.$"
@@ -2375,6 +2406,7 @@ MyScript::
 	lock
 	goto_if_set FLAG_TEST, MyScript_2
 MyScript_1:
+	applymovement 0, MyScript_Movement_0
 	msgbox MyScript_Text_1
 	release
 	return
@@ -2397,6 +2429,12 @@ MyMart:
 	.2byte ITEM_SAPPHIRE
 	.2byte ITEM_BAR
 	.2byte ITEM_NONE
+
+MyScript_Movement_0:
+	walk_down
+	walk_down
+	face_left
+	step_end
 
 MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	.string "This script is inlined.$"
@@ -2436,12 +2474,14 @@ MyScript::
 	lock
 	goto_if_set FLAG_TEST, MyScript_2
 MyScript_1:
+	applymovement 0, MyScript_Movement_1
 	msgbox MyScript_Text_1
 	release
 	return
 
 MyScript_2:
 	msgbox MyScript_Text_0
+	applymovement 0, MyScript_Movement_0
 	goto MyScript_1
 
 
@@ -2458,6 +2498,17 @@ MyMart:
 	.2byte ITEM_SAPPHIRE
 	.2byte ITEM_BAR
 	.2byte ITEM_NONE
+
+MyScript_Movement_0:
+	walk_left
+	face_up
+	step_end
+
+MyScript_Movement_1:
+	walk_down
+	walk_down
+	face_left
+	step_end
 
 MapScripts_MAP_SCRIPT_ON_FRAME_TABLE_1_Text_0:
 	.string "This script is inlined.$"

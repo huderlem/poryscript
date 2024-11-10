@@ -712,6 +712,37 @@ script MyScript1 {
 	}
 }
 
+func TestDuplicateMovements(t *testing.T) {
+	input := `
+script Script1 {
+	applymovement(moves(walk_left * 2 walk_up face_down))
+	applymovement(moves(face_left walk_down walk_down))
+	applymovement(moves(walk_left * 2 walk_up face_down))
+}
+
+movement Movement1 {
+	face_left walk_down walk_down face_right
+}
+`
+	l := lexer.New(input)
+	p := New(l, CommandConfig{}, "", "", 0, nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	numMovementStatements := 0
+	for _, v := range program.TopLevelStatements {
+		if _, ok := v.(*ast.MovementStatement); ok {
+			numMovementStatements++
+		}
+	}
+
+	if numMovementStatements != 3 {
+		t.Fatalf("numMovementStatements != 3. Got '%d' instead.", numMovementStatements)
+	}
+}
+
 func TestFormatOperator(t *testing.T) {
 	input := `
 script MyScript1 {
@@ -798,6 +829,13 @@ movement MyMovement3 {
 	face_down
 	delay_16*2
 }
+
+script MyScript {
+	applymovement(moves(
+		walk_up * 4
+		face_left, face_down
+	))
+}
 `
 	l := lexer.New(input)
 	p := New(l, CommandConfig{}, "", "", 0, nil)
@@ -806,12 +844,13 @@ movement MyMovement3 {
 		t.Fatalf(err.Error())
 	}
 
-	if len(program.TopLevelStatements) != 3 {
-		t.Fatalf("len(program.TopLevelStatements) != 3. Got '%d' instead.", len(program.TopLevelStatements))
+	if len(program.TopLevelStatements) != 5 {
+		t.Fatalf("len(program.TopLevelStatements) != 5. Got '%d' instead.", len(program.TopLevelStatements))
 	}
 	testMovement(t, program.TopLevelStatements[0], "MyMovement", []string{"walk_up", "walk_down", "walk_left", "step_end"})
 	testMovement(t, program.TopLevelStatements[1], "MyMovement2", []string{})
 	testMovement(t, program.TopLevelStatements[2], "MyMovement3", []string{"run_up", "run_up", "run_up", "face_down", "delay_16", "delay_16"})
+	testMovement(t, program.TopLevelStatements[4], "MyScript_Movement_0", []string{"walk_up", "walk_up", "walk_up", "walk_up", "face_left", "face_down"})
 }
 
 func testMovement(t *testing.T, stmt ast.Statement, expectedName string, expectedCommands []string) {
@@ -1873,6 +1912,33 @@ text Script1_Text_0 {
 }`,
 			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 0, Utf8CharStart: 0, CharEnd: 4, Utf8CharEnd: 4, Message: "duplicate text label 'Script1_Text_0'. Choose a unique label that won't clash with the auto-generated text labels"},
 			expectedErrorMsg: "line 5: duplicate text label 'Script1_Text_0'. Choose a unique label that won't clash with the auto-generated text labels",
+		},
+		{
+			input: `
+script Script1 {
+	applymovent(moves(walk_up))
+}
+movement Script1_Movement_0 {
+	walk_down
+}`,
+			expectedError:    ParseError{LineNumberStart: 5, LineNumberEnd: 5, CharStart: 0, Utf8CharStart: 0, CharEnd: 8, Utf8CharEnd: 8, Message: "duplicate movement label 'Script1_Movement_0'. Choose a unique label that won't clash with the auto-generated movement labels"},
+			expectedErrorMsg: "line 5: duplicate movement label 'Script1_Movement_0'. Choose a unique label that won't clash with the auto-generated movement labels",
+		},
+		{
+			input: `
+script Script1 {
+	applymovent(moves walk_up)
+}`,
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 13, Utf8CharStart: 13, CharEnd: 18, Utf8CharEnd: 18, Message: "moves operator must begin with an open parenthesis '('"},
+			expectedErrorMsg: "line 3: moves operator must begin with an open parenthesis '('",
+		},
+		{
+			input: `
+script Script1 {
+	applymovent(moves(*))
+}`,
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 19, Utf8CharStart: 19, CharEnd: 20, Utf8CharEnd: 20, Message: "expected movement command, but got '*' instead"},
+			expectedErrorMsg: "line 3: expected movement command, but got '*' instead",
 		},
 		{
 			input: `
