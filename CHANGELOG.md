@@ -5,7 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+Nothing, yet.
+
+## [3.5.0] - 2024-11-10
 ### Added
+- Movement can now be inlined within commands using a special `moves()` operator, similar to text. For example:
+  ```
+  applymovement(OBJ_EVENT_ID_PLAYER, moves(
+      walk_left * 4
+      face_down
+  ))
+  ```
 - Print a warning message when `numLines` is missing from a font's config. Defaults to `numLines=2` in that case, rather than `0`.
 - Added `msgbox` to the default `command_config.json`, since `msgbox(.., MSGBOX_YESNO)` would be a very common use case.
 
@@ -169,7 +179,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/poryscript/compare/3.4.0...HEAD
+[Unreleased]: https://github.com/huderlem/poryscript/compare/3.5.0...HEAD
+[3.5.0]: https://github.com/huderlem/poryscript/compare/3.4.0...3.5.0
 [3.4.0]: https://github.com/huderlem/poryscript/compare/3.3.0...3.4.0
 [3.3.0]: https://github.com/huderlem/poryscript/compare/3.2.0...3.3.0
 [3.2.0]: https://github.com/huderlem/poryscript/compare/3.1.0...3.2.0
