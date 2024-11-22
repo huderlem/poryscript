@@ -8,32 +8,34 @@ func TestFormatText(t *testing.T) {
 		cursorOverlapWidth int
 		inputText          string
 		expected           string
+		numLines           int
 	}{
-		{40, 0, "", ""},
-		{40, 0, "Hello", "Hello"},
-		{100, 0, "Foo bar", "Foo bar"},
-		{140, 0, "Foo {MUS} baz", "Foo {MUS}\\n\nbaz"},
-		{139, 0, "Foo {MUS} baz", "Foo\\n\n{MUS}\\l\nbaz"},
-		{40, 0, "ßŒœ ♂Üあ   ", "ßŒœ\\n\n♂Üあ"},
-		{40, 0, "   Foo    bar          baz  baz2", "Foo\\n\nbar\\l\nbaz\\l\nbaz2"},
-		{100, 0, `Hello.\pI am writing a test.`, "Hello.\\p\nI am\\n\nwriting a\\l\ntest."},
-		{100, 0, `Hello.\nI am writing a longer \l“test.”`, "Hello.\\n\nI am\\l\nwriting a\\l\nlonger\\l\n“test.”"},
-		{190, 0, `First\nSecond Third Fourth`, "First\\n\nSecond Third Fourth"},
-		{190, 1, `First\nSecond Third Fourth`, "First\\n\nSecond Third Fourth"},
-		{190, 0, `First\nSecond Third Fourth Second Third Fourth`, "First\\n\nSecond Third Fourth\\l\nSecond Third Fourth"},
-		{190, 1, `First\nSecond Third Fourth Second Third Fourth`, "First\\n\nSecond Third\\l\nFourth Second\\l\nThird Fourth"},
-		{130, 0, `Apple Banana\pOrange`, "Apple Banana\\p\nOrange"},
-		{130, 10, `Apple Banana\pOrange`, "Apple Banana\\p\nOrange"},
-		{130, 11, `Apple Banana\pOrange`, "Apple\\n\nBanana\\p\nOrange"},
-		{100, 0, `Hello.\NI am writing a longer \N“test.”`, "Hello.\\n\nI am\\l\nwriting a\\l\nlonger\\l\n“test.”"},
-		{100, 0, `Hello.\NI am\Nwriting\la longer \N“test.”`, "Hello.\\n\nI am\\l\nwriting\\l\na longer\\l\n“test.”"},
-		{100, 0, `Hello.\NI am\Nwriting\pa longer \N“test.”`, "Hello.\\n\nI am\\l\nwriting\\p\na longer\\n\n“test.”"},
+		{40, 0, "", "", 2},
+		{40, 0, "Hello", "Hello", 2},
+		{100, 0, "Foo bar", "Foo bar", 2},
+		{140, 0, "Foo {MUS} baz", "Foo {MUS}\\n\nbaz", 2},
+		{139, 0, "Foo {MUS} baz", "Foo\\n\n{MUS}\\l\nbaz", 2},
+		{40, 0, "ßŒœ ♂Üあ   ", "ßŒœ\\n\n♂Üあ", 2},
+		{40, 0, "   Foo    bar          baz  baz2", "Foo\\n\nbar\\l\nbaz\\l\nbaz2", 2},
+		{100, 0, `Hello.\pI am writing a test.`, "Hello.\\p\nI am\\n\nwriting a\\l\ntest.", 2},
+		{100, 0, `Hello.\nI am writing a longer \l“test.”`, "Hello.\\n\nI am\\l\nwriting a\\l\nlonger\\l\n“test.”", 2},
+		{190, 0, `First\nSecond Third Fourth`, "First\\n\nSecond Third Fourth", 2},
+		{190, 1, `First\nSecond Third Fourth`, "First\\n\nSecond Third Fourth", 2},
+		{190, 0, `First\nSecond Third Fourth Second Third Fourth`, "First\\n\nSecond Third Fourth\\l\nSecond Third Fourth", 2},
+		{190, 1, `First\nSecond Third Fourth Second Third Fourth`, "First\\n\nSecond Third\\l\nFourth Second\\l\nThird Fourth", 2},
+		{130, 0, `Apple Banana\pOrange`, "Apple Banana\\p\nOrange", 2},
+		{130, 10, `Apple Banana\pOrange`, "Apple Banana\\p\nOrange", 2},
+		{130, 11, `Apple Banana\pOrange`, "Apple\\n\nBanana\\p\nOrange", 2},
+		{100, 0, `Hello.\NI am writing a longer \N“test.”`, "Hello.\\n\nI am\\l\nwriting a\\l\nlonger\\l\n“test.”", 2},
+		{100, 0, `Hello.\NI am\Nwriting\la longer \N“test.”`, "Hello.\\n\nI am\\l\nwriting\\l\na longer\\l\n“test.”", 2},
+		{100, 0, `Hello.\NI am\Nwriting\pa longer \N“test.”`, "Hello.\\n\nI am\\l\nwriting\\p\na longer\\n\n“test.”", 2},
+		{100, 0, `Hello.\NI am\Nwriting\pa longer \N“test.”`, "Hello.\\n\nI am\\n\nwriting\\p\na longer\\n\n“test.”", 3},
 	}
 
 	fc := FontConfig{}
 
 	for i, tt := range tests {
-		result, _ := fc.FormatText(tt.inputText, tt.maxWidth, tt.cursorOverlapWidth, testFontID, 2)
+		result, _ := fc.FormatText(tt.inputText, tt.maxWidth, tt.cursorOverlapWidth, testFontID, tt.numLines)
 		if result != tt.expected {
 			t.Errorf("FormatText Test %d: Expected '%s', but Got '%s'", i, tt.expected, result)
 		}
