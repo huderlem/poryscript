@@ -72,7 +72,7 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth i
 			curWidth = 0
 			formattedSb.WriteString(curLineSb.String())
 			if fc.isAutoLineBreak(word) {
-				if fc.isFirstLine(curLineNum) {
+				if curLineNum < numLines-1 {
 					formattedSb.WriteString(`\n`)
 				} else {
 					formattedSb.WriteString(`\l`)
@@ -133,10 +133,6 @@ func (fc *FontConfig) FormatText(text string, maxWidth int, cursorOverlapWidth i
 	}
 
 	return formattedSb.String(), nil
-}
-
-func (fc *FontConfig) isFirstLine(curLineNum int) bool {
-	return curLineNum == 0
 }
 
 func (fc *FontConfig) shouldUseLineFeed(curLineNum int, numLines int) bool {
