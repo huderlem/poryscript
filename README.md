@@ -3,7 +3,7 @@
 [![Actions Status](https://github.com/huderlem/poryscript/workflows/Go/badge.svg)](https://github.com/huderlem/poryscript/actions) [![codecov](https://codecov.io/gh/huderlem/poryscript/branch/master/graph/badge.svg)](https://codecov.io/gh/huderlem/poryscript)
 
 
-Use the online [Poryscript Playground](http://www.huderlem.com/poryscript-playground/) to test it out.
+Use the online [Poryscript Playground](http://www.huderlem.com/poryscript-playground/) to test it out, and install the [VS Code Poryscript extension](https://marketplace.visualstudio.com/items?itemName=karathan.poryscript) to make writing scripts even easier!
 
 Poryscript is a higher-level scripting language that compiles into the scripting language used in [pokeemerald](https://github.com/pret/pokeemerald), [pokefirered](https://github.com/pret/pokefirered), and [pokeruby](https://github.com/pret/pokeruby). It makes scripting faster and easier. Some advantages of using Poryscript are:
 1. Branching control flow with `if`, `elif`, `else`, `while`, `do...while`, and `switch` statements.
@@ -16,6 +16,7 @@ View the [Changelog](https://github.com/huderlem/poryscript/blob/master/CHANGELO
 **Table of Contents**
 - [Usage](#usage)
   * [Convert Existing Scripts](#convert-existing-scripts)
+  * [Using Poryscript in Your Favorite IDE or Text Editor](#extensions)
 - [Poryscript Syntax (How to Write Scripts)](#poryscript-syntax-how-to-write-scripts)
   * [`script` Statement](#script-statement)
     + [Boolean Expressions](#boolean-expressions)
@@ -149,6 +150,12 @@ If you're working on a large project, you may want to convert all of the existin
 
   Finally you can execute it in your `pokeemerald/` directory by running `./convert_inc.sh` or `bash convert_inc.sh` in the console. This script will iterate through all your `data/map/` directories and convert the `scripts.inc` files into `scripts.pory` files by adding a `raw` tag around the old scripts. `convert_inc.sh` will skip over any directories that already have `scripts.pory` files in them, so that it will not overwrite any maps that you have already switched over to Poryscript.
 </details>
+
+## Using Poryscript in Your Favorite IDE or Text Editor <a id='extensions'></a>
+
+For VS Code, you can install the [Poryscript extension](https://marketplace.visualstudio.com/items?itemName=karathan.poryscript), which provides quality-of-life improvements such as autocomplete, syntax highlighting, and error diagnostics.
+
+For other editors with [Tree-sitter](https://tree-sitter.github.io/tree-sitter/) support (e.g. emacs, neovim, lapce, zed, helix, etc.), some Poryscript bindings are supported here: https://github.com/Elsie19/treesitter-poryscript
 
 # Poryscript Syntax (How to Write Scripts)
 
