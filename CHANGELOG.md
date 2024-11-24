@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 Nothing, yet.
 
+## [3.5.1] - 2024-11-24
+### Fixed
+- Fix bug where `\N` didn't respect `numLines` when using `format()`.
+
 ## [3.5.0] - 2024-11-10
 ### Added
 - Movement can now be inlined within commands using a special `moves()` operator, similar to text. For example:
@@ -179,7 +183,8 @@ Nothing, yet.
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/poryscript/compare/3.5.0...HEAD
+[Unreleased]: https://github.com/huderlem/poryscript/compare/3.5.1...HEAD
+[3.5.0]: https://github.com/huderlem/poryscript/compare/3.5.0...3.5.1
 [3.5.0]: https://github.com/huderlem/poryscript/compare/3.4.0...3.5.0
 [3.4.0]: https://github.com/huderlem/poryscript/compare/3.3.0...3.4.0
 [3.3.0]: https://github.com/huderlem/poryscript/compare/3.2.0...3.3.0
