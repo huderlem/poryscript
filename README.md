@@ -89,7 +89,7 @@ pokeemerald/tools/poryscript/poryscript.exe
 pokeemerald/tools/poryscript/command_config.json
 pokeemerald/tools/poryscript/font_config.json
 ```
-It's also a good idea to add `tools/poryscript` to your `.gitignore` before your next commit.
+It's also a good idea to add the poryscript binary to your `.gitignore` before your next commit. The config files _should_ be tracked by Git--therefore, don't add them to the `.gitignore`.
 
 2. Update the Makefile with these changes (Note, don't add the `+` symbol at the start of the lines. That's just to show the line is being added.):
 ```diff
