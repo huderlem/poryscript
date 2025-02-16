@@ -2206,6 +2206,14 @@ mapscripts MyMapScripts {
 		{
 			input: `
 mapscripts MyMapScripts {
+	SOME_TYPE MyScript
+}`,
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 11, Utf8CharStart: 11, CharEnd: 19, Utf8CharEnd: 19, Message: "expected ':', '[', or '{' after map script type 'SOME_TYPE', but got 'MyScript' instead"},
+			expectedErrorMsg: "line 3: expected ':', '[', or '{' after map script type 'SOME_TYPE', but got 'MyScript' instead",
+		},
+		{
+			input: `
+mapscripts MyMapScripts {
 	SOME_TYPE {
 		if (sdf)
 	}

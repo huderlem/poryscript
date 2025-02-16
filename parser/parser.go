@@ -1197,6 +1197,8 @@ func (p *Parser) parseMapscriptsStatement() (*ast.MapScriptsStatement, *impData,
 				Entries: tableEntries,
 			})
 			p.nextToken()
+		} else {
+			return nil, nil, NewParseError(p.curToken, fmt.Sprintf("expected ':', '[', or '{' after map script type '%s', but got '%s' instead", mapScriptTypeToken.Literal, p.curToken.Literal))
 		}
 	}
 
