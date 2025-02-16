@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 Nothing, yet.
 
+## [3.5.2] - 2025-02-16
+### Fixed
+- Fix bug where invalid `mapscripts` syntax wasn't raising an error.
+
 ## [3.5.1] - 2024-11-24
 ### Fixed
 - Fix bug where `\N` didn't respect `numLines` when using `format()`.
@@ -183,7 +187,8 @@ Nothing, yet.
 ## [1.0.0] - 2019-08-27
 Initial Release
 
-[Unreleased]: https://github.com/huderlem/poryscript/compare/3.5.1...HEAD
+[Unreleased]: https://github.com/huderlem/poryscript/compare/3.5.2...HEAD
+[3.5.1]: https://github.com/huderlem/poryscript/compare/3.5.1...3.5.2
 [3.5.0]: https://github.com/huderlem/poryscript/compare/3.5.0...3.5.1
 [3.5.0]: https://github.com/huderlem/poryscript/compare/3.4.0...3.5.0
 [3.4.0]: https://github.com/huderlem/poryscript/compare/3.3.0...3.4.0
