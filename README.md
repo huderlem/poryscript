@@ -15,6 +15,8 @@ View the [Changelog](https://github.com/huderlem/poryscript/blob/master/CHANGELO
 
 **Table of Contents**
 - [Usage](#usage)
+  * [Basic Installation](#basic-installation)
+  * [Install as a Git Submodule](#install-as-a-git-submodule)
   * [Convert Existing Scripts](#convert-existing-scripts)
   * [Using Poryscript in Your Favorite IDE or Text Editor](#extensions)
 - [Poryscript Syntax (How to Write Scripts)](#poryscript-syntax-how-to-write-scripts)
@@ -81,6 +83,7 @@ Convert a `.pory` script to a compiled `.inc` script, which can be directly incl
 ./poryscript -i data/scripts/myscript.pory -o data/scripts/myscript.inc
 ```
 
+## Basic Installation
 To automatically convert your Poryscript scripts when compiling a decomp project, perform these two steps:
 1. Create a new `tools/poryscript/` directory, and add the `poryscript` command-line executable tool to it. Also copy `command_config.json` and `font_config.json` to the same location.
 ```
@@ -115,6 +118,60 @@ generated: $(AUTO_GEN_TARGETS)
 ```diff
 %.rl:     %      ; $(GFX) $< $@
 + data/%.inc: data/%.pory; $(SCRIPT) -i $< -o $@ -fc tools/poryscript/font_config.json -cc tools/poryscript/command_config.json
+```
+
+## Install as a Git Submodule
+Users may wish to install Poryscript as a dependency of their project if they work with other collaborators and require all contributors to use the same version. To accomplish this, we can integrate the tool as a [Git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules). This has an additional benefit of automatically rebuilding Poryscript from source when bumping to a new version.
+
+1. Initialize the Git submodule. If you use a fork of Poryscript to implement custom features, replace the `https://github.com/huderlem/poryscript` URL with the appropriate URL for your fork.
+
+```bash
+cd path/to/your/pokeemerald
+git submodule add https://github.com/huderlem/poryscript tools/poryscript
+```
+
+2. Pin your submodule to the latest release (or to your desired target version, if they differ).
+
+```bash
+cd tools/poryscript
+git checkout 3.5.2
+cd -
+git add tools/poryscript
+```
+
+3. Make the following changes to `make_tools.mk`:
+
+```diff
+- TOOL_NAMES := aif2pcm bin2c gbafix gbagfx jsonproc mapjson mid2agb preproc ramscrgen rsfont scaninc
++ TOOL_NAMES := aif2pcm bin2c gbafix gbagfx jsonproc mapjson mid2agb preproc ramscrgen rsfont scaninc poryscript
+```
+
+4. Make the changes to `Makefile` as described above in [Basic Installation](#basic-installation).
+
+5. Commit your changes and push to the remote.
+
+This installation method necessitates some changes in your project's workflow. When cloning your project to a fresh local copy, you should specify the `--recursive` option, which will ensure that Poryscript is checked out alongside your repository:
+
+```bash
+git clone --recursive https://github.com/YOUR_USERNAME/pokeemerald.git
+```
+
+After receiving the updates to integrate the submodule, existing local copies of the repository must do the following:
+
+```bash
+git submodule update --init
+```
+
+Finally, if/when new changes are pushed to Poryscript that you wish to receive, update the submodule like you would any other Git repository:
+
+```bash
+cd tools/poryscript
+git fetch
+git checkout REF # REF can be a version tag, a branch, or a commit hash
+cd -
+git add tools/poryscript
+git commit
+git push
 ```
 
 ## Convert Existing Scripts
