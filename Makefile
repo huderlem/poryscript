@@ -5,6 +5,9 @@
 .PHONY: all clean
 
 TARGET := poryscript
+ifeq ($(OS),Windows_NT)
+    TARGET := $(TARGET).exe
+endif
 
 # Add any new packages to this variable to pick up underlying source files
 PACKAGES := ast emitter lexer parser
