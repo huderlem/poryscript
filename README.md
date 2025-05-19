@@ -130,25 +130,16 @@ cd path/to/your/pokeemerald
 git submodule add https://github.com/huderlem/poryscript tools/poryscript
 ```
 
-2. Pin your submodule to the latest release (or to your desired target version, if they differ).
-
-```bash
-cd tools/poryscript
-git checkout 3.5.2
-cd -
-git add tools/poryscript
-```
-
-3. Make the following changes to `make_tools.mk`:
+2. Make the following changes to `make_tools.mk`:
 
 ```diff
 - TOOL_NAMES := aif2pcm bin2c gbafix gbagfx jsonproc mapjson mid2agb preproc ramscrgen rsfont scaninc
 + TOOL_NAMES := aif2pcm bin2c gbafix gbagfx jsonproc mapjson mid2agb preproc ramscrgen rsfont scaninc poryscript
 ```
 
-4. Make the changes to `Makefile` as described above in [Basic Installation](#basic-installation).
+3. Make the changes to `Makefile` as described above in [Basic Installation](#basic-installation).
 
-5. Commit your changes and push to the remote.
+4. Commit your changes and push to the remote.
 
 This installation method necessitates some changes in your project's workflow. When cloning your project to a fresh local copy, you should specify the `--recursive` option, which will ensure that Poryscript is checked out alongside your repository:
 
