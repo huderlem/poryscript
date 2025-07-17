@@ -121,7 +121,7 @@ generated: $(AUTO_GEN_TARGETS)
 ```
 
 ## Install as a Git Submodule
-Users may wish to install Poryscript as a dependency of their project if they work with other collaborators and require all contributors to use the same version. To accomplish this, we can integrate the tool as a [Git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules). This has an additional benefit of automatically rebuilding Poryscript from source when bumping to a new version.
+Users may wish to install Poryscript as a dependency of their project if they work with other collaborators or wish to use Github's Continuous Integration. To accomplish this, we can integrate the tool as a [Git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules). This has an additional benefit of automatically rebuilding Poryscript from source when bumping to a new version.
 
 1. Initialize the Git submodule. If you use a fork of Poryscript to implement custom features, replace the `https://github.com/huderlem/poryscript` URL with the appropriate URL for your fork.
 
@@ -163,6 +163,16 @@ cd -
 git add tools/poryscript
 git commit
 git push
+```
+
+5. (optional) Update `build.yml` so that Continuous Integration can run Poryscript.
+If you want Github CI to automatically build and test your project, edit `.github/workflows/build.yml` to add:
+
+```diff
+    - name: Checkout repository
+      uses: actions/checkout@v2
++     with:
++       submodules: --recursive
 ```
 
 ## Convert Existing Scripts
