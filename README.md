@@ -172,7 +172,7 @@ If you want Github CI to automatically build and test your project, edit `.githu
     - name: Checkout repository
       uses: actions/checkout@v2
 +     with:
-+       submodules: --recursive
++       submodules: recursive
 ```
 
 ## Convert Existing Scripts
