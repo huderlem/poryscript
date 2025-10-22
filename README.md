@@ -215,6 +215,8 @@ For VS Code, you can install the [Poryscript extension](https://marketplace.visu
 
 For other editors with [Tree-sitter](https://tree-sitter.github.io/tree-sitter/) support (e.g. emacs, neovim, lapce, zed, helix, etc.), some Poryscript bindings are supported here: https://github.com/Elsie19/treesitter-poryscript
 
+There is also a [plugin](https://plugins.jetbrains.com/plugin/28746-poryscript) available for Jetbrains IDEs such as IntelliJ or CLion.
+
 # Poryscript Syntax (How to Write Scripts)
 
 A single `.pory` file is composed of many top-level statements. The valid top-level statements are `script`, `text`, `movement`, `mart`, `mapscripts`, and `raw`.
