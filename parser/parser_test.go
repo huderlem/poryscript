@@ -2048,6 +2048,15 @@ text Foo {
 		{
 			input: `
 text Foo {
+	format("auto
+			string")
+}`,
+			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 4, CharStart: 8, Utf8CharStart: 8, CharEnd: 10, Utf8CharEnd: 10, Message: "auto strings cannot be used with format()"},
+			expectedErrorMsg: "line 3: auto strings cannot be used with format()",
+		},
+		{
+			input: `
+text Foo {
 	format("Hi", )
 }`,
 			expectedError:    ParseError{LineNumberStart: 3, LineNumberEnd: 3, CharStart: 14, Utf8CharStart: 14, CharEnd: 15, Utf8CharEnd: 15, Message: "invalid format() parameter ')'"},

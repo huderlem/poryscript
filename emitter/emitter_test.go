@@ -3425,6 +3425,71 @@ Text1::
 	}
 }
 
+func TestEmitMultiLineStrings(t *testing.T) {
+	input := `
+script TestMultiLineString {
+	msgbox("Hello, this is line one,
+            and this is line two,
+            and this is line three.
+
+            New paragraph here
+            with another line.")
+}
+
+text MultiLineText {
+	"First line
+     second line
+
+     new paragraph"
+}
+
+script TestMultiLineStringWithType {
+	msgbox(ascii"Custom type
+                second line")
+}
+`
+
+	expected := `TestMultiLineString::
+	msgbox TestMultiLineString_Text_0
+	return
+
+
+TestMultiLineStringWithType::
+	msgbox TestMultiLineStringWithType_Text_0
+	return
+
+
+TestMultiLineString_Text_0:
+	.string "Hello, this is line one,\n"
+	.string "and this is line two,\l"
+	.string "and this is line three.\p"
+	.string "New paragraph here\n"
+	.string "with another line.$"
+
+TestMultiLineStringWithType_Text_0:
+	.ascii "Custom type\n"
+	.ascii "second line\0"
+
+MultiLineText::
+	.string "First line\n"
+	.string "second line\p"
+	.string "new paragraph$"
+`
+
+	l := lexer.New(input)
+	p := parser.New(l, parser.CommandConfig{}, "", "", 0, nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	e := New(program, false, false, "")
+	result, _ := e.Emit()
+	if result != expected {
+		t.Errorf("Mismatching emit -- Expected=%q, Got=%q", expected, result)
+	}
+}
+
 // Helper benchmark var to prevent compiler/runtime optimizations.
 // https://dave.cheney.net/2013/06/30/how-to-write-benchmarks-in-go
 var benchResult string

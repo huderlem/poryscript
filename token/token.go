@@ -24,6 +24,7 @@ const (
 	IDENT      = "IDENT"
 	INT        = "INT"
 	STRING     = "STRING"
+	AUTOSTRING = "AUTOSTRING"
 	RAWSTRING  = "RAWSTRING"
 	STRINGTYPE = "STRINGTYPE"
 
@@ -127,4 +128,11 @@ func GetIdentType(ident string) Type {
 		return tokType
 	}
 	return IDENT
+}
+
+// IsStringLikeToken checks if the given token is string-like.
+// There are situations where the parser doesn't care if it's dealing
+// with an AUTOSTRING vs. a regular STRING--so this if for convenience.
+func IsStringLikeToken(tokenType Type) bool {
+	return tokenType == STRING || tokenType == AUTOSTRING
 }

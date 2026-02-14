@@ -162,7 +162,7 @@ func TestNextToken(t *testing.T) {
 		{token.RAWSTRING, "\n\tstep", 41, 14, 14, 42, 7, 7},
 		{token.GT, ">", 43, 1, 1, 43, 2, 2},
 		{token.MART, "mart", 44, 2, 2, 44, 6, 6},
-		{token.STRING, "multiline text string", 45, 2, 2, 46, 9, 9},
+		{token.AUTOSTRING, "multiline text\\n\nstring", 45, 2, 2, 46, 9, 9},
 		{token.MOVES, "moves", 47, 1, 1, 47, 6, 6},
 		{token.EOF, "", 47, 6, 6, 47, 6, 6},
 	}
@@ -196,5 +196,126 @@ func TestNextToken(t *testing.T) {
 		if tok.EndUtf8CharIndex != tt.expectedUtf8CharEnd {
 			t.Errorf("tests[%d] - utf-8 char end number wrong. Expected=%d, Got=%d", i, tt.expectedUtf8CharEnd, tok.EndUtf8CharIndex)
 		}
+	}
+}
+
+func TestMultiLineString(t *testing.T) {
+	tests := []struct {
+		name            string
+		input           string
+		expectedType    token.Type
+		expectedLiteral string
+	}{
+		{
+			name:            "single line string",
+			input:           `"Hello world"`,
+			expectedType:    token.STRING,
+			expectedLiteral: "Hello world",
+		},
+		{
+			name: "multi-line string with first newline",
+			input: `"Hello
+world"`,
+			expectedType:    token.AUTOSTRING,
+			expectedLiteral: "Hello\\n\nworld",
+		},
+		{
+			name: "multi-line string with multiple newlines",
+			input: `"Line one
+Line two
+Line three
+Line four"`,
+			expectedType:    token.AUTOSTRING,
+			expectedLiteral: "Line one\\n\nLine two\\l\nLine three\\l\nLine four",
+		},
+		{
+			name: "multi-line string with paragraph break",
+			input: `"First paragraph
+
+Second paragraph"`,
+			expectedType:    token.AUTOSTRING,
+			expectedLiteral: "First paragraph\\p\nSecond paragraph",
+		},
+		{
+			name: "multi-line string with paragraph and subsequent lines",
+			input: `"First line
+Second line
+
+New paragraph
+Another line"`,
+			expectedType:    token.AUTOSTRING,
+			expectedLiteral: "First line\\n\nSecond line\\p\nNew paragraph\\n\nAnother line",
+		},
+		{
+			name: "multi-line string with indentation stripping",
+			input: `"First line
+            Second line
+            Third line"`,
+			expectedType:    token.AUTOSTRING,
+			expectedLiteral: "First line\\n\nSecond line\\l\nThird line",
+		},
+		{
+			name: "multi-line string with apostrophes",
+			input: `"I'm happy and it's great
+            don't you think?"`,
+			expectedType:    token.AUTOSTRING,
+			expectedLiteral: "I'm happy and it's great\\n\ndon't you think?",
+		},
+		{
+			name: "complex multi-line string",
+			input: `"This is the first line, and
+ now we are on the second line, and
+ now we are onto the third line.
+
+
+ This is a new paragraph
+ and here is another line."`,
+			expectedType:    token.AUTOSTRING,
+			expectedLiteral: "This is the first line, and\\n\nnow we are on the second line, and\\l\nnow we are onto the third line.\\p\nThis is a new paragraph\\n\nand here is another line.",
+		},
+		{
+			name:            "blank line with whitespace on it",
+			input:           "\"The first line\n        The last line\n            \n        Should be new paragraph\"",
+			expectedType:    token.AUTOSTRING,
+			expectedLiteral: "The first line\\n\nThe last line\\p\nShould be new paragraph",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := New(tt.input)
+			tok := l.NextToken()
+
+			if tok.Type != tt.expectedType {
+				t.Errorf("tokenType wrong. Expected=%q, Got=%q", tt.expectedType, tok.Type)
+			}
+			if tok.Literal != tt.expectedLiteral {
+				t.Errorf("literal wrong.\nExpected=%q\n     Got=%q", tt.expectedLiteral, tok.Literal)
+			}
+		})
+	}
+}
+
+func TestMultiLineStringWithStringType(t *testing.T) {
+	input := `ascii"Hello
+world"`
+
+	l := New(input)
+
+	tok := l.NextToken()
+	if tok.Type != token.STRINGTYPE {
+		t.Errorf("first token type wrong. Expected=%q, Got=%q", token.STRINGTYPE, tok.Type)
+	}
+	if tok.Literal != "ascii" {
+		t.Errorf("first token literal wrong. Expected=%q, Got=%q", "ascii", tok.Literal)
+	}
+
+	tok = l.NextToken()
+	if tok.Type != token.AUTOSTRING {
+		t.Errorf("second token type wrong. Expected=%q, Got=%q", token.AUTOSTRING, tok.Type)
+	}
+	expectedLiteral := "Hello\\n\nworld"
+	if tok.Literal != expectedLiteral {
+		t.Errorf("second token literal wrong. Expected=%q, Got=%q", expectedLiteral, tok.Literal)
 	}
 }

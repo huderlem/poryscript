@@ -7,7 +7,7 @@ Use the online [Poryscript Playground](http://www.huderlem.com/poryscript-playgr
 
 Poryscript is a higher-level scripting language that compiles into the scripting language used in [pokeemerald](https://github.com/pret/pokeemerald), [pokefirered](https://github.com/pret/pokefirered), and [pokeruby](https://github.com/pret/pokeruby). It makes scripting faster and easier. Some advantages of using Poryscript are:
 1. Branching control flow with `if`, `elif`, `else`, `while`, `do...while`, and `switch` statements.
-2. Inline text
+2. Inline text with automatic line-break formatting for multi-line strings
 3. Auto-formatting text to fit within the in-game text box
 4. Better map script organization
 
@@ -28,6 +28,9 @@ View the [Changelog](https://github.com/huderlem/poryscript/blob/master/CHANGELO
     + [Early-Exiting a Script](#early-exiting-a-script)
     + [`switch` Statement](#switch-statement)
     + [Labels](#labels)
+  * [Strings](#strings)
+    + [Multi-Line Strings](#multi-line-strings)
+    + [Concatenated Strings](#concatenated-strings)
   * [`text` Statement](#text-statement)
     + [Automatic Text Formatting](#automatic-text-formatting)
     + [Custom Text Encoding](#custom-text-encoding)
@@ -289,14 +292,14 @@ Compound boolean expressions are also supported. This means you can use the AND 
 ```
     # Basic AND of two conditions.
     if (!defeated(TRAINER_MISTY) && var(VAR_TIME) != DAY) {
-        msgbox("The Cerulean Gym's doors don't\n"
-               "open until morning.")
+        msgbox("The Cerulean Gym's doors don't
+                open until morning.")
     }
     ...
     # Group nested conditions together with another set of parentheses.
     if (flag(FLAG_IS_CHAMPION) && !(flag(FLAG_SYS_TOWER_GOLD) || flag(FLAG_SYS_DOME_GOLD))) {
-        msgbox("You should try to beat the\n"
-               "Battle Tower or Battle Dome!")
+        msgbox("You should try to beat the
+                Battle Tower or Battle Dome!")
     }
 ```
 
@@ -441,6 +444,50 @@ MyScript_End:
 }
 ```
 
+## Strings
+
+Poryscript uses double-quoted strings (`"..."`) for all text content. Strings behave differently depending on whether they are written on a single line or span multiple lines in the source file. Poryscript automatically adds the `$` terminator character to text, so the user doesn't need to manually type it all the time.
+
+### Multi-Line Strings
+
+When a string spans multiple lines in your source file, Poryscript automatically inserts the appropriate line-break commands (`\n`, `\l`, `\p`). Leading whitespace on each continuation line is stripped, so you can indent your text to match the surrounding code.
+
+```
+script MyScript {
+    msgbox("Hello, I'm the first line,
+            and I'm the second line,
+            and this is the third.
+
+            This is a new paragraph because
+            of the blank line above.")
+}
+```
+Becomes:
+```
+.string "Hello, I'm the first line,\n"
+.string "and I'm the second line,\l"
+.string "and this is the third.\p"
+.string "This is a new paragraph because\n"
+.string "of the blank line above.$"
+```
+
+### Manual Strings
+
+Multiple single-line strings written next to each other are added together. Each separate quoted string begins on a new `.string` line in the output. This is useful when you want explicit control over line breaks rather than using multi-line auto-formatting:
+```
+msgbox("Hello, I'm the first line.\n"
+       "and I'm the second line,\l"
+       "and this is the third.\p"
+       "This is a new paragraph.")
+```
+Becomes:
+```
+.string "Hello, I'm the first line.\n"
+.string "and I'm the second line,\l"
+.string "and this is the third.\p"
+.string "This is a new paragraph.$"
+```
+
 ## `text` Statement
 Use `text` to include text that's intended to be shared between multiple scripts or in C code. The `text` statement is just a convenient way to write chunks of text, and it exports the text globally, so it is accessible in C code. Currently, there isn't much of a reason to use `text`, but it will be more useful in future updates of Poryscript.
 ```
@@ -449,14 +496,15 @@ script MyScript {
 }
 
 text MyText {
-    "Hello, there.\p"
-    "You can refer to me in scripts or C code."
+    "Hello, there.
+     You can refer to me in scripts or C code."
 }
 ```
-A small quality-of-life feature is that Poryscript automatically adds the `$` terminator character to text, so the user doesn't need to manually type it all the time.
 
 ### Automatic Text Formatting
-Text auto-formatting is also supported by Poryscript. The `format()` function can be wrapped around any text, either inline or `text`, and Poryscript will automatically fit the text to the size of the in-game text window by inserting automatic line breaks. A simple example:
+Text auto-formatting is also supported by Poryscript, though the resulting text line breaks will lack style, so it's more useful for quick an dirty formatting to guarantee your text will fit in the game's text box width. This is done with the `format()` function.
+
+The `format()` function can be wrapped around any manual string, either inline or `text`, and Poryscript will automatically fit the text to the size of the in-game text window by inserting automatic line breaks. **Note that `format()` can't be used with multi-line strings because their formatting intentions inherently conflict.** A simple example:
 ```
 msgbox(format("Hello, this is some long text that I want Poryscript to automatically format for me."))
 ```
@@ -707,10 +755,9 @@ TestMap_MapScripts::
 script MyScript {
     lock
     faceplayer
-    # Text can span multiple lines. Use a new set of quotes for each line.
-    msgbox("This is shorter text,\n"
-           "but we can still put it\l"
-           "on multiple lines.")
+    msgbox("This is shorter text,
+            but we can still put it
+            on multiple lines.")
     applymovement(OBJ_EVENT_ID_PLAYER, MyScript_Movement)
     waitmovement(0)
     msgbox(MyScript_LongText)

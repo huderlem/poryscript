@@ -602,7 +602,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (*ast.CommandStatement
 					scriptName: scriptName,
 				})
 				argParts = append(argParts, "")
-			} else if p.curToken.Type == token.STRING {
+			} else if token.IsStringLikeToken(p.curToken.Type) {
 				strToken := p.curToken
 				strToken.Literal = p.formatTextTerminator(p.curToken.Literal, "")
 				impData.texts = append(impData.texts, impText{
@@ -615,7 +615,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (*ast.CommandStatement
 			} else if p.curToken.Type == token.STRINGTYPE {
 				stringType := p.curToken.Literal
 				p.nextToken()
-				if p.curToken.Type != token.STRING {
+				if !token.IsStringLikeToken(p.curToken.Type) {
 					return nil, nil, NewParseError(p.curToken, fmt.Sprintf("expected a string literal after string type '%s'. Got '%s' instead", stringType, p.curToken.Literal))
 				}
 				strToken := p.curToken
@@ -757,12 +757,12 @@ func (p *Parser) parseTextValue() (string, string, error) {
 			return "", "", err
 		}
 		return p.formatTextTerminator(strValue, stringType), stringType, nil
-	} else if p.curToken.Type == token.STRING {
+	} else if token.IsStringLikeToken(p.curToken.Type) {
 		return p.formatTextTerminator(p.curToken.Literal, ""), "", nil
 	} else if p.curToken.Type == token.STRINGTYPE {
 		stringType := p.curToken.Literal
 		p.nextToken()
-		if p.curToken.Type != token.STRING {
+		if !token.IsStringLikeToken(p.curToken.Type) {
 			return "", "", NewParseError(p.curToken, fmt.Sprintf("expected a string literal after string type '%s'. Got '%s' instead", stringType, p.curToken.Literal))
 		}
 		return p.formatTextTerminator(p.curToken.Literal, stringType), stringType, nil
@@ -1240,6 +1240,9 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 	if p.peekTokenIs(token.STRINGTYPE) {
 		p.nextToken()
 		stringType = p.curToken.Literal
+	}
+	if p.peekToken.Type == token.AUTOSTRING {
+		return token.Token{}, "", "", NewParseError(p.peekToken, "auto strings cannot be used with format()")
 	}
 	if err := p.expectPeek(token.STRING); err != nil {
 		return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() argument '%s'. Expected a string literal", p.peekToken.Literal))

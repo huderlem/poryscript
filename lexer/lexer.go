@@ -301,11 +301,15 @@ func (l *Lexer) NextToken() token.Token {
 
 func (l *Lexer) readStringToken() token.Token {
 	var t token.Token
+	var isAutoString bool
 	t.StartCharIndex = l.prevCharNumber
 	t.StartUtf8CharIndex = l.prevUtf8CharNumber
 	t.LineNumber = l.lineNumber
-	t.Literal, t.EndLineNumber, t.EndCharIndex, t.EndUtf8CharIndex = l.readString()
+	t.Literal, t.EndLineNumber, t.EndCharIndex, t.EndUtf8CharIndex, isAutoString = l.readString()
 	t.Type = token.STRING
+	if isAutoString {
+		t.Type = token.AUTOSTRING
+	}
 	return t
 }
 
@@ -352,18 +356,60 @@ func (l *Lexer) readIdentifier() string {
 	return l.input[start:l.position]
 }
 
-func (l *Lexer) readString() (string, int, int, int) {
+func (l *Lexer) readString() (string, int, int, int, bool) {
 	var sb strings.Builder
 	var endLine, endChar, endUtf8Char int
+
+	// Track state for auto-formatting multi-line strings
+	isAutoString := false
+	newParagraph := true
+
 	for l.ch == '"' {
 		if sb.Len() > 0 {
 			sb.WriteString("\n")
 		}
 		l.readChar()
 		for l.ch != '"' && l.ch != 0 {
-			if l.skipNewlineWhitespace() {
-				l.skipWhitespace()
-				sb.WriteRune(' ')
+			if l.ch == '\n' || l.ch == '\r' {
+				// Multi-line string: auto-format with \n, \l, \p
+				// Count newlines to detect paragraph breaks
+				// A blank line (whitespace-only line) counts as a paragraph break
+				newlineCount := 0
+				for {
+					for l.ch == '\n' || l.ch == '\r' {
+						if l.ch == '\n' {
+							newlineCount++
+						}
+						l.readChar()
+					}
+					// Skip whitespace (indentation)
+					for l.ch == ' ' || l.ch == '\t' {
+						l.readChar()
+					}
+					// If we hit another newline after whitespace, continue counting
+					// (this handles blank lines with only whitespace)
+					if l.ch == '\n' || l.ch == '\r' {
+						continue
+					}
+					break
+				}
+
+				if l.ch == '"' || l.ch == 0 {
+					break
+				}
+
+				// Determine what escape sequence to insert
+				isAutoString = true
+				if newlineCount >= 2 {
+					sb.WriteString("\\p\n")
+					newParagraph = true
+				} else if newParagraph {
+					sb.WriteString("\\n\n")
+					newParagraph = false
+				} else {
+					sb.WriteString("\\l\n")
+				}
+				continue
 			}
 			sb.WriteRune(l.ch)
 			l.readChar()
@@ -374,7 +420,7 @@ func (l *Lexer) readString() (string, int, int, int) {
 		endUtf8Char = l.prevUtf8CharNumber
 		l.skipWhitespace()
 	}
-	return sb.String(), endLine, endChar, endUtf8Char
+	return sb.String(), endLine, endChar, endUtf8Char, isAutoString
 }
 
 func (l *Lexer) readRaw() string {
