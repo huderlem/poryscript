@@ -2426,3 +2426,140 @@ func prettyPrintParseError(e ParseError) string {
 		e.Utf8CharEnd,
 		e.Message)
 }
+
+func TestTextLineWidthWarnings(t *testing.T) {
+	// Text block with a line that exceeds the max width should produce a warning.
+	// Using testFontID ("TEST") where each char is 10px wide and space is 10px.
+	// "ABCDEFGHIJK" = 11 chars * 10px = 110px, maxLineLength=100 -> warning
+	input := `
+text MyText {
+	"ABCDEFGHIJK"
+}
+`
+	l := lexer.New(input)
+	p := NewLintParser(l, CommandConfig{}, "../font_config.json", testFontID, 100)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf("unexpected parse error: %s", err.Error())
+	}
+	if len(program.Warnings) == 0 {
+		t.Fatalf("expected at least 1 warning for text exceeding line width, got 0")
+	}
+	matched, _ := regexp.MatchString(`exceeds maximum width`, program.Warnings[0].Message)
+	if !matched {
+		t.Errorf("expected warning message about exceeding width, got: %s", program.Warnings[0].Message)
+	}
+}
+
+func TestTextLineWidthNoWarningWhenWithinLimit(t *testing.T) {
+	// "ABCDE" = 5 chars * 10px = 50px, maxLineLength=100 -> no warning
+	input := `
+text MyText {
+	"ABCDE"
+}
+`
+	l := lexer.New(input)
+	p := NewLintParser(l, CommandConfig{}, "../font_config.json", testFontID, 100)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf("unexpected parse error: %s", err.Error())
+	}
+	if len(program.Warnings) != 0 {
+		t.Errorf("expected no warnings, got %d: %s", len(program.Warnings), program.Warnings[0].Message)
+	}
+}
+
+func TestFormatDoesNotProduceWarnings(t *testing.T) {
+	// format() handles its own wrapping, so it should NOT produce line width warnings.
+	input := `
+text MyText {
+	format("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+}
+`
+	l := lexer.New(input)
+	p := NewLintParser(l, CommandConfig{}, "../font_config.json", testFontID, 100)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf("unexpected parse error: %s", err.Error())
+	}
+	if len(program.Warnings) != 0 {
+		t.Errorf("expected no warnings for format(), got %d: %s", len(program.Warnings), program.Warnings[0].Message)
+	}
+}
+
+func TestCommandInlineStringWarning(t *testing.T) {
+	// Command with inline string that's too long should produce a warning.
+	input := `
+script MyScript {
+	msgbox("ABCDEFGHIJK")
+}
+`
+	l := lexer.New(input)
+	p := NewLintParser(l, CommandConfig{}, "../font_config.json", testFontID, 100)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf("unexpected parse error: %s", err.Error())
+	}
+	if len(program.Warnings) == 0 {
+		t.Fatalf("expected at least 1 warning for inline string exceeding line width, got 0")
+	}
+}
+
+func TestAutoStringWarningLineNumbers(t *testing.T) {
+	// AUTOSTRING with a too-long line should report the correct source line number
+	// and character range.
+	// Line 1: (empty)
+	// Line 2: text MyText {
+	// Line 3:     "Short
+	// Line 4:     ABCDEFGHIJK
+	// Line 5:     End"
+	// Line 6: }
+	// The second logical line (ABCDEFGHIJK, 11 chars * 10px = 110px) exceeds maxWidth=100
+	// and should report line 4 as the source line.
+	// "ABCDEFGHIJK" starts at column 4 (0-indexed) after 4 spaces of indentation,
+	// and ends at column 15 (exclusive).
+	input := `
+text MyText {
+    "Short
+    ABCDEFGHIJK
+    End"
+}
+`
+	l := lexer.New(input)
+	p := NewLintParser(l, CommandConfig{}, "../font_config.json", testFontID, 100)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf("unexpected parse error: %s", err.Error())
+	}
+	if len(program.Warnings) == 0 {
+		t.Fatalf("expected at least 1 warning for AUTOSTRING line exceeding width, got 0")
+	}
+	w := program.Warnings[0]
+	if w.LineNumberStart != 4 {
+		t.Errorf("expected warning on source line 4, got line %d", w.LineNumberStart)
+	}
+	if w.Utf8CharStart != 4 {
+		t.Errorf("expected Utf8CharStart 4, got %d", w.Utf8CharStart)
+	}
+	if w.Utf8CharEnd != 15 {
+		t.Errorf("expected Utf8CharEnd 15, got %d", w.Utf8CharEnd)
+	}
+}
+
+func TestNoFontConfigNoWarnings(t *testing.T) {
+	// When no font config is provided, validation should be silently skipped.
+	input := `
+text MyText {
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+}
+`
+	l := lexer.New(input)
+	p := NewLintParser(l, CommandConfig{}, "", "", 0)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf("unexpected parse error: %s", err.Error())
+	}
+	if len(program.Warnings) != 0 {
+		t.Errorf("expected no warnings when no font config, got %d", len(program.Warnings))
+	}
+}

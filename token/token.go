@@ -3,6 +3,16 @@ package token
 // Type distinguishes between different types of tokens in the Poryscript lexer.
 type Type string
 
+// SourceLinePosition records the source location of a single logical line
+// within a multi-line or AUTOSTRING literal.
+type SourceLinePosition struct {
+	Line          int
+	StartChar     int
+	StartUtf8Char int
+	EndChar       int
+	EndUtf8Char   int
+}
+
 // Token represents a single token in the Poryscript lexer.
 type Token struct {
 	Type               Type
@@ -13,6 +23,10 @@ type Token struct {
 	EndLineNumber      int
 	EndCharIndex       int
 	EndUtf8CharIndex   int
+	// OriginalLines maps each logical line index in a string literal back
+	// to its source position. Populated for AUTOSTRING and multi-segment
+	// string tokens.
+	OriginalLines []SourceLinePosition
 }
 
 // Token types

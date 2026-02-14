@@ -37,6 +37,180 @@ func LoadFontConfig(filepath string) (FontConfig, error) {
 	return config, err
 }
 
+// LineTooLongError describes a single line that exceeds the maximum pixel width.
+type LineTooLongError struct {
+	LineIndex      int
+	LineText       string
+	PixelWidth     int
+	MaxWidth       int
+	CharOffset     int
+	Utf8CharOffset int
+	CharLength     int
+	Utf8CharLength int
+}
+
+// ValidateLineWidths checks each line of text against maxWidth and returns
+// a list of lines that exceed the limit. Logical lines are delimited by
+// real newline characters (inserted by the lexer for AUTOSTRINGs).
+// Within each logical line, manual line-break escape sequences (\n, \l,
+// \p) further subdivide the text; each sub-segment is validated
+// independently but reported under the parent logical line's index.
+//
+// Unlike FormatText (which collapses spaces during word-wrapping), this
+// function counts every space character toward the pixel width, since the
+// text is rendered as-is in the game.
+func (fc *FontConfig) ValidateLineWidths(text, fontID string, maxWidth int) []LineTooLongError {
+	if maxWidth <= 0 {
+		return nil
+	}
+
+	// Split on real newlines to get logical lines. For AUTOSTRINGs the
+	// lexer inserts a real newline after each escape sequence, e.g.
+	// "Line one\n\nLine two\l\n" splits into ["Line one\n", "Line two\l", ""].
+	lines := strings.Split(text, "\n")
+
+	var errors []LineTooLongError
+	for i, line := range lines {
+		content := stripTrailingLineBreak(line)
+
+		// Split on any remaining manual line-break escapes and validate
+		// each sub-segment independently.
+		segments := splitOnLineBreakEscapes(content)
+		for _, seg := range segments {
+			width := fc.computeLinePixelWidth(seg.text, fontID)
+			if width > maxWidth && len(seg.text) > 0 {
+				errors = append(errors, LineTooLongError{
+					LineIndex:      i,
+					LineText:       seg.text,
+					PixelWidth:     width,
+					MaxWidth:       maxWidth,
+					CharOffset:     seg.byteOffset,
+					Utf8CharOffset: seg.runeOffset,
+					CharLength:     len(seg.text),
+					Utf8CharLength: seg.runeLength,
+				})
+			}
+		}
+	}
+
+	return errors
+}
+
+func stripTrailingLineBreak(line string) string {
+	if len(line) >= 2 {
+		tail := line[len(line)-2:]
+		if tail == `\n` || tail == `\l` || tail == `\p` {
+			return line[:len(line)-2]
+		}
+	}
+	return line
+}
+
+type lineSegment struct {
+	text       string
+	byteOffset int
+	runeOffset int
+	runeLength int
+}
+
+// splitOnLineBreakEscapes splits text on manual line-break escape sequences
+// (\n, \l, \p) that appear outside of control codes ({...}).
+// Returns the sub-segments between the breaks with their offsets.
+func splitOnLineBreakEscapes(text string) []lineSegment {
+	var segments []lineSegment
+	controlCodeLevel := 0
+	escape := false
+	segStartByte := 0
+	segStartRune := 0
+	runeIndex := 0
+	for i, ch := range text {
+		if escape {
+			if controlCodeLevel == 0 && (ch == 'n' || ch == 'l' || ch == 'p') {
+				// The escape started at i - 1 (the backslash byte).
+				seg := text[segStartByte : i-1]
+				segments = append(segments, lineSegment{
+					text:       seg,
+					byteOffset: segStartByte,
+					runeOffset: segStartRune,
+					runeLength: runeIndex - 1 - segStartRune, // exclude backslash
+				})
+				segStartByte = i + 1
+				segStartRune = runeIndex + 1
+			}
+			escape = false
+			runeIndex++
+			continue
+		}
+		if ch == '\\' && controlCodeLevel == 0 {
+			escape = true
+			runeIndex++
+			continue
+		}
+		if ch == '{' {
+			controlCodeLevel++
+		} else if ch == '}' && controlCodeLevel > 0 {
+			controlCodeLevel--
+		}
+		runeIndex++
+	}
+	// Append the final segment.
+	seg := text[segStartByte:]
+	segments = append(segments, lineSegment{
+		text:       seg,
+		byteOffset: segStartByte,
+		runeOffset: segStartRune,
+		runeLength: runeIndex - segStartRune,
+	})
+	return segments
+}
+
+// computeLinePixelWidth computes the pixel width of a single line of text,
+// counting every character (including spaces) individually.
+func (fc *FontConfig) computeLinePixelWidth(line, fontID string) int {
+	width := 0
+	controlCodeLevel := 0
+	var controlCodeSb strings.Builder
+	escape := false
+
+	for _, ch := range line {
+		if escape {
+			// Non-line-break escape (line breaks already stripped/skipped).
+			width += fc.getRunePixelWidth('\\', fontID)
+			width += fc.getRunePixelWidth(ch, fontID)
+			escape = false
+			continue
+		}
+
+		if ch == '\\' && controlCodeLevel == 0 {
+			escape = true
+			continue
+		}
+
+		if ch == '{' {
+			controlCodeLevel++
+			controlCodeSb.WriteRune(ch)
+			continue
+		}
+		if ch == '}' && controlCodeLevel > 0 {
+			controlCodeSb.WriteRune(ch)
+			controlCodeLevel--
+			if controlCodeLevel == 0 {
+				width += fc.getControlCodePixelWidth(controlCodeSb.String(), fontID)
+				controlCodeSb.Reset()
+			}
+			continue
+		}
+		if controlCodeLevel > 0 {
+			controlCodeSb.WriteRune(ch)
+			continue
+		}
+
+		width += fc.getRunePixelWidth(ch, fontID)
+	}
+
+	return width
+}
+
 const testFontID = "TEST"
 
 // FormatText automatically inserts line breaks into text

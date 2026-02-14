@@ -27,10 +27,30 @@ type Text struct {
 	Token      token.Token
 }
 
+// WarningType identifies the category of a warning.
+type WarningType string
+
+const (
+	WarningLineTooLong WarningType = "line_too_long"
+)
+
+// Warning represents a non-fatal diagnostic produced during parsing.
+type Warning struct {
+	Type            WarningType
+	LineNumberStart int
+	LineNumberEnd   int
+	CharStart       int
+	Utf8CharStart   int
+	CharEnd         int
+	Utf8CharEnd     int
+	Message         string
+}
+
 // Program represents the root-level Node in any Poryscript AST.
 type Program struct {
 	TopLevelStatements []Statement
 	Texts              []Text
+	Warnings           []Warning
 }
 
 // TokenLiteral returns a string representation of the Program node.

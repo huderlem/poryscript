@@ -305,7 +305,7 @@ func (l *Lexer) readStringToken() token.Token {
 	t.StartCharIndex = l.prevCharNumber
 	t.StartUtf8CharIndex = l.prevUtf8CharNumber
 	t.LineNumber = l.lineNumber
-	t.Literal, t.EndLineNumber, t.EndCharIndex, t.EndUtf8CharIndex, isAutoString = l.readString()
+	t.Literal, t.EndLineNumber, t.EndCharIndex, t.EndUtf8CharIndex, isAutoString, t.OriginalLines = l.readString()
 	t.Type = token.STRING
 	if isAutoString {
 		t.Type = token.AUTOSTRING
@@ -356,21 +356,42 @@ func (l *Lexer) readIdentifier() string {
 	return l.input[start:l.position]
 }
 
-func (l *Lexer) readString() (string, int, int, int, bool) {
+func (l *Lexer) readString() (string, int, int, int, bool, []token.SourceLinePosition) {
 	var sb strings.Builder
 	var endLine, endChar, endUtf8Char int
+	var linePositions []token.SourceLinePosition
 
 	// Track state for auto-formatting multi-line strings
 	isAutoString := false
 	newParagraph := true
 
+	// Per-line position tracking
+	var curLineNum int
+	var curStartChar, curStartUtf8Char int
+	var curEndChar, curEndUtf8Char int
+
 	for l.ch == '"' {
 		if sb.Len() > 0 {
 			sb.WriteString("\n")
 		}
+		// Record start of this logical line.
+		curLineNum = l.lineNumber
 		l.readChar()
+		curStartChar = l.prevCharNumber
+		curStartUtf8Char = l.prevUtf8CharNumber
+		curEndChar = curStartChar
+		curEndUtf8Char = curStartUtf8Char
+
 		for l.ch != '"' && l.ch != 0 {
 			if l.ch == '\n' || l.ch == '\r' {
+				linePositions = append(linePositions, token.SourceLinePosition{
+					Line:          curLineNum,
+					StartChar:     curStartChar,
+					StartUtf8Char: curStartUtf8Char,
+					EndChar:       curEndChar,
+					EndUtf8Char:   curEndUtf8Char,
+				})
+
 				// Multi-line string: auto-format with \n, \l, \p
 				// Count newlines to detect paragraph breaks
 				// A blank line (whitespace-only line) counts as a paragraph break
@@ -409,18 +430,36 @@ func (l *Lexer) readString() (string, int, int, int, bool) {
 				} else {
 					sb.WriteString("\\l\n")
 				}
+
+				// Record start of new logical line.
+				curLineNum = l.lineNumber
+				curStartChar = l.prevCharNumber
+				curStartUtf8Char = l.prevUtf8CharNumber
+				curEndChar = curStartChar
+				curEndUtf8Char = curStartUtf8Char
 				continue
 			}
 			sb.WriteRune(l.ch)
+			curEndChar = l.charNumber
+			curEndUtf8Char = l.utf8CharNumber
 			l.readChar()
 		}
+
+		linePositions = append(linePositions, token.SourceLinePosition{
+			Line:          curLineNum,
+			StartChar:     curStartChar,
+			StartUtf8Char: curStartUtf8Char,
+			EndChar:       curEndChar,
+			EndUtf8Char:   curEndUtf8Char,
+		})
+
 		l.readChar()
 		endLine = l.lineNumber
 		endChar = l.prevCharNumber
 		endUtf8Char = l.prevUtf8CharNumber
 		l.skipWhitespace()
 	}
-	return sb.String(), endLine, endChar, endUtf8Char, isAutoString
+	return sb.String(), endLine, endChar, endUtf8Char, isAutoString, linePositions
 }
 
 func (l *Lexer) readRaw() string {
