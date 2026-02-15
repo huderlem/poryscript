@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - Add multi-line string support.
     - Inspired by HexManiacAdvance
+- Add text-replacement support to `font_config.json`.
 
 ## [3.5.2] - 2025-02-16
 ### Fixed
