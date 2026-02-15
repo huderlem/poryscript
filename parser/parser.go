@@ -164,10 +164,10 @@ func (p *Parser) validateTextLineWidth(tok token.Token, text string) {
 		if le.LineIndex < len(tok.OriginalLines) {
 			src := tok.OriginalLines[le.LineIndex]
 			lineNumber = src.Line
-			charStart = src.StartChar + le.CharOffset
-			utf8CharStart = src.StartUtf8Char + le.Utf8CharOffset
-			charEnd = src.StartChar + le.CharOffset + le.CharLength
-			utf8CharEnd = src.StartUtf8Char + le.Utf8CharOffset + le.Utf8CharLength
+			charStart = src.StartChar
+			utf8CharStart = src.StartUtf8Char
+			charEnd = src.EndChar
+			utf8CharEnd = src.EndUtf8Char
 		}
 		p.warnings = append(p.warnings, ast.Warning{
 			Type:            ast.WarningLineTooLong,
@@ -180,6 +180,23 @@ func (p *Parser) validateTextLineWidth(tok token.Token, text string) {
 			Message:         fmt.Sprintf("line of text exceeds maximum width (%d > %d pixels): \"%s\"", le.PixelWidth, le.MaxWidth, le.LineText),
 		})
 	}
+}
+
+// applyTextReplacements applies any configured text substitution rules from
+// the font config to the given string. Returns the string unchanged if no
+// font config is available.
+func (p *Parser) applyTextReplacements(text string) string {
+	if p.fontConfigFilepath == "" {
+		return text
+	}
+	if p.fonts == nil {
+		fc, err := LoadFontConfig(p.fontConfigFilepath)
+		if err != nil {
+			return text
+		}
+		p.fonts = &fc
+	}
+	return p.fonts.ApplyTextReplacements(text)
 }
 
 func (p *Parser) pushBreakStack(statement ast.Statement) {
@@ -659,9 +676,10 @@ func (p *Parser) parseCommandStatement(scriptName string) (*ast.CommandStatement
 				})
 				argParts = append(argParts, "")
 			} else if token.IsStringLikeToken(p.curToken.Type) {
-				p.validateTextLineWidth(p.curToken, p.curToken.Literal)
+				literal := p.applyTextReplacements(p.curToken.Literal)
+				p.validateTextLineWidth(p.curToken, literal)
 				strToken := p.curToken
-				strToken.Literal = p.formatTextTerminator(p.curToken.Literal, "")
+				strToken.Literal = p.formatTextTerminator(literal, "")
 				impData.texts = append(impData.texts, impText{
 					command:    command,
 					argPos:     len(command.Args),
@@ -675,9 +693,10 @@ func (p *Parser) parseCommandStatement(scriptName string) (*ast.CommandStatement
 				if !token.IsStringLikeToken(p.curToken.Type) {
 					return nil, nil, NewParseError(p.curToken, fmt.Sprintf("expected a string literal after string type '%s'. Got '%s' instead", stringType, p.curToken.Literal))
 				}
-				p.validateTextLineWidth(p.curToken, p.curToken.Literal)
+				literal := p.applyTextReplacements(p.curToken.Literal)
+				p.validateTextLineWidth(p.curToken, literal)
 				strToken := p.curToken
-				strToken.Literal = p.formatTextTerminator(p.curToken.Literal, stringType)
+				strToken.Literal = p.formatTextTerminator(literal, stringType)
 				impData.texts = append(impData.texts, impText{
 					command:    command,
 					argPos:     len(command.Args),
@@ -816,16 +835,18 @@ func (p *Parser) parseTextValue() (string, string, error) {
 		}
 		return p.formatTextTerminator(strValue, stringType), stringType, nil
 	} else if token.IsStringLikeToken(p.curToken.Type) {
-		p.validateTextLineWidth(p.curToken, p.curToken.Literal)
-		return p.formatTextTerminator(p.curToken.Literal, ""), "", nil
+		literal := p.applyTextReplacements(p.curToken.Literal)
+		p.validateTextLineWidth(p.curToken, literal)
+		return p.formatTextTerminator(literal, ""), "", nil
 	} else if p.curToken.Type == token.STRINGTYPE {
 		stringType := p.curToken.Literal
 		p.nextToken()
 		if !token.IsStringLikeToken(p.curToken.Type) {
 			return "", "", NewParseError(p.curToken, fmt.Sprintf("expected a string literal after string type '%s'. Got '%s' instead", stringType, p.curToken.Literal))
 		}
-		p.validateTextLineWidth(p.curToken, p.curToken.Literal)
-		return p.formatTextTerminator(p.curToken.Literal, stringType), stringType, nil
+		literal := p.applyTextReplacements(p.curToken.Literal)
+		p.validateTextLineWidth(p.curToken, literal)
+		return p.formatTextTerminator(literal, stringType), stringType, nil
 	} else {
 		return "", "", NewParseError(p.curToken, fmt.Sprintf("body of text statement must be a string or formatted string. Got '%s' instead", p.curToken.Literal))
 	}
@@ -1308,6 +1329,7 @@ func (p *Parser) parseFormatStringOperator() (token.Token, string, string, error
 		return token.Token{}, "", "", NewParseError(p.peekToken, fmt.Sprintf("invalid format() argument '%s'. Expected a string literal", p.peekToken.Literal))
 	}
 	textToken := p.curToken
+	textToken.Literal = p.applyTextReplacements(textToken.Literal)
 	var fontID string
 	var fontIdToken token.Token
 	if p.fonts == nil {

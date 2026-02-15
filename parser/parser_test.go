@@ -2563,3 +2563,57 @@ text MyText {
 		t.Errorf("expected no warnings when no font config, got %d", len(program.Warnings))
 	}
 }
+
+func TestTextReplacementsIntegration(t *testing.T) {
+	input := `text MyText {
+	"Hello \m and \f"
+}
+script MyScript {
+	msgbox("Wait \h30 \qohi\qc")
+}`
+
+	l := lexer.New(input)
+	p := New(l, CommandConfig{}, "../font_config.json", "", 0, nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf("unexpected parse error: %s", err.Error())
+	}
+
+	if len(program.Texts) < 2 {
+		t.Fatalf("expected at least 2 texts, got %d", len(program.Texts))
+	}
+
+	inlineTextValue := program.Texts[0].Value
+	expectedInline := "Wait {PAUSE_30} “hi”$"
+	if inlineTextValue != expectedInline {
+		t.Errorf("text replacement in command arg: expected %q, got %q", expectedInline, inlineTextValue)
+	}
+
+	textValue := program.Texts[1].Value
+	expectedText := "Hello ♂ and ♀$"
+	if textValue != expectedText {
+		t.Errorf("text replacement in text{}: expected %q, got %q", expectedText, textValue)
+	}
+}
+
+func TestTextReplacementsNoConfigFile(t *testing.T) {
+	input := `
+text MyText {
+	"Blah blah \m"
+}
+`
+	l := lexer.New(input)
+	p := New(l, CommandConfig{}, "", "", 0, nil)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf("unexpected parse error: %s", err.Error())
+	}
+
+	if len(program.Texts) < 1 {
+		t.Fatalf("expected at least 1 text, got %d", len(program.Texts))
+	}
+	textValue := program.Texts[0].Value
+	if textValue != `Blah blah \m$` {
+		t.Errorf("expected no replacements without config, got %q", textValue)
+	}
+}

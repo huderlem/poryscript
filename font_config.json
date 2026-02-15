@@ -344,5 +344,18 @@
         "$": 0
       }
     }
-  }
+  },
+  "textReplacements": [
+    {"pattern": "\\e", "replacement": "é"},
+    {"pattern": "\\.", "replacement": "…"},
+    {"pattern": "\\au", "replacement": "{UP_ARROW}"},
+    {"pattern": "\\ad", "replacement": "{DOWN_ARROW}"},
+    {"pattern": "\\ar", "replacement": "{RIGHT_ARROW}"},
+    {"pattern": "\\al", "replacement": "{LEFT_ARROW}"},
+    {"pattern": "\\m", "replacement": "♂"},
+    {"pattern": "\\f", "replacement": "♀"},
+    {"pattern": "\\qo", "replacement": "“"},
+    {"pattern": "\\qc", "replacement": "”"},
+    {"pattern": "\\\\h(\\d+)", "replacement": "{PAUSE_$1}", "regex": true}
+  ]
 }

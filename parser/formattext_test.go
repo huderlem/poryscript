@@ -253,3 +253,62 @@ func TestProcessControlCodes(t *testing.T) {
 		}
 	}
 }
+
+func TestApplyTextReplacements(t *testing.T) {
+	fc := FontConfig{
+		TextReplacements: []TextReplacement{
+			{Pattern: "$", Replacement: "¥"},
+			{Pattern: "\\e", Replacement: "é"},
+			{Pattern: "\\m", Replacement: "♂"},
+			{Pattern: "\\f", Replacement: "♀"},
+			{Pattern: `\\h(\d+)`, Replacement: "{PAUSE_$1}", IsRegex: true},
+			{Pattern: `\\a([udrl])`, Replacement: "{ARROW_$1}", IsRegex: true},
+		},
+	}
+	if err := fc.compileReplacements(); err != nil {
+		t.Fatalf("compileReplacements failed: %s", err)
+	}
+
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{`Price is $5`, "Price is ¥5"},
+		{`Pok\emon`, "Pokémon"},
+		{`Boy\m Girl\f`, "Boy♂ Girl♀"},
+		{`Wait \h30 frames`, "Wait {PAUSE_30} frames"},
+		{`Press \au to go up`, "Press {ARROW_u} to go up"},
+		{"No replacements here", "No replacements here"},
+		{"", ""},
+	}
+
+	for i, tt := range tests {
+		result := fc.ApplyTextReplacements(tt.input)
+		if result != tt.expected {
+			t.Errorf("TestApplyTextReplacements Test %d: Expected '%s', but Got '%s'", i, tt.expected, result)
+		}
+	}
+}
+
+func TestApplyTextReplacementsEmpty(t *testing.T) {
+	fc := FontConfig{}
+	if err := fc.compileReplacements(); err != nil {
+		t.Fatalf("compileReplacements failed: %s", err)
+	}
+	result := fc.ApplyTextReplacements("Hello $ World")
+	if result != "Hello $ World" {
+		t.Errorf("Expected no changes with empty replacements, got '%s'", result)
+	}
+}
+
+func TestCompileReplacementsInvalidRegex(t *testing.T) {
+	fc := FontConfig{
+		TextReplacements: []TextReplacement{
+			{Pattern: "[invalid", Replacement: "x", IsRegex: true},
+		},
+	}
+	err := fc.compileReplacements()
+	if err == nil {
+		t.Fatalf("Expected error for invalid regex, got nil")
+	}
+}

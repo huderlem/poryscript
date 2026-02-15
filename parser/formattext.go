@@ -8,11 +8,28 @@ import (
 	"strings"
 )
 
+// TextReplacement defines a single text substitution rule that is applied to
+// all string literals during parsing.
+type TextReplacement struct {
+	Pattern     string `json:"pattern"`
+	Replacement string `json:"replacement"`
+	IsRegex     bool   `json:"regex"`
+}
+
+// compiledTextReplacement holds the pre-processed form of a TextReplacement.
+type compiledTextReplacement struct {
+	literal     string
+	regex       *regexp.Regexp
+	replacement string
+}
+
 // FontConfig holds the configuration for various supported fonts, as well as
 // the default font.
 type FontConfig struct {
-	DefaultFontID string           `json:"defaultFontId"`
-	Fonts         map[string]Fonts `json:"fonts"`
+	DefaultFontID    string            `json:"defaultFontId"`
+	Fonts            map[string]Fonts  `json:"fonts"`
+	TextReplacements []TextReplacement `json:"textReplacements"`
+	compiled         []compiledTextReplacement
 }
 
 type Fonts struct {
@@ -34,7 +51,43 @@ func LoadFontConfig(filepath string) (FontConfig, error) {
 		return config, err
 	}
 
+	if err := config.compileReplacements(); err != nil {
+		return config, err
+	}
+
 	return config, err
+}
+
+// compileReplacements pre-compiles text replacement rules. Literal patterns
+// are stored as-is; regex patterns are compiled into *regexp.Regexp.
+func (fc *FontConfig) compileReplacements() error {
+	fc.compiled = make([]compiledTextReplacement, len(fc.TextReplacements))
+	for i, tr := range fc.TextReplacements {
+		fc.compiled[i].replacement = tr.Replacement
+		if tr.IsRegex {
+			re, err := regexp.Compile(tr.Pattern)
+			if err != nil {
+				return fmt.Errorf("invalid regex pattern in font config's textReplacements[%d]: %s", i, err)
+			}
+			fc.compiled[i].regex = re
+		} else {
+			fc.compiled[i].literal = tr.Pattern
+		}
+	}
+	return nil
+}
+
+// ApplyTextReplacements applies all configured text substitution rules to the
+// given string, in the order they are defined in the configuration.
+func (fc *FontConfig) ApplyTextReplacements(text string) string {
+	for _, cr := range fc.compiled {
+		if cr.regex != nil {
+			text = cr.regex.ReplaceAllString(text, cr.replacement)
+		} else {
+			text = strings.ReplaceAll(text, cr.literal, cr.replacement)
+		}
+	}
+	return text
 }
 
 // LineTooLongError describes a single line that exceeds the maximum pixel width.
