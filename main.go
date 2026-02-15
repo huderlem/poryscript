@@ -15,7 +15,7 @@ import (
 	"github.com/huderlem/poryscript/parser"
 )
 
-const version = "3.5.2"
+const version = "3.6.0"
 
 type mapOption map[string]string
 
