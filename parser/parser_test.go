@@ -2546,6 +2546,39 @@ text MyText {
 	}
 }
 
+func TestManualLineBreakSubSegmentWarning(t *testing.T) {
+	// Single-line STRING with a manual \n line break.
+	// "Short\nABCDEFGHIJK" — the first segment "Short" is fine,
+	// the second "ABCDEFGHIJK" (11*10=110px) exceeds maxWidth=100.
+	// The warning's char range should cover only the "ABCDEFGHIJK" segment.
+	//
+	// Layout (0-indexed columns):
+	//   Line 0:  (empty)
+	//   Line 1:  text MyText {
+	//   Line 2:  \t"Short\nABCDEFGHIJK"
+	//
+	// The opening quote is at col 1 (after tab). Content starts at col 2.
+	// "Short\n" = 7 chars, so "ABCDEFGHIJK" starts at col 2+7=9.
+	// "ABCDEFGHIJK" is 11 chars, ending at col 9+11=20.
+	input := "\ntext MyText {\n\t\"Short\\nABCDEFGHIJK\"\n}\n"
+	l := lexer.New(input)
+	p := NewLintParser(l, CommandConfig{}, "../font_config.json", testFontID, 100)
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf("unexpected parse error: %s", err.Error())
+	}
+	if len(program.Warnings) != 1 {
+		t.Fatalf("expected 1 warning, got %d", len(program.Warnings))
+	}
+	w := program.Warnings[0]
+	if w.Utf8CharStart != 9 {
+		t.Errorf("expected Utf8CharStart 9, got %d", w.Utf8CharStart)
+	}
+	if w.Utf8CharEnd != 20 {
+		t.Errorf("expected Utf8CharEnd 20, got %d", w.Utf8CharEnd)
+	}
+}
+
 func TestNoFontConfigNoWarnings(t *testing.T) {
 	// When no font config is provided, validation should be silently skipped.
 	input := `
