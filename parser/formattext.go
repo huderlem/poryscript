@@ -109,13 +109,19 @@ type LineTooLongError struct {
 // \p) further subdivide the text; each sub-segment is validated
 // independently but reported under the parent logical line's index.
 //
+// When cursorOverlapWidth > 0, the effective maximum width is reduced
+// by cursorOverlapWidth for segments followed by \l or \p escapes,
+// since the game renders a cursor before those breaks.
+//
 // Unlike FormatText (which collapses spaces during word-wrapping), this
 // function counts every space character toward the pixel width, since the
 // text is rendered as-is in the game.
-func (fc *FontConfig) ValidateLineWidths(text, fontID string, maxWidth int) []LineTooLongError {
+func (fc *FontConfig) ValidateLineWidths(text, fontID string, maxWidth, cursorOverlapWidth int) []LineTooLongError {
 	if maxWidth <= 0 {
 		return nil
 	}
+
+	maxWidthWithCursor := maxWidth - cursorOverlapWidth
 
 	// Split on real newlines to get logical lines. For AUTOSTRINGs the
 	// lexer inserts a real newline after each escape sequence, e.g.
@@ -124,19 +130,21 @@ func (fc *FontConfig) ValidateLineWidths(text, fontID string, maxWidth int) []Li
 
 	var errors []LineTooLongError
 	for i, line := range lines {
-		content := stripTrailingLineBreak(line)
-
 		// Split on any remaining manual line-break escapes and validate
 		// each sub-segment independently.
-		segments := splitOnLineBreakEscapes(content)
+		segments := splitOnLineBreakEscapes(line)
 		for _, seg := range segments {
+			effectiveMaxWidth := maxWidth
+			if seg.trailingEscape == 'l' || seg.trailingEscape == 'p' {
+				effectiveMaxWidth = maxWidthWithCursor
+			}
 			width := fc.computeLinePixelWidth(seg.text, fontID)
-			if width > maxWidth && len(seg.text) > 0 {
+			if width > effectiveMaxWidth && len(seg.text) > 0 {
 				errors = append(errors, LineTooLongError{
 					LineIndex:      i,
 					LineText:       seg.text,
 					PixelWidth:     width,
-					MaxWidth:       maxWidth,
+					MaxWidth:       effectiveMaxWidth,
 					CharOffset:     seg.byteOffset,
 					Utf8CharOffset: seg.runeOffset,
 					CharLength:     len(seg.text),
@@ -160,10 +168,11 @@ func stripTrailingLineBreak(line string) string {
 }
 
 type lineSegment struct {
-	text       string
-	byteOffset int
-	runeOffset int
-	runeLength int
+	text           string
+	byteOffset     int
+	runeOffset     int
+	runeLength     int
+	trailingEscape rune
 }
 
 // splitOnLineBreakEscapes splits text on manual line-break escape sequences
@@ -182,10 +191,11 @@ func splitOnLineBreakEscapes(text string) []lineSegment {
 				// The escape started at i - 1 (the backslash byte).
 				seg := text[segStartByte : i-1]
 				segments = append(segments, lineSegment{
-					text:       seg,
-					byteOffset: segStartByte,
-					runeOffset: segStartRune,
-					runeLength: runeIndex - 1 - segStartRune, // exclude backslash
+					text:           stripTrailingLineBreak(seg),
+					byteOffset:     segStartByte,
+					runeOffset:     segStartRune,
+					runeLength:     runeIndex - 1 - segStartRune, // exclude backslash
+					trailingEscape: ch,
 				})
 				segStartByte = i + 1
 				segStartRune = runeIndex + 1

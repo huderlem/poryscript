@@ -88,29 +88,29 @@ func TestValidateLineWidths(t *testing.T) {
 	fc := FontConfig{}
 
 	// Lines within limit — no errors
-	errors := fc.ValidateLineWidths("Hello", testFontID, 100)
+	errors := fc.ValidateLineWidths("Hello", testFontID, 100, 0)
 	if len(errors) != 0 {
 		t.Errorf("Expected no errors for short text, got %d", len(errors))
 	}
 
 	// Empty text — no errors
-	errors = fc.ValidateLineWidths("", testFontID, 100)
+	errors = fc.ValidateLineWidths("", testFontID, 100, 0)
 	if len(errors) != 0 {
 		t.Errorf("Expected no errors for empty text, got %d", len(errors))
 	}
 
 	// maxWidth <= 0 — validation skipped
-	errors = fc.ValidateLineWidths("Hello World This Is Long", testFontID, 0)
+	errors = fc.ValidateLineWidths("Hello World This Is Long", testFontID, 0, 0)
 	if len(errors) != 0 {
 		t.Errorf("Expected no errors when maxWidth <= 0, got %d", len(errors))
 	}
-	errors = fc.ValidateLineWidths("Hello World This Is Long", testFontID, -1)
+	errors = fc.ValidateLineWidths("Hello World This Is Long", testFontID, -1, 0)
 	if len(errors) != 0 {
 		t.Errorf("Expected no errors when maxWidth < 0, got %d", len(errors))
 	}
 
 	// Single line exceeding limit (each char is 10px in TEST font, "Hello" = 50px)
-	errors = fc.ValidateLineWidths("Hello", testFontID, 40)
+	errors = fc.ValidateLineWidths("Hello", testFontID, 40, 0)
 	if len(errors) != 1 {
 		t.Fatalf("Expected 1 error, got %d", len(errors))
 	}
@@ -128,7 +128,7 @@ func TestValidateLineWidths(t *testing.T) {
 	// Simulates AUTOSTRING: "Hi\n\nHello World\l\n"
 	// Line 0: "Hi\n" → content "Hi" = 20px
 	// Line 1: "Hello World\l" → content "Hello World" = 110px
-	errors = fc.ValidateLineWidths("Hi\\n\nHello World\\l\n", testFontID, 100)
+	errors = fc.ValidateLineWidths("Hi\\n\nHello World\\l\n", testFontID, 100, 0)
 	if len(errors) != 1 {
 		t.Fatalf("Expected 1 error, got %d", len(errors))
 	}
@@ -140,7 +140,7 @@ func TestValidateLineWidths(t *testing.T) {
 	}
 
 	// Both lines exceed
-	errors = fc.ValidateLineWidths("Hello World\\n\nHello World\\l\n", testFontID, 100)
+	errors = fc.ValidateLineWidths("Hello World\\n\nHello World\\l\n", testFontID, 100, 0)
 	if len(errors) != 2 {
 		t.Fatalf("Expected 2 errors, got %d", len(errors))
 	}
@@ -155,7 +155,7 @@ func TestValidateLineWidths(t *testing.T) {
 	// "Hi\nWorld" splits into "Hi" (20px) and "World" (50px).
 	// With maxWidth 40, only "World" exceeds.
 	// "World" starts at byte offset 4 (after "Hi\n"), rune offset 4, length 5.
-	errors = fc.ValidateLineWidths(`Hi\nWorld`, testFontID, 40)
+	errors = fc.ValidateLineWidths(`Hi\nWorld`, testFontID, 40, 0)
 	if len(errors) != 1 {
 		t.Fatalf("Expected 1 error for manual-break sub-segment, got %d", len(errors))
 	}
@@ -183,7 +183,7 @@ func TestValidateLineWidths(t *testing.T) {
 
 	// Spaces are counted individually (not collapsed).
 	// "A  B" = 4 chars * 10px = 40px. Both spaces count.
-	errors = fc.ValidateLineWidths("A  B", testFontID, 30)
+	errors = fc.ValidateLineWidths("A  B", testFontID, 30, 0)
 	if len(errors) != 1 {
 		t.Fatalf("Expected 1 error for spaced text, got %d", len(errors))
 	}
@@ -193,7 +193,7 @@ func TestValidateLineWidths(t *testing.T) {
 
 	// Trailing spaces contribute to width.
 	// "Hi   " on first logical line = 5 chars * 10px = 50px
-	errors = fc.ValidateLineWidths("Hi   \\n\nOk\\l\n", testFontID, 40)
+	errors = fc.ValidateLineWidths("Hi   \\n\nOk\\l\n", testFontID, 40, 0)
 	if len(errors) != 1 {
 		t.Fatalf("Expected 1 error for trailing spaces, got %d", len(errors))
 	}
@@ -206,7 +206,7 @@ func TestValidateLineWidths(t *testing.T) {
 
 	// Leading spaces contribute to width.
 	// "   Hi" on second logical line = 5 chars * 10px = 50px
-	errors = fc.ValidateLineWidths("Ok\\n\n   Hi\\l\n", testFontID, 40)
+	errors = fc.ValidateLineWidths("Ok\\n\n   Hi\\l\n", testFontID, 40, 0)
 	if len(errors) != 1 {
 		t.Fatalf("Expected 1 error for leading spaces, got %d", len(errors))
 	}
@@ -219,12 +219,79 @@ func TestValidateLineWidths(t *testing.T) {
 
 	// Control codes contribute their width (100px in TEST font).
 	// "{PLAYER}Hi" = 100 + 20 = 120px
-	errors = fc.ValidateLineWidths("{PLAYER}Hi", testFontID, 110)
+	errors = fc.ValidateLineWidths("{PLAYER}Hi", testFontID, 110, 0)
 	if len(errors) != 1 {
 		t.Fatalf("Expected 1 error for control code text, got %d", len(errors))
 	}
 	if errors[0].PixelWidth != 120 {
 		t.Errorf("Expected PixelWidth 120, got %d", errors[0].PixelWidth)
+	}
+}
+
+func TestValidateLineWidthsCursorOverlap(t *testing.T) {
+	fc := FontConfig{}
+
+	// Cursor is rendered in-game before \l and \p escapes only.
+	// \n does NOT show a cursor.
+	errors := fc.ValidateLineWidths(`Hi\lWorld`, testFontID, 100, 15)
+	if len(errors) != 0 {
+		t.Errorf("Expected no errors, got %d", len(errors))
+	}
+
+	errors = fc.ValidateLineWidths(`Hello\lWorld`, testFontID, 60, 15)
+	if len(errors) != 1 {
+		t.Fatalf("Expected 1 error for \\l cursor overlap, got %d", len(errors))
+	}
+	if errors[0].LineText != "Hello" {
+		t.Errorf("Expected LineText 'Hello', got '%s'", errors[0].LineText)
+	}
+	if errors[0].MaxWidth != 45 {
+		t.Errorf("Expected MaxWidth 45, got %d", errors[0].MaxWidth)
+	}
+
+	errors = fc.ValidateLineWidths(`Hello\nWorld`, testFontID, 60, 15)
+	if len(errors) != 0 {
+		t.Errorf("Expected no errors for \\n escape (no cursor), got %d", len(errors))
+	}
+
+	errors = fc.ValidateLineWidths(`Hello\pWorld`, testFontID, 60, 15)
+	if len(errors) != 1 {
+		t.Fatalf("Expected 1 error for \\p cursor overlap, got %d", len(errors))
+	}
+	if errors[0].LineText != "Hello" {
+		t.Errorf("Expected LineText 'Hello', got '%s'", errors[0].LineText)
+	}
+	if errors[0].MaxWidth != 45 {
+		t.Errorf("Expected MaxWidth 45, got %d", errors[0].MaxWidth)
+	}
+
+	errors = fc.ValidateLineWidths(`Hi\lWorld`, testFontID, 50, 15)
+	if len(errors) != 0 {
+		t.Errorf("Expected no errors for segment with no trailing escape, got %d", len(errors))
+	}
+
+	errors = fc.ValidateLineWidths(`Hello\lWorld`, testFontID, 50, 0)
+	if len(errors) != 0 {
+		t.Errorf("Expected no errors with cursorOverlapWidth=0, got %d", len(errors))
+	}
+
+	errors = fc.ValidateLineWidths(`AA\lBBBB\lCC`, testFontID, 40, 10)
+	if len(errors) != 1 {
+		t.Fatalf("Expected 1 error for \\l cursor overlap, got %d", len(errors))
+	}
+	if errors[0].LineText != "BBBB" {
+		t.Errorf("Expected error on 'BBBB', got '%s'", errors[0].LineText)
+	}
+	if errors[0].MaxWidth != 30 {
+		t.Errorf("Expected MaxWidth 30, got %d", errors[0].MaxWidth)
+	}
+
+	errors = fc.ValidateLineWidths(`AA\lBBBB\lCC\pDD`, testFontID, 30, 10)
+	if len(errors) != 1 {
+		t.Fatalf("Expected 1 error, got %d", len(errors))
+	}
+	if errors[0].LineText != "BBBB" {
+		t.Errorf("Expected error on 'BBBB', got '%s'", errors[0].LineText)
 	}
 }
 

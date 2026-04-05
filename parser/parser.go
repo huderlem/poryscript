@@ -153,7 +153,8 @@ func (p *Parser) validateTextLineWidth(tok token.Token, text string) {
 		maxWidth = p.fonts.Fonts[fontID].MaxLineLength
 	}
 
-	lineErrors := p.fonts.ValidateLineWidths(text, fontID, maxWidth)
+	cursorOverlapWidth := p.fonts.Fonts[fontID].CursorOverlapWidth
+	lineErrors := p.fonts.ValidateLineWidths(text, fontID, maxWidth, cursorOverlapWidth)
 	for _, le := range lineErrors {
 		// Resolve the source position for this logical line.
 		lineNumber := tok.LineNumber
