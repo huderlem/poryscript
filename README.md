@@ -88,7 +88,7 @@ Convert a `.pory` script to a compiled `.inc` script, which can be directly incl
 
 ## Basic Installation
 To automatically convert your Poryscript scripts when compiling a decomp project, perform these two steps:
-1. Create a new `tools/poryscript/` directory, and add the `poryscript` command-line executable tool to it. Also copy `command_config.json` and `font_config.json` to the same location.
+1. Create a new `tools/poryscript/` directory, and add the `poryscript` command-line executable tool to it. If you are using WSL, download the `poryscript-linux.zip` binary. Also copy `command_config.json` and `font_config.json` to the same location.
 ```
 # For example, on Windows, place the files here.
 pokeemerald/tools/poryscript/poryscript.exe
