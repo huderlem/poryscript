@@ -136,8 +136,8 @@ git submodule add https://github.com/huderlem/poryscript tools/poryscript
 2. Make the following changes to `make_tools.mk`:
 
 ```diff
-- TOOL_NAMES := aif2pcm bin2c gbafix gbagfx jsonproc mapjson mid2agb preproc ramscrgen rsfont scaninc
-+ TOOL_NAMES := aif2pcm bin2c gbafix gbagfx jsonproc mapjson mid2agb preproc ramscrgen rsfont scaninc poryscript
+- TOOL_NAMES := bin2c gbafix gbagfx jsonproc mapjson mid2agb preproc ramscrgen rsfont scaninc wav2agb
++ TOOL_NAMES := bin2c gbafix gbagfx jsonproc mapjson mid2agb preproc ramscrgen rsfont scaninc wav2agb poryscript
 ```
 
 3. Make the changes to `Makefile` as described above in [Basic Installation](#basic-installation).
