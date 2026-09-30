@@ -123,6 +123,9 @@ func TestValidateLineWidths(t *testing.T) {
 	if errors[0].MaxWidth != 40 {
 		t.Errorf("Expected MaxWidth 40, got %d", errors[0].MaxWidth)
 	}
+	if errors[0].OverflowCharOffset != 4 || errors[0].OverflowUtf8CharOffset != 4 {
+		t.Errorf("Expected overflow byte offset 4 and UTF-8 character offset 4, got byte offset %d and UTF-8 character offset %d", errors[0].OverflowCharOffset, errors[0].OverflowUtf8CharOffset)
+	}
 
 	// Multiple logical lines (real newlines), second exceeds.
 	// Simulates AUTOSTRING: "Hi\n\nHello World\l\n"
@@ -180,6 +183,30 @@ func TestValidateLineWidths(t *testing.T) {
 	if errors[0].Utf8CharLength != 5 {
 		t.Errorf("Expected Utf8CharLength 5, got %d", errors[0].Utf8CharLength)
 	}
+	if errors[0].OverflowCharOffset != 8 || errors[0].OverflowUtf8CharOffset != 8 {
+		t.Errorf("Expected overflow byte offset 8 and UTF-8 character offset 8, got byte offset %d and UTF-8 character offset %d", errors[0].OverflowCharOffset, errors[0].OverflowUtf8CharOffset)
+	}
+
+	// Each manual-break segment has an independent overflow range.
+	errors = fc.ValidateLineWidths(`aaa\naaaaaaaaa\naaa`, testFontID, 50, 0)
+	if len(errors) != 1 {
+		t.Fatalf("Expected 1 error for one overflowing segment, got %d", len(errors))
+	}
+	if errors[0].CharOffset != 5 || errors[0].Utf8CharOffset != 5 {
+		t.Errorf("Expected segment byte offset 5 and UTF-8 character offset 5, got byte offset %d and UTF-8 character offset %d", errors[0].CharOffset, errors[0].Utf8CharOffset)
+	}
+	if errors[0].OverflowCharOffset != 10 || errors[0].OverflowUtf8CharOffset != 10 {
+		t.Errorf("Expected overflow byte offset 10 and UTF-8 character offset 10, got byte offset %d and UTF-8 character offset %d", errors[0].OverflowCharOffset, errors[0].OverflowUtf8CharOffset)
+	}
+
+	// Byte and rune offsets differ for multi-byte UTF-8 characters.
+	errors = fc.ValidateLineWidths("ééé", testFontID, 20, 0)
+	if len(errors) != 1 {
+		t.Fatalf("Expected 1 UTF-8 overflow error, got %d", len(errors))
+	}
+	if errors[0].OverflowCharOffset != 4 || errors[0].OverflowUtf8CharOffset != 2 {
+		t.Errorf("Expected overflow byte offset 4 and UTF-8 character offset 2, got byte offset %d and UTF-8 character offset %d", errors[0].OverflowCharOffset, errors[0].OverflowUtf8CharOffset)
+	}
 
 	// Spaces are counted individually (not collapsed).
 	// "A  B" = 4 chars * 10px = 40px. Both spaces count.
@@ -225,6 +252,9 @@ func TestValidateLineWidths(t *testing.T) {
 	}
 	if errors[0].PixelWidth != 120 {
 		t.Errorf("Expected PixelWidth 120, got %d", errors[0].PixelWidth)
+	}
+	if errors[0].OverflowCharOffset != 9 || errors[0].OverflowUtf8CharOffset != 9 {
+		t.Errorf("Expected control-code overflow byte offset 9 and UTF-8 character offset 9, got byte offset %d and UTF-8 character offset %d", errors[0].OverflowCharOffset, errors[0].OverflowUtf8CharOffset)
 	}
 }
 
