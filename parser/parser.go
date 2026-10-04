@@ -160,6 +160,8 @@ func (p *Parser) validateTextLineWidth(tok token.Token, text string) {
 		lineNumber := tok.LineNumber
 		charStart := tok.StartCharIndex
 		utf8CharStart := tok.StartUtf8CharIndex
+		overflowCharStart := tok.StartCharIndex + le.OverflowCharOffset
+		overflowUtf8CharStart := tok.StartUtf8CharIndex + le.OverflowUtf8CharOffset
 		charEnd := tok.EndCharIndex
 		utf8CharEnd := tok.EndUtf8CharIndex
 		if le.LineIndex < len(tok.OriginalLines) {
@@ -167,18 +169,25 @@ func (p *Parser) validateTextLineWidth(tok token.Token, text string) {
 			lineNumber = src.Line
 			charStart = src.StartChar + le.CharOffset
 			utf8CharStart = src.StartUtf8Char + le.Utf8CharOffset
+			overflowCharStart = src.StartChar + le.OverflowCharOffset
+			overflowUtf8CharStart = src.StartUtf8Char + le.OverflowUtf8CharOffset
 			charEnd = src.StartChar + le.CharOffset + le.CharLength
 			utf8CharEnd = src.StartUtf8Char + le.Utf8CharOffset + le.Utf8CharLength
+		} else {
+			charStart = tok.StartCharIndex + le.CharOffset
+			utf8CharStart = tok.StartUtf8CharIndex + le.Utf8CharOffset
 		}
 		p.warnings = append(p.warnings, ast.Warning{
-			Type:            ast.WarningLineTooLong,
-			LineNumberStart: lineNumber,
-			LineNumberEnd:   lineNumber,
-			CharStart:       charStart,
-			Utf8CharStart:   utf8CharStart,
-			CharEnd:         charEnd,
-			Utf8CharEnd:     utf8CharEnd,
-			Message:         fmt.Sprintf("line of text exceeds maximum width (%d > %d pixels): \"%s\"", le.PixelWidth, le.MaxWidth, le.LineText),
+			Type:                  ast.WarningLineTooLong,
+			LineNumberStart:       lineNumber,
+			LineNumberEnd:         lineNumber,
+			CharStart:             charStart,
+			Utf8CharStart:         utf8CharStart,
+			OverflowCharStart:     overflowCharStart,
+			OverflowUtf8CharStart: overflowUtf8CharStart,
+			CharEnd:               charEnd,
+			Utf8CharEnd:           utf8CharEnd,
+			Message:               fmt.Sprintf("line of text exceeds maximum width (%d > %d pixels): \"%s\"", le.PixelWidth, le.MaxWidth, le.LineText),
 		})
 	}
 }

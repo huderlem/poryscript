@@ -100,6 +100,8 @@ type LineTooLongError struct {
 	Utf8CharOffset int
 	CharLength     int
 	Utf8CharLength int
+	OverflowCharOffset     int
+	OverflowUtf8CharOffset int
 }
 
 // ValidateLineWidths checks each line of text against maxWidth and returns
@@ -138,7 +140,7 @@ func (fc *FontConfig) ValidateLineWidths(text, fontID string, maxWidth, cursorOv
 			if seg.trailingEscape == 'l' || seg.trailingEscape == 'p' {
 				effectiveMaxWidth = maxWidthWithCursor
 			}
-			width := fc.computeLinePixelWidth(seg.text, fontID)
+			width, overflowCharOffset, overflowUtf8CharOffset := fc.computeLinePixelWidth(seg.text, fontID, effectiveMaxWidth)
 			if width > effectiveMaxWidth && len(seg.text) > 0 {
 				errors = append(errors, LineTooLongError{
 					LineIndex:      i,
@@ -149,6 +151,8 @@ func (fc *FontConfig) ValidateLineWidths(text, fontID string, maxWidth, cursorOv
 					Utf8CharOffset: seg.runeOffset,
 					CharLength:     len(seg.text),
 					Utf8CharLength: seg.runeLength,
+					OverflowCharOffset:     seg.byteOffset + overflowCharOffset,
+					OverflowUtf8CharOffset: seg.runeOffset + overflowUtf8CharOffset,
 				})
 			}
 		}
@@ -228,30 +232,55 @@ func splitOnLineBreakEscapes(text string) []lineSegment {
 }
 
 // computeLinePixelWidth computes the pixel width of a single line of text,
-// counting every character (including spaces) individually.
-func (fc *FontConfig) computeLinePixelWidth(line, fontID string) int {
-	width := 0
+// counting every character (including spaces) individually. It also
+// returns the byte and rune offset of the first character that pushed the
+// width past maxWidth (or the line's end offsets if it never did).
+func (fc *FontConfig) computeLinePixelWidth(line, fontID string, maxWidth int) (width, overflowByteOffset, overflowRuneOffset int) {
 	controlCodeLevel := 0
 	var controlCodeSb strings.Builder
+	controlCodeByteOffset := 0
+	controlCodeRuneOffset := 0
 	escape := false
+	escapeByteOffset := 0
+	escapeRuneOffset := 0
+	runeOffset := 0
+	overflowFound := false
 
-	for _, ch := range line {
+	checkOverflow := func(byteOffset, ro int) {
+		if !overflowFound && width > maxWidth {
+			overflowFound = true
+			overflowByteOffset = byteOffset
+			overflowRuneOffset = ro
+		}
+	}
+
+	for byteOffset, ch := range line {
 		if escape {
 			// Non-line-break escape (line breaks already stripped/skipped).
 			width += fc.getRunePixelWidth('\\', fontID)
 			width += fc.getRunePixelWidth(ch, fontID)
+			checkOverflow(escapeByteOffset, escapeRuneOffset)
 			escape = false
+			runeOffset++
 			continue
 		}
 
 		if ch == '\\' && controlCodeLevel == 0 {
 			escape = true
+			escapeByteOffset = byteOffset
+			escapeRuneOffset = runeOffset
+			runeOffset++
 			continue
 		}
 
 		if ch == '{' {
+			if controlCodeLevel == 0 {
+				controlCodeByteOffset = byteOffset
+				controlCodeRuneOffset = runeOffset
+			}
 			controlCodeLevel++
 			controlCodeSb.WriteRune(ch)
+			runeOffset++
 			continue
 		}
 		if ch == '}' && controlCodeLevel > 0 {
@@ -259,19 +288,29 @@ func (fc *FontConfig) computeLinePixelWidth(line, fontID string) int {
 			controlCodeLevel--
 			if controlCodeLevel == 0 {
 				width += fc.getControlCodePixelWidth(controlCodeSb.String(), fontID)
+				checkOverflow(controlCodeByteOffset, controlCodeRuneOffset)
 				controlCodeSb.Reset()
 			}
+			runeOffset++
 			continue
 		}
 		if controlCodeLevel > 0 {
 			controlCodeSb.WriteRune(ch)
+			runeOffset++
 			continue
 		}
 
 		width += fc.getRunePixelWidth(ch, fontID)
+		checkOverflow(byteOffset, runeOffset)
+		runeOffset++
 	}
 
-	return width
+	if !overflowFound {
+		overflowByteOffset = len(line)
+		overflowRuneOffset = runeOffset
+	}
+
+	return width, overflowByteOffset, overflowRuneOffset
 }
 
 const testFontID = "TEST"

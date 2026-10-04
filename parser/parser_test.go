@@ -2541,6 +2541,9 @@ text MyText {
 	if w.Utf8CharStart != 4 {
 		t.Errorf("expected Utf8CharStart 4, got %d", w.Utf8CharStart)
 	}
+	if w.OverflowUtf8CharStart != 14 {
+		t.Errorf("expected overflow UTF-8 character start 14, got %d", w.OverflowUtf8CharStart)
+	}
 	if w.Utf8CharEnd != 15 {
 		t.Errorf("expected Utf8CharEnd 15, got %d", w.Utf8CharEnd)
 	}
@@ -2573,6 +2576,9 @@ func TestManualLineBreakSubSegmentWarning(t *testing.T) {
 	w := program.Warnings[0]
 	if w.Utf8CharStart != 9 {
 		t.Errorf("expected Utf8CharStart 9, got %d", w.Utf8CharStart)
+	}
+	if w.OverflowUtf8CharStart != 19 {
+		t.Errorf("expected overflow UTF-8 character start 19, got %d", w.OverflowUtf8CharStart)
 	}
 	if w.Utf8CharEnd != 20 {
 		t.Errorf("expected Utf8CharEnd 20, got %d", w.Utf8CharEnd)

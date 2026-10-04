@@ -41,6 +41,8 @@ type Warning struct {
 	LineNumberEnd   int
 	CharStart       int
 	Utf8CharStart   int
+	OverflowCharStart     int
+	OverflowUtf8CharStart int
 	CharEnd         int
 	Utf8CharEnd     int
 	Message         string
