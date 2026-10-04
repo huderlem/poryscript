@@ -80,14 +80,73 @@ func (fc *FontConfig) compileReplacements() error {
 // ApplyTextReplacements applies all configured text substitution rules to the
 // given string, in the order they are defined in the configuration.
 func (fc *FontConfig) ApplyTextReplacements(text string) string {
-	for _, cr := range fc.compiled {
-		if cr.regex != nil {
-			text = cr.regex.ReplaceAllString(text, cr.replacement)
-		} else {
-			text = strings.ReplaceAll(text, cr.literal, cr.replacement)
-		}
-	}
+	text, _ = fc.ApplyTextReplacementsWithOffsets(text)
 	return text
+}
+
+// ApplyTextReplacementsWithOffsets is like ApplyTextReplacements, but also
+// returns a mapping from each byte offset in the result (plus the offset one
+// past its end) back to the corresponding byte offset in the original text.
+// Bytes produced by a replacement map to the start of the text they replaced.
+func (fc *FontConfig) ApplyTextReplacementsWithOffsets(text string) (string, []int) {
+	offsets := make([]int, len(text)+1)
+	for i := range offsets {
+		offsets[i] = i
+	}
+	for _, cr := range fc.compiled {
+		var matches [][]int
+		if cr.regex != nil {
+			matches = cr.regex.FindAllStringSubmatchIndex(text, -1)
+		} else {
+			matches = findAllLiteral(text, cr.literal)
+		}
+		if len(matches) == 0 {
+			continue
+		}
+		var sb strings.Builder
+		newOffsets := make([]int, 0, len(offsets))
+		prev := 0
+		for _, m := range matches {
+			sb.WriteString(text[prev:m[0]])
+			newOffsets = append(newOffsets, offsets[prev:m[0]]...)
+			replacement := cr.replacement
+			if cr.regex != nil {
+				replacement = string(cr.regex.ExpandString(nil, cr.replacement, text, m))
+			}
+			sb.WriteString(replacement)
+			for i := 0; i < len(replacement); i++ {
+				newOffsets = append(newOffsets, offsets[m[0]])
+			}
+			prev = m[1]
+		}
+		sb.WriteString(text[prev:])
+		newOffsets = append(newOffsets, offsets[prev:]...)
+		text = sb.String()
+		offsets = newOffsets
+	}
+	return text, offsets
+}
+
+// findAllLiteral returns the start and end byte offsets of each non-overlapping
+// occurrence of a literal in text.
+func findAllLiteral(text, literal string) [][]int {
+	var matches [][]int
+	if literal == "" {
+		for i := range text {
+			matches = append(matches, []int{i, i})
+		}
+		return append(matches, []int{len(text), len(text)})
+	}
+	start := 0
+	for {
+		i := strings.Index(text[start:], literal)
+		if i < 0 {
+			return matches
+		}
+		start += i
+		matches = append(matches, []int{start, start + len(literal)})
+		start += len(literal)
+	}
 }
 
 // LineTooLongError describes a single line that exceeds the maximum pixel width.

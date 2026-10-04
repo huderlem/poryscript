@@ -2585,6 +2585,85 @@ func TestManualLineBreakSubSegmentWarning(t *testing.T) {
 	}
 }
 
+func TestLineTooLongWarningWithTextReplacements(t *testing.T) {
+	// Widths are validated on the replaced text, but warning positions must
+	// point at the original source. Each input is on its own line after a
+	// tab, so the string's content starts at column 2. TEST font glyphs are
+	// 10px and control codes are 100px, so with maxWidth=100 the 11th glyph
+	// overflows.
+	tests := []struct {
+		source                string
+		utf8CharStart         int
+		overflowUtf8CharStart int
+		utf8CharEnd           int
+		charStart             int
+		overflowCharStart     int
+		charEnd               int
+	}{
+		// "\e" -> "é" shrinks the text. Overflow is at "G" (11th glyph).
+		{`\e\e\e\eABCDEFGHIJK`, 2, 16, 21, 2, 16, 21},
+		// "\au" -> "{UP_ARROW}" grows the text. Overflow is at "\au".
+		{`Hi\auABCDEFG`, 2, 4, 14, 2, 4, 14},
+		// Multi-byte source characters mixed with replacements. Overflow is
+		// at "I" (11th glyph).
+		{`é\eABCDEFGHIJ`, 2, 13, 15, 2, 14, 16},
+	}
+	for _, tt := range tests {
+		input := "text MyText {\n\t\"" + tt.source + "\"\n}\n"
+		p := NewLintParser(lexer.New(input), CommandConfig{}, "../font_config.json", testFontID, 100)
+		program, err := p.ParseProgram()
+		if err != nil {
+			t.Fatalf("%s: unexpected parse error: %s", tt.source, err.Error())
+		}
+		if len(program.Warnings) != 1 {
+			t.Fatalf("%s: expected 1 warning, got %d", tt.source, len(program.Warnings))
+		}
+		w := program.Warnings[0]
+		if w.LineNumberStart != 2 || w.LineNumberEnd != 2 {
+			t.Errorf("%s: expected warning on line 2, got lines %d-%d", tt.source, w.LineNumberStart, w.LineNumberEnd)
+		}
+		if w.Utf8CharStart != tt.utf8CharStart || w.OverflowUtf8CharStart != tt.overflowUtf8CharStart || w.Utf8CharEnd != tt.utf8CharEnd {
+			t.Errorf("%s: expected UTF-8 chars start=%d overflow=%d end=%d, got start=%d overflow=%d end=%d", tt.source, tt.utf8CharStart, tt.overflowUtf8CharStart, tt.utf8CharEnd, w.Utf8CharStart, w.OverflowUtf8CharStart, w.Utf8CharEnd)
+		}
+		if w.CharStart != tt.charStart || w.OverflowCharStart != tt.overflowCharStart || w.CharEnd != tt.charEnd {
+			t.Errorf("%s: expected chars start=%d overflow=%d end=%d, got start=%d overflow=%d end=%d", tt.source, tt.charStart, tt.overflowCharStart, tt.charEnd, w.CharStart, w.OverflowCharStart, w.CharEnd)
+		}
+	}
+}
+
+func TestLineTooLongWarningWithNewlineTextReplacement(t *testing.T) {
+	// A replacement that inserts a real newline splits one source line into
+	// two logical lines. The second one must still map back to its source
+	// position.
+	input := "text MyText {\n\t\"Hi\\zABCDEFGHIJK\"\n}\n"
+	p := NewLintParser(lexer.New(input), CommandConfig{}, "../font_config.json", testFontID, 100)
+	fc := FontConfig{TextReplacements: []TextReplacement{{Pattern: `\z`, Replacement: "\n"}}}
+	if err := fc.compileReplacements(); err != nil {
+		t.Fatalf("compileReplacements failed: %s", err)
+	}
+	p.fonts = &fc
+	program, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf("unexpected parse error: %s", err.Error())
+	}
+	if len(program.Warnings) != 1 {
+		t.Fatalf("expected 1 warning, got %d", len(program.Warnings))
+	}
+	w := program.Warnings[0]
+	if w.LineNumberStart != 2 {
+		t.Errorf("expected warning on source line 2, got line %d", w.LineNumberStart)
+	}
+	if w.Utf8CharStart != 6 {
+		t.Errorf("expected Utf8CharStart 6, got %d", w.Utf8CharStart)
+	}
+	if w.OverflowUtf8CharStart != 16 {
+		t.Errorf("expected OverflowUtf8CharStart 16, got %d", w.OverflowUtf8CharStart)
+	}
+	if w.Utf8CharEnd != 17 {
+		t.Errorf("expected Utf8CharEnd 17, got %d", w.Utf8CharEnd)
+	}
+}
+
 func TestNoFontConfigNoWarnings(t *testing.T) {
 	// When no font config is provided, validation should be silently skipped.
 	input := `

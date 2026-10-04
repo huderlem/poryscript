@@ -1,6 +1,9 @@
 package parser
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestFormatText(t *testing.T) {
 	tests := []struct {
@@ -384,6 +387,59 @@ func TestApplyTextReplacements(t *testing.T) {
 		if result != tt.expected {
 			t.Errorf("TestApplyTextReplacements Test %d: Expected '%s', but Got '%s'", i, tt.expected, result)
 		}
+	}
+}
+
+func TestApplyTextReplacementsWithOffsets(t *testing.T) {
+	fc := FontConfig{
+		TextReplacements: []TextReplacement{
+			{Pattern: "\\e", Replacement: "é"},
+			{Pattern: "é", Replacement: "{E}"},
+			{Pattern: `\\h(\d+)`, Replacement: "{PAUSE_$1}", IsRegex: true},
+		},
+	}
+	if err := fc.compileReplacements(); err != nil {
+		t.Fatalf("compileReplacements failed: %s", err)
+	}
+
+	tests := []struct {
+		input           string
+		expected        string
+		expectedOffsets []int
+	}{
+		{"abc", "abc", []int{0, 1, 2, 3}},
+		{"", "", []int{0}},
+		// Chained replacements map back to the original text, not the
+		// intermediate result.
+		{`a\eb`, "a{E}b", []int{0, 1, 1, 1, 3, 4}},
+		{`\h5x`, "{PAUSE_5}x", []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 4}},
+	}
+
+	for i, tt := range tests {
+		result, offsets := fc.ApplyTextReplacementsWithOffsets(tt.input)
+		if result != tt.expected {
+			t.Errorf("TestApplyTextReplacementsWithOffsets Test %d: Expected Value '%s', but Got '%s'", i, tt.expected, result)
+		}
+		if !reflect.DeepEqual(offsets, tt.expectedOffsets) {
+			t.Errorf("TestApplyTextReplacementsWithOffsets Test %d: Expected Offsets '%v', but Got '%v'", i, tt.expectedOffsets, offsets)
+		}
+	}
+}
+
+func TestApplyTextReplacementsEmptyLiteralPattern(t *testing.T) {
+	// An empty literal pattern behaves like strings.ReplaceAll, inserting the
+	// replacement before every character and at the end.
+	fc := FontConfig{
+		TextReplacements: []TextReplacement{
+			{Pattern: "", Replacement: "-"},
+		},
+	}
+	if err := fc.compileReplacements(); err != nil {
+		t.Fatalf("compileReplacements failed: %s", err)
+	}
+	result := fc.ApplyTextReplacements("aé")
+	if result != "-a-é-" {
+		t.Errorf("Expected '-a-é-', but Got '%s'", result)
 	}
 }
 

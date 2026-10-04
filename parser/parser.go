@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/huderlem/poryscript/ast"
 	"github.com/huderlem/poryscript/lexer"
@@ -131,7 +132,7 @@ func NewLintParser(l *lexer.Lexer, commandConfig CommandConfig, fontConfigFilepa
 	return p
 }
 
-func (p *Parser) validateTextLineWidth(tok token.Token, text string) {
+func (p *Parser) validateTextLineWidth(tok token.Token) {
 	if !p.enableDiagnosticWarnings || p.fontConfigFilepath == "" {
 		return
 	}
@@ -153,34 +154,32 @@ func (p *Parser) validateTextLineWidth(tok token.Token, text string) {
 		maxWidth = p.fonts.Fonts[fontID].MaxLineLength
 	}
 
+	// Text replacement commands are a little tricky, since they get expanded.
+	// Width validation runs on the replaced text, so keep track of where each
+	// byte of it came from in order to report positions in the source text.
+	text, offsets := p.fonts.ApplyTextReplacementsWithOffsets(tok.Literal)
 	cursorOverlapWidth := p.fonts.Fonts[fontID].CursorOverlapWidth
 	lineErrors := p.fonts.ValidateLineWidths(text, fontID, maxWidth, cursorOverlapWidth)
+	if len(lineErrors) == 0 {
+		return
+	}
+	var lineStarts []int
+	lineStart := 0
+	for _, line := range strings.Split(text, "\n") {
+		lineStarts = append(lineStarts, lineStart)
+		lineStart += len(line) + 1
+	}
 	for _, le := range lineErrors {
-		// Resolve the source position for this logical line.
-		lineNumber := tok.LineNumber
-		charStart := tok.StartCharIndex
-		utf8CharStart := tok.StartUtf8CharIndex
-		overflowCharStart := tok.StartCharIndex + le.OverflowCharOffset
-		overflowUtf8CharStart := tok.StartUtf8CharIndex + le.OverflowUtf8CharOffset
-		charEnd := tok.EndCharIndex
-		utf8CharEnd := tok.EndUtf8CharIndex
-		if le.LineIndex < len(tok.OriginalLines) {
-			src := tok.OriginalLines[le.LineIndex]
-			lineNumber = src.Line
-			charStart = src.StartChar + le.CharOffset
-			utf8CharStart = src.StartUtf8Char + le.Utf8CharOffset
-			overflowCharStart = src.StartChar + le.OverflowCharOffset
-			overflowUtf8CharStart = src.StartUtf8Char + le.OverflowUtf8CharOffset
-			charEnd = src.StartChar + le.CharOffset + le.CharLength
-			utf8CharEnd = src.StartUtf8Char + le.Utf8CharOffset + le.Utf8CharLength
-		} else {
-			charStart = tok.StartCharIndex + le.CharOffset
-			utf8CharStart = tok.StartUtf8CharIndex + le.Utf8CharOffset
-		}
+		start := lineStarts[le.LineIndex] + le.CharOffset
+		overflow := lineStarts[le.LineIndex] + le.OverflowCharOffset
+		end := start + le.CharLength
+		lineNumberStart, charStart, utf8CharStart := literalSourcePosition(tok, offsets[start], false)
+		_, overflowCharStart, overflowUtf8CharStart := literalSourcePosition(tok, offsets[overflow], false)
+		lineNumberEnd, charEnd, utf8CharEnd := literalSourcePosition(tok, offsets[end], true)
 		p.warnings = append(p.warnings, ast.Warning{
 			Type:                  ast.WarningLineTooLong,
-			LineNumberStart:       lineNumber,
-			LineNumberEnd:         lineNumber,
+			LineNumberStart:       lineNumberStart,
+			LineNumberEnd:         lineNumberEnd,
 			CharStart:             charStart,
 			Utf8CharStart:         utf8CharStart,
 			OverflowCharStart:     overflowCharStart,
@@ -190,6 +189,25 @@ func (p *Parser) validateTextLineWidth(tok token.Token, text string) {
 			Message:               fmt.Sprintf("line of text exceeds maximum width (%d > %d pixels): \"%s\"", le.PixelWidth, le.MaxWidth, le.LineText),
 		})
 	}
+}
+
+func literalSourcePosition(tok token.Token, offset int, isEnd bool) (line, char, utf8Char int) {
+	lineStart := 0
+	for i, text := range strings.Split(tok.Literal, "\n") {
+		if offset <= lineStart+len(text) {
+			if i >= len(tok.OriginalLines) {
+				break
+			}
+			src := tok.OriginalLines[i]
+			col := offset - lineStart
+			return src.Line, src.StartChar + col, src.StartUtf8Char + utf8.RuneCountInString(text[:col])
+		}
+		lineStart += len(text) + 1
+	}
+	if isEnd {
+		return tok.EndLineNumber, tok.EndCharIndex, tok.EndUtf8CharIndex
+	}
+	return tok.LineNumber, tok.StartCharIndex, tok.StartUtf8CharIndex
 }
 
 // applyTextReplacements applies any configured text substitution rules from
@@ -687,7 +705,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (*ast.CommandStatement
 				argParts = append(argParts, "")
 			} else if token.IsStringLikeToken(p.curToken.Type) {
 				literal := p.applyTextReplacements(p.curToken.Literal)
-				p.validateTextLineWidth(p.curToken, literal)
+				p.validateTextLineWidth(p.curToken)
 				strToken := p.curToken
 				strToken.Literal = p.formatTextTerminator(literal, "")
 				impData.texts = append(impData.texts, impText{
@@ -704,7 +722,7 @@ func (p *Parser) parseCommandStatement(scriptName string) (*ast.CommandStatement
 					return nil, nil, NewParseError(p.curToken, fmt.Sprintf("expected a string literal after string type '%s'. Got '%s' instead", stringType, p.curToken.Literal))
 				}
 				literal := p.applyTextReplacements(p.curToken.Literal)
-				p.validateTextLineWidth(p.curToken, literal)
+				p.validateTextLineWidth(p.curToken)
 				strToken := p.curToken
 				strToken.Literal = p.formatTextTerminator(literal, stringType)
 				impData.texts = append(impData.texts, impText{
@@ -846,7 +864,7 @@ func (p *Parser) parseTextValue() (string, string, error) {
 		return p.formatTextTerminator(strValue, stringType), stringType, nil
 	} else if token.IsStringLikeToken(p.curToken.Type) {
 		literal := p.applyTextReplacements(p.curToken.Literal)
-		p.validateTextLineWidth(p.curToken, literal)
+		p.validateTextLineWidth(p.curToken)
 		return p.formatTextTerminator(literal, ""), "", nil
 	} else if p.curToken.Type == token.STRINGTYPE {
 		stringType := p.curToken.Literal
@@ -855,7 +873,7 @@ func (p *Parser) parseTextValue() (string, string, error) {
 			return "", "", NewParseError(p.curToken, fmt.Sprintf("expected a string literal after string type '%s'. Got '%s' instead", stringType, p.curToken.Literal))
 		}
 		literal := p.applyTextReplacements(p.curToken.Literal)
-		p.validateTextLineWidth(p.curToken, literal)
+		p.validateTextLineWidth(p.curToken)
 		return p.formatTextTerminator(literal, stringType), stringType, nil
 	} else {
 		return "", "", NewParseError(p.curToken, fmt.Sprintf("body of text statement must be a string or formatted string. Got '%s' instead", p.curToken.Literal))
