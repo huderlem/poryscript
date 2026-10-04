@@ -36,16 +36,16 @@ const (
 
 // Warning represents a non-fatal diagnostic produced during parsing.
 type Warning struct {
-	Type            WarningType
-	LineNumberStart int
-	LineNumberEnd   int
-	CharStart       int
-	Utf8CharStart   int
+	Type                  WarningType
+	LineNumberStart       int
+	LineNumberEnd         int
+	CharStart             int
+	Utf8CharStart         int
 	OverflowCharStart     int
 	OverflowUtf8CharStart int
-	CharEnd         int
-	Utf8CharEnd     int
-	Message         string
+	CharEnd               int
+	Utf8CharEnd           int
+	Message               string
 }
 
 // Program represents the root-level Node in any Poryscript AST.

@@ -92,14 +92,14 @@ func (fc *FontConfig) ApplyTextReplacements(text string) string {
 
 // LineTooLongError describes a single line that exceeds the maximum pixel width.
 type LineTooLongError struct {
-	LineIndex      int
-	LineText       string
-	PixelWidth     int
-	MaxWidth       int
-	CharOffset     int
-	Utf8CharOffset int
-	CharLength     int
-	Utf8CharLength int
+	LineIndex              int
+	LineText               string
+	PixelWidth             int
+	MaxWidth               int
+	CharOffset             int
+	Utf8CharOffset         int
+	CharLength             int
+	Utf8CharLength         int
 	OverflowCharOffset     int
 	OverflowUtf8CharOffset int
 }
@@ -143,14 +143,14 @@ func (fc *FontConfig) ValidateLineWidths(text, fontID string, maxWidth, cursorOv
 			width, overflowCharOffset, overflowUtf8CharOffset := fc.computeLinePixelWidth(seg.text, fontID, effectiveMaxWidth)
 			if width > effectiveMaxWidth && len(seg.text) > 0 {
 				errors = append(errors, LineTooLongError{
-					LineIndex:      i,
-					LineText:       seg.text,
-					PixelWidth:     width,
-					MaxWidth:       effectiveMaxWidth,
-					CharOffset:     seg.byteOffset,
-					Utf8CharOffset: seg.runeOffset,
-					CharLength:     len(seg.text),
-					Utf8CharLength: seg.runeLength,
+					LineIndex:              i,
+					LineText:               seg.text,
+					PixelWidth:             width,
+					MaxWidth:               effectiveMaxWidth,
+					CharOffset:             seg.byteOffset,
+					Utf8CharOffset:         seg.runeOffset,
+					CharLength:             len(seg.text),
+					Utf8CharLength:         seg.runeLength,
 					OverflowCharOffset:     seg.byteOffset + overflowCharOffset,
 					OverflowUtf8CharOffset: seg.runeOffset + overflowUtf8CharOffset,
 				})
